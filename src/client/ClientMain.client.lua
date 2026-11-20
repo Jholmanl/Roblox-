@@ -141,6 +141,9 @@ end)
 Remotes.Notify.OnClientEvent:Connect(function(kind, payload)
 	if kind == "Kill" then
 		HUD.Kill(payload)
+	elseif kind == "KOStreak" then
+		HUD.KOStreak()
+		Effects.Shake(1.2)
 	elseif kind == "Medal" then
 		HUD.Medals(payload.Medals)
 	elseif kind == "Achievement" then
@@ -191,6 +194,8 @@ Remotes.Killstreak.OnClientEvent:Connect(function(kind, duration)
 		HUD.Status("📡 UAV ACTIVE", duration)
 	elseif kind == "Overdrive" then
 		HUD.Status("⚡ OVERDRIVE", duration)
+	elseif kind == "InfiniteAmmo" then
+		Weapons.RefillReserve()
 	end
 end)
 
@@ -201,6 +206,10 @@ Remotes.Effect.OnClientEvent:Connect(function(kind, a, b, c)
 		Effects.Launch(a, b)
 	elseif kind == "Explosion" then
 		Effects.Explosion(a, b)
+	elseif kind == "Zap" then
+		Effects.Zap(a, b, Color3.fromRGB(80, 255, 120))
+	elseif kind == "Void" then
+		Effects.Void(a, b)
 	elseif kind == "Slam" then
 		Effects.Shockwave(a, b)
 	elseif kind == "Knife" then

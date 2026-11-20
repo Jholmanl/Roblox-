@@ -6,6 +6,7 @@ Weapons.Defs = {
 	-- PRIMARIES ---------------------------------------------------------
 	Striker = {
 		Name = "STRIKER AR", Class = "Assault Rifle", Slot = "Primary",
+		Model = "M4A1 pattern", Kickback = 0,
 		Damage = 24, HeadMult = 1.6, FireRate = 10, Auto = true,
 		Mag = 30, Reserve = 150, Reload = 2.0,
 		Spread = 2.2, AdsSpread = 0.4, Range = 600, FalloffStart = 120,
@@ -15,6 +16,7 @@ Weapons.Defs = {
 	},
 	Viper = {
 		Name = "VIPER SMG", Class = "SMG", Slot = "Primary",
+		Model = "MP5 pattern", Kickback = 0,
 		Damage = 17, HeadMult = 1.4, FireRate = 15, Auto = true,
 		Mag = 35, Reserve = 175, Reload = 1.6,
 		Spread = 3.0, AdsSpread = 1.0, Range = 300, FalloffStart = 60,
@@ -24,6 +26,7 @@ Weapons.Defs = {
 	},
 	Brute = {
 		Name = "BRUTE SHOTGUN", Class = "Shotgun", Slot = "Primary",
+		Model = "870 pump pattern", Kickback = 6,
 		Damage = 14, HeadMult = 1.3, FireRate = 1.3, Auto = false, Pellets = 9,
 		Mag = 6, Reserve = 36, Reload = 2.6,
 		Spread = 6.5, AdsSpread = 4.5, Range = 140, FalloffStart = 25,
@@ -33,6 +36,7 @@ Weapons.Defs = {
 	},
 	Hornet = {
 		Name = "HORNET BURST", Class = "Burst Rifle", Slot = "Primary",
+		Model = "FAMAS-style bullpup", Kickback = 0,
 		Damage = 31, HeadMult = 1.7, FireRate = 4, Auto = false, Burst = 3, BurstDelay = 0.06,
 		Mag = 24, Reserve = 120, Reload = 2.1,
 		Spread = 1.6, AdsSpread = 0.2, Range = 700, FalloffStart = 160,
@@ -42,6 +46,7 @@ Weapons.Defs = {
 	},
 	Inferno = {
 		Name = "INFERNO LMG", Class = "LMG", Slot = "Primary",
+		Model = "M249 pattern", Kickback = 0.5,
 		Damage = 26, HeadMult = 1.5, FireRate = 11, Auto = true,
 		Mag = 100, Reserve = 300, Reload = 4.2,
 		Spread = 3.2, AdsSpread = 1.0, Range = 600, FalloffStart = 140,
@@ -51,6 +56,7 @@ Weapons.Defs = {
 	},
 	Longbow = {
 		Name = "LONGBOW SNIPER", Class = "Sniper", Slot = "Primary",
+		Model = "AWM-style bolt action", Kickback = 5,
 		Damage = 95, HeadMult = 2.5, FireRate = 0.9, Auto = false, Penetrate = 1,
 		Mag = 5, Reserve = 30, Reload = 3.0,
 		Spread = 8, AdsSpread = 0, Range = 1500, FalloffStart = 1500,
@@ -60,6 +66,7 @@ Weapons.Defs = {
 	},
 	Railgun = {
 		Name = "RAILGUN", Class = "Exotic", Slot = "Primary",
+		Model = "Experimental coilgun", Kickback = 6,
 		Damage = 110, HeadMult = 2, FireRate = 1.2, Auto = false, Penetrate = 99,
 		Mag = 6, Reserve = 48, Reload = 2.4,
 		Spread = 1, AdsSpread = 0, Range = 2000, FalloffStart = 2000,
@@ -70,6 +77,7 @@ Weapons.Defs = {
 
 	Vanguard = {
 		Name = "VANGUARD CARBINE", Class = "Assault Rifle", Slot = "Primary",
+		Model = "AK-47 pattern", Kickback = 0,
 		Damage = 22, HeadMult = 1.6, FireRate = 11.5, Auto = true,
 		Mag = 30, Reserve = 150, Reload = 1.8,
 		Spread = 2.0, AdsSpread = 0.45, Range = 500, FalloffStart = 100,
@@ -79,6 +87,7 @@ Weapons.Defs = {
 	},
 	Tempest = {
 		Name = "TEMPEST PDW", Class = "SMG", Slot = "Primary",
+		Model = "P90-style bullpup", Kickback = 0,
 		Damage = 15, HeadMult = 1.4, FireRate = 18, Auto = true,
 		Mag = 40, Reserve = 200, Reload = 1.9,
 		Spread = 3.2, AdsSpread = 1.1, Range = 250, FalloffStart = 50,
@@ -88,6 +97,7 @@ Weapons.Defs = {
 	},
 	Ranger = {
 		Name = "RANGER DMR", Class = "DMR", Slot = "Primary",
+		Model = "SVD pattern", Kickback = 1.5,
 		Damage = 48, HeadMult = 2.0, FireRate = 4, Auto = false,
 		Mag = 15, Reserve = 75, Reload = 2.3,
 		Spread = 1.4, AdsSpread = 0.05, Range = 1000, FalloffStart = 300,
@@ -97,6 +107,7 @@ Weapons.Defs = {
 	},
 	Warden = {
 		Name = "WARDEN BATTLE RIFLE", Class = "Battle Rifle", Slot = "Primary",
+		Model = "SCAR-H pattern", Kickback = 1,
 		Damage = 34, HeadMult = 1.6, FireRate = 7, Auto = true,
 		Mag = 20, Reserve = 100, Reload = 2.4,
 		Spread = 2.4, AdsSpread = 0.5, Range = 700, FalloffStart = 180,
@@ -106,6 +117,7 @@ Weapons.Defs = {
 	},
 	Razor = {
 		Name = "RAZOR AUTO-SHOTGUN", Class = "Shotgun", Slot = "Primary",
+		Model = "AA-12 pattern", Kickback = 2,
 		Damage = 11, HeadMult = 1.3, FireRate = 4, Auto = true, Pellets = 7,
 		Mag = 12, Reserve = 48, Reload = 3.0,
 		Spread = 5.5, AdsSpread = 4, Range = 120, FalloffStart = 20,
@@ -115,6 +127,7 @@ Weapons.Defs = {
 	},
 	Duke = {
 		Name = "DUKE DOUBLE-BARREL", Class = "Shotgun", Slot = "Primary",
+		Model = "Side-by-side coach gun", Kickback = 9,
 		Damage = 13, HeadMult = 1.3, FireRate = 3.5, Auto = false, Pellets = 12,
 		Mag = 2, Reserve = 30, Reload = 2.2,
 		Spread = 7, AdsSpread = 5, Range = 110, FalloffStart = 20,
@@ -124,6 +137,7 @@ Weapons.Defs = {
 	},
 	Reaper = {
 		Name = "REAPER MINIGUN", Class = "Minigun", Slot = "Primary",
+		Model = "M134 rotary", Kickback = 0.25,
 		Damage = 19, HeadMult = 1.3, FireRate = 22, Auto = true, SpinUp = 0.7,
 		Mag = 200, Reserve = 400, Reload = 6,
 		Spread = 4, AdsSpread = 2.6, Range = 500, FalloffStart = 120,
@@ -133,6 +147,7 @@ Weapons.Defs = {
 	},
 	Titan = {
 		Name = "TITAN .50 SNIPER", Class = "Sniper", Slot = "Primary",
+		Model = "M82 .50 BMG pattern", Kickback = 8,
 		Damage = 140, HeadMult = 2.0, FireRate = 0.6, Auto = false, Penetrate = 2,
 		Mag = 4, Reserve = 24, Reload = 3.6,
 		Spread = 9, AdsSpread = 0, Range = 2000, FalloffStart = 2000,
@@ -142,6 +157,7 @@ Weapons.Defs = {
 	},
 	Havoc = {
 		Name = "HAVOC RPG", Class = "Launcher", Slot = "Primary",
+		Model = "RPG-7 pattern", Kickback = 9,
 		Damage = 150, HeadMult = 1, FireRate = 0.8, Auto = false,
 		Projectile = { Speed = 170, Gravity = 0, Radius = 16, Direct = 60, Size = 0.7 },
 		Mag = 1, Reserve = 6, Reload = 2.8,
@@ -152,6 +168,7 @@ Weapons.Defs = {
 	},
 	Thumper = {
 		Name = "THUMPER GRENADE LAUNCHER", Class = "Launcher", Slot = "Primary",
+		Model = "M32 MGL pattern", Kickback = 3,
 		Damage = 110, HeadMult = 1, FireRate = 1.6, Auto = false,
 		Projectile = { Speed = 115, Gravity = 70, Radius = 14, Direct = 30, Size = 0.6 },
 		Mag = 6, Reserve = 18, Reload = 3.2,
@@ -161,9 +178,32 @@ Weapons.Defs = {
 		Look = { Body = Color3.fromRGB(60, 62, 66), Accent = Color3.fromRGB(110, 200, 70), Length = 2.4, Barrel = 0.6, Scope = false, Drum = true },
 	},
 
+	PlasmaRifle = {
+		Name = "PLASMA RIFLE", Class = "Sci-Fi", Slot = "Primary",
+		Model = "Unreal: plasma repeater", Kickback = 0,
+		Damage = 21, HeadMult = 1.6, FireRate = 10, Auto = true,
+		Mag = 40, Reserve = 200, Reload = 2.2,
+		Spread = 1.8, AdsSpread = 0.4, Range = 600, FalloffStart = 150,
+		Recoil = 0.6, ZoomFov = 55, Speed = 1.0,
+		Price = 9000, Level = 22,
+		Look = { Body = Color3.fromRGB(30, 34, 44), Accent = Color3.fromRGB(0, 230, 255), Length = 2.8, Barrel = 0.6, Scope = false, Neon = true },
+	},
+	VoidCannon = {
+		Name = "VOID CANNON", Class = "Sci-Fi", Slot = "Primary",
+		Model = "Unreal: singularity launcher", Kickback = 8,
+		Damage = 160, HeadMult = 1, FireRate = 0.55, Auto = false,
+		Projectile = { Speed = 75, Gravity = 0, Radius = 20, Direct = 40, Size = 1.6, Effect = "Void" },
+		Mag = 2, Reserve = 8, Reload = 3.4,
+		Spread = 1, AdsSpread = 0.2, Range = 600, FalloffStart = 600,
+		Recoil = 5, ZoomFov = 55, Speed = 0.85,
+		Price = 20000, Level = 40,
+		Look = { Body = Color3.fromRGB(26, 22, 36), Accent = Color3.fromRGB(180, 80, 255), Length = 3.2, Barrel = 0.4, Scope = false, Neon = true },
+	},
+
 	-- SECONDARIES ------------------------------------------------------
 	Sidekick = {
 		Name = "SIDEKICK PISTOL", Class = "Pistol", Slot = "Secondary",
+		Model = "Modern striker pistol", Kickback = 0,
 		Damage = 28, HeadMult = 1.8, FireRate = 6, Auto = false,
 		Mag = 12, Reserve = 72, Reload = 1.3,
 		Spread = 1.6, AdsSpread = 0.4, Range = 300, FalloffStart = 60,
@@ -173,6 +213,7 @@ Weapons.Defs = {
 	},
 	Stinger = {
 		Name = "STINGER MACHINE PISTOL", Class = "Pistol", Slot = "Secondary",
+		Model = "Uzi-style machine pistol", Kickback = 0,
 		Damage = 16, HeadMult = 1.4, FireRate = 14, Auto = true,
 		Mag = 20, Reserve = 120, Reload = 1.4,
 		Spread = 3.0, AdsSpread = 1.4, Range = 200, FalloffStart = 40,
@@ -182,6 +223,7 @@ Weapons.Defs = {
 	},
 	HandCannon = {
 		Name = "HAND CANNON", Class = "Revolver", Slot = "Secondary",
+		Model = ".50 AE gas-operated pistol", Kickback = 2,
 		Damage = 58, HeadMult = 2.0, FireRate = 2.2, Auto = false,
 		Mag = 6, Reserve = 36, Reload = 2.2,
 		Spread = 1.8, AdsSpread = 0.2, Range = 400, FalloffStart = 100,
@@ -191,6 +233,7 @@ Weapons.Defs = {
 	},
 	Judge = {
 		Name = "JUDGE REVOLVER-SHOTGUN", Class = "Revolver", Slot = "Secondary",
+		Model = "Large-frame revolver", Kickback = 3,
 		Damage = 12, HeadMult = 1.4, FireRate = 2, Auto = false, Pellets = 6,
 		Mag = 5, Reserve = 30, Reload = 2.4,
 		Spread = 5, AdsSpread = 3.5, Range = 90, FalloffStart = 15,
@@ -200,6 +243,7 @@ Weapons.Defs = {
 	},
 	Arc = {
 		Name = "ARC ENERGY PISTOL", Class = "Energy Pistol", Slot = "Secondary",
+		Model = "Experimental energy pistol", Kickback = 0,
 		Damage = 30, HeadMult = 1.8, FireRate = 5, Auto = false,
 		Mag = 16, Reserve = 96, Reload = 1.5,
 		Spread = 1.2, AdsSpread = 0.2, Range = 450, FalloffStart = 120,
@@ -207,12 +251,23 @@ Weapons.Defs = {
 		Price = 3500, Level = 16,
 		Look = { Body = Color3.fromRGB(230, 230, 240), Accent = Color3.fromRGB(0, 204, 255), Length = 1.3, Barrel = 0.3, Scope = false, Neon = true },
 	},
+	RayGun = {
+		Name = "RAY GUN", Class = "Sci-Fi", Slot = "Secondary",
+		Model = "Unreal: retro ray pistol", Kickback = 0,
+		Damage = 45, HeadMult = 1.3, FireRate = 3.2, Auto = false,
+		Projectile = { Speed = 150, Gravity = 0, Radius = 6, Direct = 40, Size = 0.5, Effect = "Zap" },
+		Mag = 10, Reserve = 60, Reload = 2.0,
+		Spread = 0.8, AdsSpread = 0.2, Range = 500, FalloffStart = 500,
+		Recoil = 1.5, ZoomFov = 60, Speed = 1.08,
+		Price = 7500, Level = 20,
+		Look = { Body = Color3.fromRGB(200, 200, 210), Accent = Color3.fromRGB(80, 255, 120), Length = 1.4, Barrel = 0.4, Scope = false, Neon = true },
+	},
 }
 
 Weapons.Order = {
 	"Striker", "Vanguard", "Viper", "Tempest", "Brute", "Duke", "Hornet", "Ranger", "Warden", "Inferno",
-	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "Railgun",
-	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc",
+	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "PlasmaRifle", "VoidCannon", "Railgun",
+	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc", "RayGun",
 }
 
 function Weapons.Get(id: string)

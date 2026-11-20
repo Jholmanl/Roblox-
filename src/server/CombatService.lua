@@ -141,6 +141,10 @@ function Combat.AttachCharacter(entity, character: Model, weaponIds: { string })
 	entity.Humanoid = humanoid
 	entity.Root = root
 	entity.Dead = false
+	entity.InfiniteAmmo = false
+	if entity.Player then
+		entity.Player:SetAttribute("InfiniteAmmo", false)
+	end
 	entity.DamageLog = {}
 	entity.LastDamaged = 0
 	entity.Ammo = {}
@@ -266,12 +270,16 @@ end
 
 local MULTI_NAMES = { [2] = "DOUBLE KILL", [3] = "TRIPLE KILL", [4] = "QUAD KILL", [5] = "RAMPAGE" }
 local MULTI_STATS = { [2] = "DoubleKills", [3] = "TripleKills", [4] = "QuadKills", [5] = "Rampages" }
-local STREAK_NAMES = { [5] = "KILLING SPREE", [10] = "DOMINATING", [15] = "UNSTOPPABLE", [20] = "GODLIKE", [25] = "LEGENDARY" }
+local STREAK_NAMES = { [5] = "K.O STREAK 🔥", [10] = "DOMINATING", [15] = "UNSTOPPABLE", [20] = "GODLIKE", [25] = "LEGENDARY" }
 
 function Combat.HandleDeath(killer, victim, info)
 	local round = Combat.Hooks.Round
 	local victimStreak = victim.Streak
 	victim.Streak = 0
+	victim.InfiniteAmmo = false
+	if victim.Player then
+		victim.Player:SetAttribute("InfiniteAmmo", false)
+	end
 	victim.DeathsSinceKill += 1
 	victim.Holder:SetAttribute("Streak", 0)
 	if counting() then
@@ -321,6 +329,15 @@ function Combat.HandleDeath(killer, victim, info)
 	end
 	if STREAK_NAMES[killer.Streak] then
 		medal(STREAK_NAMES[killer.Streak], killer.Streak * 20)
+	end
+	if killer.Streak == 5 then
+		AchievementService.Add(kp, "KOStreaks", 1)
+		notify(killer, "KOStreak", { Streak = 5 })
+		for _, p in Players:GetPlayers() do
+			if p ~= kp then
+				Remotes.Notify:FireClient(p, "Message", { Text = killer.Name .. " is on a K.O STREAK 🔥", Color = Color3.fromRGB(255, 120, 40) })
+			end
+		end
 	end
 
 	-- style medals
@@ -681,7 +698,7 @@ function Combat.FireProjectile(entity, weaponId: string, origin: Vector3, dir: V
 			end
 			Combat.AreaDamage(entity, hitPos, spec.Radius, def.Damage, {
 				Weapon = weaponId, WeaponName = def.Name, Class = def.Class, Explosive = true, Projectile = true,
-			})
+			}, spec.Effect)
 			return
 		end
 		pos += step
@@ -714,15 +731,16 @@ Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flag
 	if now - (entity.LastFire[weaponId] or 0) < (1 / rate) * 0.75 then
 		return
 	end
+	local unlimited = entity.InfiniteAmmo == true
 	local reloadEnd = entity.Reload[weaponId]
-	if reloadEnd then
+	if reloadEnd and not unlimited then
 		if now >= reloadEnd - 0.3 then
 			completeReload(entity, weaponId)
 		else
 			return
 		end
 	end
-	if ammo.Mag <= 0 then
+	if ammo.Mag <= 0 and not unlimited then
 		return
 	end
 
@@ -737,7 +755,9 @@ Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flag
 		return
 	end
 	local cost = def.Burst and #clean or 1
-	ammo.Mag = math.max(0, ammo.Mag - cost)
+	if not unlimited then
+		ammo.Mag = math.max(0, ammo.Mag - cost)
+	end
 	entity.LastFire[weaponId] = now
 	removeSpawnProtection(entity)
 

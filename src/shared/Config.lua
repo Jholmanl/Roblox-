@@ -75,7 +75,8 @@ Config.Killstreaks = {
 	{ Id = "UAV", Kills = 3, Name = "UAV RADAR", Icon = "📡", Duration = 20 },
 	{ Id = "Overdrive", Kills = 5, Name = "OVERDRIVE", Icon = "⚡", Duration = 15 },
 	{ Id = "Airstrike", Kills = 7, Name = "AIRSTRIKE", Icon = "✈️" },
-	{ Id = "Nuke", Kills = 15, Name = "TACTICAL NUKE", Icon = "☢️" },
+	{ Id = "InfiniteAmmo", Kills = 15, Name = "INFINITE AMMO", Icon = "♾️" },
+	{ Id = "Nuke", Kills = 20, Name = "TACTICAL NUKE", Icon = "☢️" },
 }
 Config.AirstrikeRadius = 16
 Config.AirstrikeDamage = 160

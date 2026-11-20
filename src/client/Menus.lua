@@ -182,7 +182,7 @@ local function renderArmory(w)
 			local card = UIKit.Panel({ BackgroundColor3 = equipped and Color3.fromRGB(50, 44, 20) or T.Panel, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 6, Parent = list })
 			UIKit.Stroke(equipped and T.Accent or (def.Pass and T.Robux or Color3.new(1, 1, 1)), equipped and 2 or 1, equipped and 0 or 0.85).Parent = card
 			Label({ Text = def.Name, Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(10, 8), TextSize = 14, Font = T.Black, ZIndex = 7, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
-			Label({ Text = string.upper(def.Class) .. (def.Pass and "  ·  💎 EXCLUSIVE" or ""), Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 26), TextSize = 10, Font = T.Bold, TextColor3 = def.Pass and T.Robux or T.Sub, ZIndex = 7, Parent = card })
+			Label({ Text = string.upper(def.Class) .. (def.Pass and "  ·  💎 EXCLUSIVE" or (def.Model and ("  ·  " .. string.upper(def.Model)) or "")), Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 26), TextSize = 10, Font = T.Bold, TextColor3 = def.Pass and T.Robux or T.Sub, ZIndex = 7, Parent = card })
 			gunPreview(card, id)
 			local dps = def.Damage * (def.Pellets or 1) * def.FireRate * (def.Burst or 1)
 			statBar(card, 126, "DAMAGE", def.Damage * (def.Pellets or 1) / 130)

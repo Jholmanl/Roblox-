@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -32,6 +33,14 @@ local aiming = false
 local reloading = false
 local reloadStart, reloadEnd, reloadToken = 0, 0, 0
 local lastShot = 0
+local lastShotVis = -10 -- time of the last visual shot (drives moving parts)
+local animParts = {} -- moving parts of the current viewmodel
+local animPivots = {}
+local gunFlags = {}
+local cylAngle, cylTarget, barrelAngle = 0, 0, 0
+local function infinite(): boolean
+	return player:GetAttribute("InfiniteAmmo") == true
+end
 local burstBusy = false
 local bloom = 0
 local aimAlpha = 0
@@ -68,7 +77,7 @@ local function updateHud()
 	end
 	if current then
 		local a = ammo[current.Id]
-		WC.HUD.SetAmmo(a.Mag, a.Reserve, current.Def.Name, reloading, Weapons.MagSize(current.Def, extended()))
+		WC.HUD.SetAmmo(a.Mag, a.Reserve, current.Def.Name, reloading, Weapons.MagSize(current.Def, extended()), infinite())
 	else
 		WC.HUD.SetAmmo(0, 0, "", false, 1)
 	end
@@ -135,6 +144,23 @@ local function buildViewmodel(id: string)
 	end
 	model.Parent = camera
 	viewmodel = model
+	-- remember every moving part relative to the receiver
+	animParts = {}
+	animPivots = {
+		Cylinder = model:GetAttribute("CylinderPivot"),
+		Barrels = model:GetAttribute("BarrelsPivot"),
+		Break = model:GetAttribute("BreakPivot"),
+	}
+	gunFlags = { Shell = model:GetAttribute("Shell") or "Brass" }
+	local hcf = handle.CFrame
+	for _, p in model:GetDescendants() do
+		local kind = p:IsA("BasePart") and p:GetAttribute("Anim")
+		if kind then
+			gunFlags[kind] = true
+			table.insert(animParts, { Part = p, Kind = kind, Base = hcf:ToObjectSpace(p.CFrame), Color = p.Color })
+		end
+	end
+	cylAngle, cylTarget, barrelAngle = 0, 0, 0
 end
 
 local function buildKnife()
@@ -283,7 +309,62 @@ local function shotVisual(dir: Vector3)
 	end
 end
 
+local function ejectShell(kind: string)
+	if not viewmodel or kind == "None" then
+		return
+	end
+	local att = viewmodel.PrimaryPart and viewmodel.PrimaryPart:FindFirstChild("Eject")
+	if not att then
+		return
+	end
+	local isShell = kind == "Shell"
+	local shell = Instance.new("Part")
+	shell.Name = "Casing"
+	shell.Size = isShell and Vector3.new(0.14, 0.14, 0.3) or Vector3.new(0.06, 0.06, 0.16)
+	shell.Color = isShell and Color3.fromRGB(190, 40, 40) or Color3.fromRGB(205, 165, 75)
+	shell.Material = Enum.Material.Metal
+	shell.CFrame = att.WorldCFrame * CFrame.Angles(0, math.rad(90), 0)
+	shell.CanCollide = false
+	shell.CanQuery = false
+	shell.CanTouch = false
+	shell.CastShadow = false
+	shell.Parent = workspace:FindFirstChild("Effects") or workspace
+	local cam = camera.CFrame
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local carry = root and root.AssemblyLinearVelocity or Vector3.zero
+	shell.AssemblyLinearVelocity = carry + cam.RightVector * (9 + math.random() * 4) + cam.UpVector * (6 + math.random() * 3) - cam.LookVector * 2
+	shell.AssemblyAngularVelocity = Vector3.new(math.random(-25, 25), math.random(-25, 25), math.random(-25, 25))
+	task.delay(0.12, function()
+		if shell.Parent then
+			shell.CanCollide = true
+		end
+	end)
+	Debris:AddItem(shell, 2.5)
+end
+
 local function kickRecoil(def)
+	lastShotVis = os.clock()
+	cylTarget += math.pi / 3
+	-- spent casings: straight out for semi/auto, after the pump / bolt is cycled otherwise
+	if not gunFlags.Break then
+		local delay = (gunFlags.Pump or gunFlags.BoltAction) and 0.3 or 0
+		local shellKind = gunFlags.Shell
+		if delay > 0 then
+			task.delay(delay, ejectShell, shellKind)
+		else
+			ejectShell(shellKind)
+		end
+	end
+	-- slight physical kickback on the big guns
+	if (def.Kickback or 0) > 0 and character and not ClientState.Driving then
+		local root = character:FindFirstChild("HumanoidRootPart")
+		local look = camera.CFrame.LookVector
+		local flat = Vector3.new(look.X, 0, look.Z)
+		if root and flat.Magnitude > 0.01 then
+			root.AssemblyLinearVelocity += -flat.Unit * def.Kickback * (Movement.State.Airborne and 1.4 or 1)
+		end
+		Effects.Shake(def.Kickback * 0.07)
+	end
 	local adsFactor = 1 - aimAlpha * 0.45
 	recoilPitch += def.Recoil * adsFactor
 	recoilYaw += (math.random() - 0.5) * def.Recoil * 0.6 * adsFactor
@@ -294,8 +375,12 @@ local function kickRecoil(def)
 end
 
 function WC.Reload()
-	if not current or reloading or not alive() then
+	if not current or reloading or not alive() or infinite() then
 		return
+	end
+	if gunFlags.Break then
+		task.delay(0.35, ejectShell, "Shell")
+		task.delay(0.4, ejectShell, "Shell")
 	end
 	local def = current.Def
 	local a = ammo[current.Id]
@@ -343,7 +428,8 @@ local function tryShoot()
 		return
 	end
 	local a = ammo[current.Id]
-	if a.Mag <= 0 then
+	local unlimited = infinite()
+	if a.Mag <= 0 and not unlimited then
 		UIKit.Sound("Empty")
 		WC.Reload()
 		return
@@ -360,11 +446,13 @@ local function tryShoot()
 	local spread = currentSpread()
 	local dirs = {}
 	if def.Burst then
-		local rounds = math.min(def.Burst, a.Mag)
+		local rounds = unlimited and def.Burst or math.min(def.Burst, a.Mag)
 		for i = 1, rounds do
 			dirs[i] = spreadDir(camera.CFrame * CFrame.Angles(math.rad(def.Recoil * 0.25 * (i - 1)), 0, 0), spread)
 		end
-		a.Mag -= rounds
+		if not unlimited then
+			a.Mag -= rounds
+		end
 		burstBusy = true
 		for i, dir in dirs do
 			task.delay((i - 1) * def.BurstDelay, function()
@@ -380,12 +468,14 @@ local function tryShoot()
 			dirs[i] = spreadDir(camera.CFrame, spread)
 			shotVisual(dirs[i])
 		end
-		a.Mag -= 1
+		if not unlimited then
+			a.Mag -= 1
+		end
 		kickRecoil(def)
 	end
 	Remotes.Fire:FireServer(current.Id, origin, dirs, flags)
 	updateHud()
-	if a.Mag <= 0 then
+	if a.Mag <= 0 and not unlimited then
 		task.delay(0.25, WC.Reload)
 	end
 end
@@ -428,6 +518,72 @@ function WC.OnHit(info)
 		UIKit.Sound("Kill", 1.4)
 	else
 		UIKit.Sound("Hit", info.Headshot and 1.6 or 1.1)
+	end
+end
+
+-- MOVING PARTS ---------------------------------------------------------------------
+local function animateViewmodel(dt: number, now: number)
+	if not viewmodel or not current or not viewmodel.PrimaryPart then
+		return
+	end
+	local hcf = viewmodel.PrimaryPart.CFrame
+	local a = ammo[current.Id]
+	local empty = a ~= nil and a.Mag <= 0 and not infinite()
+	local t = now - lastShotVis
+	-- fast snap back, slower return (slides, bolts)
+	local pulse = t < 0.035 and t / 0.035 or math.max(0, 1 - (t - 0.035) / 0.09)
+	-- delayed rack (pump & bolt action)
+	local cycle = (t > 0.14 and t < 0.56) and math.sin((t - 0.14) / 0.42 * math.pi) or 0
+	local magOut = 0
+	if reloading then
+		local r = math.clamp((now - reloadStart) / math.max(0.01, reloadEnd - reloadStart), 0, 1)
+		magOut = r < 0.25 and r / 0.25 or (r < 0.6 and 1 or math.max(0, 1 - (r - 0.6) / 0.25))
+	end
+	cylAngle += (cylTarget - cylAngle) * math.min(1, dt * 18)
+	if current.Def.SpinUp then
+		barrelAngle += dt * spin * 45
+	else
+		barrelAngle += dt * (1.5 + pulse * 14)
+	end
+	local glow = math.max(0, 1 - t / 0.18)
+	local function around(pivot, rot, base)
+		local p = pivot or Vector3.zero
+		return hcf * CFrame.new(p) * rot * CFrame.new(-p) * base
+	end
+	for _, ap in animParts do
+		local kind = ap.Kind
+		local cf
+		if kind == "Slide" then
+			cf = hcf * CFrame.new(0, 0, empty and 0.2 or 0.22 * pulse) * ap.Base -- locks back when empty
+		elseif kind == "Bolt" then
+			cf = hcf * CFrame.new(0, 0, empty and 0.12 or 0.14 * pulse) * ap.Base
+		elseif kind == "Recoil" then
+			cf = hcf * CFrame.new(0, 0, 0.28 * pulse) * ap.Base
+		elseif kind == "Pump" then
+			cf = hcf * CFrame.new(0, 0, 0.34 * cycle) * ap.Base
+		elseif kind == "BoltAction" then
+			cf = hcf * CFrame.new(0, 0.07 * cycle, 0.3 * cycle) * ap.Base
+		elseif kind == "Trigger" then
+			cf = hcf * CFrame.new(0, 0, (firing or pulse > 0.3) and 0.035 or 0) * ap.Base
+		elseif kind == "Hammer" then
+			cf = hcf * ap.Base * CFrame.Angles(math.rad(-35) * pulse, 0, 0)
+		elseif kind == "Mag" then
+			cf = hcf * CFrame.new(0, -1.6 * magOut, 0.15 * magOut) * ap.Base
+		elseif kind == "Cylinder" then
+			cf = around(animPivots.Cylinder, CFrame.Angles(0, 0, cylAngle), ap.Base)
+		elseif kind == "Barrels" then
+			cf = around(animPivots.Barrels, CFrame.Angles(0, 0, barrelAngle), ap.Base)
+		elseif kind == "Break" then
+			cf = around(animPivots.Break, CFrame.Angles(-0.5 * magOut, 0, 0), ap.Base)
+		else
+			cf = hcf * ap.Base
+		end
+		ap.Part.CFrame = cf
+		if kind == "Payload" and empty then
+			ap.Part.LocalTransparencyModifier = 1
+		elseif kind == "Glow" then
+			ap.Part.Color = ap.Color:Lerp(Color3.new(1, 1, 1), glow * 0.8)
+		end
 	end
 end
 
@@ -542,6 +698,7 @@ local function render(dt: number)
 
 		local scoped = def.Scoped and aimAlpha > 0.85
 		setViewmodelVisible(not scoped)
+		animateViewmodel(dt, now)
 		if WC.HUD then
 			WC.HUD.SetScope(scoped)
 			local px = math.tan(math.rad(currentSpread())) / math.tan(math.rad(camera.FieldOfView / 2)) * (camera.ViewportSize.Y / 2)
@@ -679,6 +836,7 @@ function WC.Init()
 		bindMobile()
 	end
 	Remotes.HitConfirm.OnClientEvent:Connect(WC.OnHit)
+	player:GetAttributeChangedSignal("InfiniteAmmo"):Connect(updateHud)
 	RunService:BindToRenderStep("NS_Weapons", Enum.RenderPriority.Camera.Value + 1, render)
 end
 

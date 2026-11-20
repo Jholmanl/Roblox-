@@ -120,6 +120,39 @@ function Effects.Explosion(position: Vector3, radius: number)
 	shakeFrom(position, 3, radius * 4)
 end
 
+-- Sci-fi impacts
+function Effects.Zap(position: Vector3, radius: number, color: Color3)
+	local ball = fxPart(Vector3.one, CFrame.new(position), color, 0)
+	ball.Shape = Enum.PartType.Ball
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = radius * 3
+	light.Brightness = 5
+	light.Parent = ball
+	TweenService:Create(ball, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { Size = Vector3.one * radius * 2, Transparency = 1 }):Play()
+	Debris:AddItem(ball, 0.3)
+	Effects.Sound3D("Hit", position, 0.5)
+	shakeFrom(position, 1, radius * 4)
+end
+
+function Effects.Void(position: Vector3, radius: number)
+	local purple = Color3.fromRGB(170, 70, 255)
+	-- implode then burst
+	local core = fxPart(Vector3.one * radius * 1.6, CFrame.new(position), Color3.fromRGB(20, 0, 40), 0.2)
+	core.Shape = Enum.PartType.Ball
+	core.Material = Enum.Material.Glass
+	TweenService:Create(core, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = Vector3.one * 0.5 }):Play()
+	local ring = fxPart(Vector3.new(0.4, 2, 2), CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)), purple, 0.1)
+	ring.Shape = Enum.PartType.Cylinder
+	task.delay(0.35, function()
+		TweenService:Create(ring, TweenInfo.new(0.4, Enum.EasingStyle.Quad), { Size = Vector3.new(0.2, radius * 2.4, radius * 2.4), Transparency = 1 }):Play()
+		Effects.Zap(position, radius * 0.7, purple)
+		shakeFrom(position, 3, radius * 4)
+	end)
+	Debris:AddItem(core, 0.4)
+	Debris:AddItem(ring, 0.9)
+end
+
 function Effects.Shockwave(position: Vector3, radius: number)
 	local ring = fxPart(Vector3.new(0.4, 2, 2), CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)), Config.Colors.Accent2, 0.1)
 	ring.Shape = Enum.PartType.Cylinder

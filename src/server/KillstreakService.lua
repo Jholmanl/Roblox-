@@ -119,6 +119,17 @@ function KillstreakService.Activate(entity, id: string): boolean
 		end
 		AchievementService.Add(player, "Overdrives", 1)
 		announce("OVERDRIVE", entity.Name .. " is moving and shooting faster", Config.Colors.Accent, "⚡")
+	elseif id == "InfiniteAmmo" then
+		entity.InfiniteAmmo = true
+		for weaponId in entity.Ammo do
+			entity.Reload[weaponId] = nil
+		end
+		if player then
+			player:SetAttribute("InfiniteAmmo", true)
+			Remotes.Killstreak:FireClient(player, "InfiniteAmmo", 0)
+		end
+		AchievementService.Add(player, "InfiniteAmmos", 1)
+		announce("INFINITE AMMO", entity.Name .. " never has to reload again (until they die)", Config.Colors.Gold, "♾️")
 	elseif id == "Airstrike" then
 		airstrike(entity)
 		AchievementService.Add(player, "Airstrikes", 1)

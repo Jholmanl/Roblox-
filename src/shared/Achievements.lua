@@ -24,11 +24,14 @@ local list = {
 	{ Id = "Triple", Name = "Hat Trick", Desc = "Get a Triple Kill", Stat = "TripleKills", Goal = 1, Reward = 400, Icon = "🎩", Category = "Streaks" },
 	{ Id = "Quad", Name = "Fourth Horseman", Desc = "Get a Quad Kill", Stat = "QuadKills", Goal = 1, Reward = 1000, Icon = "🐎", Category = "Streaks" },
 	{ Id = "Rampage", Name = "Rampage", Desc = "Get 5+ kills in rapid succession", Stat = "Rampages", Goal = 1, Reward = 2500, Icon = "🌪️", Category = "Streaks" },
+	{ Id = "KO1", Name = "K.O!", Desc = "Get a K.O Streak (5 kills without dying)", Stat = "KOStreaks", Goal = 1, Reward = 300, Icon = "🔥", Category = "Streaks" },
+	{ Id = "KO25", Name = "Knockout Artist", Desc = "Get 25 K.O Streaks", Stat = "KOStreaks", Goal = 25, Reward = 3000, Icon = "🥊", Category = "Streaks" },
+	{ Id = "Infinite1", Name = "Bottomless Mag", Desc = "Earn Infinite Ammo (15 kills without dying)", Stat = "InfiniteAmmos", Goal = 1, Reward = 2500, Icon = "♾️", Category = "Streaks" },
 	{ Id = "UAV1", Name = "Eyes in the Sky", Desc = "Call in a UAV", Stat = "UAVs", Goal = 1, Reward = 200, Icon = "📡", Category = "Streaks" },
 	{ Id = "Overdrive1", Name = "Overclocked", Desc = "Activate Overdrive", Stat = "Overdrives", Goal = 1, Reward = 300, Icon = "⚡", Category = "Streaks" },
 	{ Id = "Airstrike1", Name = "Danger Close", Desc = "Call in an Airstrike", Stat = "Airstrikes", Goal = 1, Reward = 500, Icon = "✈️", Category = "Streaks" },
 	{ Id = "AirstrikeKills", Name = "Carpet Bomber", Desc = "Get 25 Airstrike kills", Stat = "AirstrikeKills", Goal = 25, Reward = 2500, Icon = "💣", Category = "Streaks" },
-	{ Id = "Nuke1", Name = "Mutually Assured", Desc = "Drop a Tactical Nuke", Stat = "Nukes", Goal = 1, Reward = 5000, Icon = "☢️", Category = "Streaks" },
+	{ Id = "Nuke1", Name = "Mutually Assured", Desc = "Drop a Tactical Nuke (20 kill streak)", Stat = "Nukes", Goal = 1, Reward = 5000, Icon = "☢️", Category = "Streaks" },
 
 	-- Style (the stuff that makes Neon Strike different)
 	{ Id = "Slide1", Name = "Slippery", Desc = "Get a kill while sliding", Stat = "SlideKills", Goal = 1, Reward = 200, Icon = "🛝", Category = "Style" },

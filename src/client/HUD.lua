@@ -206,12 +206,18 @@ local function buildAmmo()
 	chip(4, "🔪 <font color='#9AA2B4'>[V]</font>")
 end
 
-function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: boolean, magSize: number)
+function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: boolean, magSize: number, unlimited: boolean?)
 	if not refs.Mag then
 		return
 	end
 	refs.WeaponName.Text = name
-	refs.Reserve.Text = "/ " .. reserve
+	refs.Reserve.Text = unlimited and "/ ∞" or ("/ " .. reserve)
+	if unlimited then
+		refs.Mag.Text = "∞"
+		refs.Mag.TextColor3 = T.Accent
+		refs.MagFill.Size = UDim2.fromScale(1, 1)
+		return
+	end
 	if reloading then
 		refs.Mag.Text = "···"
 		refs.Mag.TextColor3 = T.Accent
@@ -559,6 +565,45 @@ function HUD.HideDeath()
 	end
 end
 
+-- K.O STREAK 🔥 (5 kills without dying) -------------------------------------------------
+function HUD.KOStreak()
+	local holder = new("Frame", { Name = "KOStreak", Size = UDim2.fromOffset(720, 150), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, ZIndex = 30, Parent = gui })
+	local band = new("Frame", { Size = UDim2.new(1, 0, 0, 96), Position = UDim2.fromScale(0.5, 0.45), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Color3.fromRGB(255, 90, 20), BorderSizePixel = 0, ZIndex = 30, Parent = holder })
+	new("UIGradient", {
+		Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 40, 20)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 170, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 40, 20)) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, 0.25), NumberSequenceKeypoint.new(0.8, 0.25), NumberSequenceKeypoint.new(1, 1) }),
+		Parent = band,
+	})
+	local title = Label({ Text = "🔥 K.O STREAK 🔥", Size = UDim2.new(1, 0, 0, 80), Position = UDim2.fromScale(0.5, 0.45), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 72, Font = T.Black, TextColor3 = Color3.new(1, 1, 1), ZIndex = 31, Parent = holder })
+	new("UIStroke", { Color = Color3.fromRGB(120, 20, 0), Thickness = 4, Parent = title })
+	local sub = Label({ Text = "5 KILLS WITHOUT DYING  ·  INFINITE AMMO AT 15", Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0.5, 0, 0.45, 56), AnchorPoint = Vector2.new(0.5, 0), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, Font = T.Black, TextColor3 = Color3.fromRGB(255, 230, 180), ZIndex = 31, Parent = holder })
+	UIKit.TextStroke(0.2).Parent = sub
+	local scale = new("UIScale", { Scale = 2.6, Parent = holder })
+	holder.Rotation = -8
+	UIKit.Tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+	UIKit.Tween(holder, 0.35, { Rotation = 0 }, Enum.EasingStyle.Back)
+	UIKit.Sound("Unlock", 0.7)
+	UIKit.Sound("Kill", 0.6)
+	hurtFlash = 0
+	-- flicker like flames
+	task.spawn(function()
+		local start = os.clock()
+		while holder.Parent and os.clock() - start < 2.6 do
+			local f = 0.5 + 0.5 * math.sin((os.clock() - start) * 18)
+			title.TextColor3 = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 220, 120), f)
+			task.wait(0.03)
+		end
+	end)
+	task.delay(2.6, function()
+		UIKit.Tween(scale, 0.3, { Scale = 0.6 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		UIKit.Tween(band, 0.3, { BackgroundTransparency = 1 })
+		UIKit.Tween(title, 0.3, { TextTransparency = 1 })
+		UIKit.Tween(sub, 0.3, { TextTransparency = 1 })
+		task.wait(0.35)
+		holder:Destroy()
+	end)
+end
+
 -- NUKE ------------------------------------------------------------------------------
 function HUD.Nuke(seconds: number, owner: string)
 	HUD.Announce({ Text = "TACTICAL NUKE INCOMING", Sub = "Dropped by " .. owner, Color = T.Red, Icon = "☢️" })
@@ -712,6 +757,8 @@ local function update(dt: number)
 	-- status line (killstreaks)
 	if clock < statusUntil then
 		refs.Status.Text = string.format("%s  %ds", statusText, math.ceil(statusUntil - clock))
+	elseif player:GetAttribute("InfiniteAmmo") then
+		refs.Status.Text = "♾️ INFINITE AMMO — NO RELOADS UNTIL YOU DIE"
 	elseif ClientState.Overdrive() then
 		refs.Status.Text = "⚡ OVERDRIVE ACTIVE"
 	else

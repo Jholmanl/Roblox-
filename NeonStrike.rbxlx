@@ -36,11 +36,14 @@ local list = {
 	{ Id = "Triple", Name = "Hat Trick", Desc = "Get a Triple Kill", Stat = "TripleKills", Goal = 1, Reward = 400, Icon = "🎩", Category = "Streaks" },
 	{ Id = "Quad", Name = "Fourth Horseman", Desc = "Get a Quad Kill", Stat = "QuadKills", Goal = 1, Reward = 1000, Icon = "🐎", Category = "Streaks" },
 	{ Id = "Rampage", Name = "Rampage", Desc = "Get 5+ kills in rapid succession", Stat = "Rampages", Goal = 1, Reward = 2500, Icon = "🌪️", Category = "Streaks" },
+	{ Id = "KO1", Name = "K.O!", Desc = "Get a K.O Streak (5 kills without dying)", Stat = "KOStreaks", Goal = 1, Reward = 300, Icon = "🔥", Category = "Streaks" },
+	{ Id = "KO25", Name = "Knockout Artist", Desc = "Get 25 K.O Streaks", Stat = "KOStreaks", Goal = 25, Reward = 3000, Icon = "🥊", Category = "Streaks" },
+	{ Id = "Infinite1", Name = "Bottomless Mag", Desc = "Earn Infinite Ammo (15 kills without dying)", Stat = "InfiniteAmmos", Goal = 1, Reward = 2500, Icon = "♾️", Category = "Streaks" },
 	{ Id = "UAV1", Name = "Eyes in the Sky", Desc = "Call in a UAV", Stat = "UAVs", Goal = 1, Reward = 200, Icon = "📡", Category = "Streaks" },
 	{ Id = "Overdrive1", Name = "Overclocked", Desc = "Activate Overdrive", Stat = "Overdrives", Goal = 1, Reward = 300, Icon = "⚡", Category = "Streaks" },
 	{ Id = "Airstrike1", Name = "Danger Close", Desc = "Call in an Airstrike", Stat = "Airstrikes", Goal = 1, Reward = 500, Icon = "✈️", Category = "Streaks" },
 	{ Id = "AirstrikeKills", Name = "Carpet Bomber", Desc = "Get 25 Airstrike kills", Stat = "AirstrikeKills", Goal = 25, Reward = 2500, Icon = "💣", Category = "Streaks" },
-	{ Id = "Nuke1", Name = "Mutually Assured", Desc = "Drop a Tactical Nuke", Stat = "Nukes", Goal = 1, Reward = 5000, Icon = "☢️", Category = "Streaks" },
+	{ Id = "Nuke1", Name = "Mutually Assured", Desc = "Drop a Tactical Nuke (20 kill streak)", Stat = "Nukes", Goal = 1, Reward = 5000, Icon = "☢️", Category = "Streaks" },
 
 	-- Style (the stuff that makes Neon Strike different)
 	{ Id = "Slide1", Name = "Slippery", Desc = "Get a kill while sliding", Stat = "SlideKills", Goal = 1, Reward = 200, Icon = "🛝", Category = "Style" },
@@ -595,7 +598,8 @@ Config.Killstreaks = {
 	{ Id = "UAV", Kills = 3, Name = "UAV RADAR", Icon = "📡", Duration = 20 },
 	{ Id = "Overdrive", Kills = 5, Name = "OVERDRIVE", Icon = "⚡", Duration = 15 },
 	{ Id = "Airstrike", Kills = 7, Name = "AIRSTRIKE", Icon = "✈️" },
-	{ Id = "Nuke", Kills = 15, Name = "TACTICAL NUKE", Icon = "☢️" },
+	{ Id = "InfiniteAmmo", Kills = 15, Name = "INFINITE AMMO", Icon = "♾️" },
+	{ Id = "Nuke", Kills = 20, Name = "TACTICAL NUKE", Icon = "☢️" },
 }
 Config.AirstrikeRadius = 16
 Config.AirstrikeDamage = 160
@@ -629,11 +633,24 @@ return Config
       <Item class="ModuleScript" referent="5">
         <Properties>
           <string name="Name">GunBuilder</string>
-          <string name="Source"><![CDATA[-- Builds detailed gun models out of parts (no uploaded meshes needed).
--- Every weapon gets a realistic silhouette for its type: receivers, rails,
--- handguards, curved mags, optics, stocks, muzzle devices, bipods...
--- The barrel points down the Handle's -Z axis.
--- Attachments on the Handle: Muzzle, Sight (ADS height), GripPoint (right hand), ForePoint (left hand).
+          <string name="Source"><![CDATA[-- Builds detailed gun models out of parts, modeled after real-world firearm
+-- designs (plus a few sci-fi ones). No uploaded meshes needed.
+--
+-- Conventions: the Handle (receiver/frame) sits at the origin, the barrel points
+-- down -Z, +Y is up and +X is the right-hand (ejection) side.
+-- Attachments on the Handle: Muzzle, Sight, GripPoint, ForePoint, Eject.
+-- Moving parts carry an "Anim" attribute that WeaponController animates:
+--   Slide / Bolt   - snap back on every shot
+--   Pump           - racks back after a shot (pump shotguns)
+--   BoltAction     - lifts & pulls back after a shot (bolt-action rifles)
+--   Recoil         - recoiling barrel (Barrett)
+--   Cylinder       - rotates one chamber per shot around the model's CylinderPivot
+--   Barrels        - spins continuously while firing around BarrelsPivot (minigun)
+--   Break          - tips open around BreakPivot while reloading (double-barrel)
+--   Mag            - drops out & returns while reloading
+--   Payload        - hidden while the weapon is empty (RPG warhead)
+--   Trigger / Hammer - small movement while firing
+--   Glow           - flashes bright on each shot (sci-fi)
 local Weapons = require(script.Parent.Weapons)
 
 local GunBuilder = {}
@@ -642,482 +659,896 @@ local rgb = Color3.fromRGB
 local M = Enum.Material
 local GOLD = rgb(255, 196, 40)
 local STEEL = rgb(78, 81, 88)
-local DARKSTEEL = rgb(44, 46, 50)
+local DARK = rgb(44, 46, 50)
+local BLACK = rgb(30, 31, 34)
 local POLY = rgb(58, 60, 64)
-local WOOD = rgb(122, 76, 42)
-local CHROME = rgb(190, 192, 198)
+local WOOD = rgb(128, 78, 42)
+local WOOD_DARK = rgb(96, 58, 32)
+local TAN = rgb(176, 150, 108)
+local OD = rgb(84, 92, 62)
+local CHROME = rgb(196, 198, 204)
+local BRASS = rgb(200, 160, 70)
 local ALONG_Z = CFrame.Angles(0, math.rad(90), 0) -- cylinders run along X; rotate onto Z
 
--- weapon id -> style + options
 local STYLES = {
-	Striker = { "Rifle", Optic = "RedDot" },
-	Vanguard = { "Rifle", Short = true, Optic = "Holo" },
-	Hornet = { "Rifle", Optic = "Scope" },
-	Warden = { "Battle", Optic = "Holo" },
-	Ranger = { "DMR", Optic = "Scope" },
-	Viper = { "SMG", Optic = "RedDot" },
-	Tempest = { "SMG", Optic = "Holo", Long = true },
-	Inferno = { "LMG" },
-	Longbow = { "Sniper" },
-	Titan = { "Sniper", Heavy = true },
-	Brute = { "Pump", Wood = true },
-	Razor = { "AutoShotgun" },
-	Duke = { "DoubleBarrel" },
-	Reaper = { "Minigun" },
-	Havoc = { "RPG" },
-	Thumper = { "GL" },
-	Railgun = { "Railgun" },
-	Sidekick = { "Pistol" },
-	Stinger = { "MachinePistol" },
-	HandCannon = { "Revolver" },
-	Judge = { "Revolver", Fat = true },
-	Arc = { "EnergyPistol" },
+	Striker = "M4", Vanguard = "AK", Viper = "MP5", Tempest = "PDW", Hornet = "FAMAS", Warden = "SCAR",
+	Ranger = "SVD", Inferno = "M249", Longbow = "AWM", Titan = "Barrett", Brute = "Pump", Razor = "AA12",
+	Duke = "Double", Reaper = "Minigun", Havoc = "RPG", Thumper = "M32", Railgun = "Railgun",
+	Sidekick = "Pistol", Stinger = "Uzi", HandCannon = "Deagle", Judge = "Revolver", Arc = "Energy",
+	RayGun = "RayGun", PlasmaRifle = "Plasma", VoidCannon = "Void",
 }
-
-local function newPart(model, name, size, cf, color, material, shape)
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Size = Vector3.new(math.max(size.X, 0.05), math.max(size.Y, 0.05), math.max(size.Z, 0.05))
-	p.CFrame = cf
-	p.Color = color
-	p.Material = material or M.SmoothPlastic
-	if shape then
-		p.Shape = shape
-	end
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.Massless = true
-	p.CastShadow = false
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = model
-	return p
-end
 
 function GunBuilder.Build(weaponId: string, golden: boolean?)
 	local def = Weapons.Get(weaponId)
 	local look = def.Look
-	local style = STYLES[weaponId] or { "Rifle" }
-	local kind = style[1]
+	local style = STYLES[weaponId] or "M4"
 	local L = look.Length
-	local B = look.Barrel
+	local accent = look.Accent
+	local accentMat = look.Neon and M.Neon or M.SmoothPlastic
 
 	local model = Instance.new("Model")
 	model.Name = weaponId
-
-	local furniture = style.Wood and WOOD or look.Body -- stock / handguard / grip color
-	local accent = look.Accent
-	local accentMat = look.Neon and M.Neon or M.SmoothPlastic
 	local parts = {}
 
-	local function box(name, size, cf, color, material)
-		local p = newPart(model, name, size, cf, color or STEEL, material or M.Metal)
-		table.insert(parts, p)
-		return p
-	end
-	local function cyl(name, length, diameter, cf, color, material)
-		local p = newPart(model, name, Vector3.new(length, diameter, diameter), cf * ALONG_Z, color or STEEL, material or M.Metal, Enum.PartType.Cylinder)
+	local function make(name, size, cf, color, material, shape, anim)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = Vector3.new(math.max(size.X, 0.03), math.max(size.Y, 0.03), math.max(size.Z, 0.03))
+		p.CFrame = cf
+		p.Color = color or STEEL
+		p.Material = material or M.Metal
+		if shape then
+			p.Shape = shape
+		end
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Massless = true
+		p.CastShadow = false
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		if anim then
+			p:SetAttribute("Anim", anim)
+		end
+		p.Parent = model
 		table.insert(parts, p)
 		return p
 	end
 	local function at(x, y, z)
 		return CFrame.new(x, y, z)
 	end
+	local function box(name, size, cf, color, material, anim)
+		return make(name, size, cf, color, material, nil, anim)
+	end
+	-- cylinder along the gun's Z axis
+	local function cyl(name, length, d, cf, color, material, anim)
+		return make(name, Vector3.new(length, d, d), cf * ALONG_Z, color, material, Enum.PartType.Cylinder, anim)
+	end
+	-- cylinder along the gun's X axis (sideways drums, knobs)
+	local function cylX(name, length, d, cf, color, material, anim)
+		return make(name, Vector3.new(length, d, d), cf, color, material, Enum.PartType.Cylinder, anim)
+	end
+	local function ball(name, d, cf, color, material, anim)
+		return make(name, Vector3.new(d, d, d), cf, color, material, Enum.PartType.Ball, anim)
+	end
 
-	-- the Handle is always the receiver / main body
-	local recLen = L * 0.34
-	local handle = newPart(model, "Handle", Vector3.new(0.3, 0.4, recLen), at(0, 0, 0), STEEL, M.Metal)
+	local handle = make("Handle", Vector3.new(0.3, 0.38, L * 0.34), at(0, 0, 0), STEEL, M.Metal)
+	table.remove(parts) -- the handle is not welded to itself
 	model.PrimaryPart = handle
 
-	local info = { Grip = Vector3.new(0, -0.42, recLen * 0.25), Fore = Vector3.new(0, -0.22, -recLen * 0.9), Muzzle = Vector3.new(0, 0.05, -L / 2 - B), Sight = 0.42 }
+	local info = {
+		Grip = Vector3.new(0, -0.45, 0.3), Fore = Vector3.new(0, -0.2, -0.9),
+		Muzzle = Vector3.new(0, 0.05, -L / 2 - look.Barrel), Sight = 0.42,
+		Eject = Vector3.new(0.17, 0.06, 0), Shell = "Brass",
+	}
 
-	----------------------------------------------------------------- shared pieces
-	local function topRail(z0, z1, y)
+	-------------------------------------------------------------- shared parts
+	local function rail(z0, z1, y, x, sideways)
 		local len = z1 - z0
-		box("Rail", Vector3.new(0.2, 0.06, len), at(0, y, (z0 + z1) / 2), DARKSTEEL)
-		local count = math.floor(len / 0.11)
-		for i = 0, math.min(count, 14) - 1 do
-			box("RailSlot", Vector3.new(0.24, 0.045, 0.045), at(0, y + 0.04, z0 + 0.06 + i * (len / math.max(1, count))), DARKSTEEL)
+		if sideways then
+			box("SideRail", Vector3.new(0.05, 0.12, len), at(x, y, (z0 + z1) / 2), BLACK)
+			return
+		end
+		box("Rail", Vector3.new(0.2, 0.06, len), at(x or 0, y, (z0 + z1) / 2), BLACK)
+		local count = math.min(14, math.floor(len / 0.11))
+		for i = 0, count - 1 do
+			box("RailSlot", Vector3.new(0.23, 0.04, 0.04), at(x or 0, y + 0.04, z0 + 0.06 + i * (len / count)), BLACK)
 		end
 	end
-	local function pistolGrip(z, angle, color)
-		box("Grip", Vector3.new(0.22, 0.62, 0.3), at(0, -0.46, z) * CFrame.Angles(math.rad(angle or -16), 0, 0), color or POLY, M.SmoothPlastic)
-		box("GripCap", Vector3.new(0.24, 0.06, 0.32), at(0, -0.78, z + 0.1) * CFrame.Angles(math.rad(angle or -16), 0, 0), color or POLY, M.SmoothPlastic)
+	local function barrel(z0, length, d, y)
+		cyl("Barrel", length, d, at(0, y, z0 - length / 2), DARK)
+		info.Muzzle = Vector3.new(0, y, z0 - length)
+	end
+	local function birdcage(d)
+		local z, y = info.Muzzle.Z, info.Muzzle.Y
+		cyl("FlashHider", 0.26, d, at(0, y, z - 0.13), BLACK)
+		for i = 1, 4 do
+			local a = i / 4 * math.pi * 2
+			box("FlashSlot", Vector3.new(0.03, 0.03, 0.18), at(math.cos(a) * d / 2, y + math.sin(a) * d / 2, z - 0.15), rgb(15, 15, 16))
+		end
+		info.Muzzle = Vector3.new(0, y, z - 0.26)
+	end
+	local function brake(d, len, wide)
+		local z, y = info.Muzzle.Z, info.Muzzle.Y
+		if wide then
+			box("Brake", Vector3.new(d * 1.6, d, len), at(0, y, z - len / 2), BLACK)
+			for i = 1, 2 do
+				box("BrakePort", Vector3.new(d * 1.62, d * 0.55, len * 0.18), at(0, y, z - len * (i / 3)), rgb(12, 12, 12))
+			end
+		else
+			cyl("Brake", len, d, at(0, y, z - len / 2), BLACK)
+			for i = 1, 3 do
+				box("BrakePort", Vector3.new(d + 0.03, 0.04, 0.05), at(0, y, z - len * (i / 4)), rgb(12, 12, 12))
+			end
+		end
+		info.Muzzle = Vector3.new(0, y, z - len)
+	end
+	local function grip(z, angle, color, material)
+		local a = math.rad(angle or -18)
+		box("Grip", Vector3.new(0.22, 0.6, 0.3), at(0, -0.46, z) * CFrame.Angles(a, 0, 0), color or POLY, material or M.SmoothPlastic)
+		box("GripBack", Vector3.new(0.2, 0.42, 0.06), at(0, -0.44, z + 0.17) * CFrame.Angles(a, 0, 0), color or POLY, material or M.SmoothPlastic)
+		box("GripCap", Vector3.new(0.23, 0.05, 0.32), at(0, -0.77, z + 0.1) * CFrame.Angles(a, 0, 0), BLACK)
 		info.Grip = Vector3.new(0, -0.46, z)
 	end
-	local function triggerGuard(z)
-		box("TriggerGuard", Vector3.new(0.06, 0.05, 0.46), at(0, -0.36, z - 0.18), DARKSTEEL)
-		box("TriggerGuardFront", Vector3.new(0.06, 0.18, 0.05), at(0, -0.28, z - 0.4), DARKSTEEL)
-		box("Trigger", Vector3.new(0.04, 0.17, 0.05), at(0, -0.27, z - 0.17) * CFrame.Angles(math.rad(12), 0, 0), CHROME)
+	local function trigger(z)
+		box("TriggerGuard", Vector3.new(0.05, 0.05, 0.45), at(0, -0.37, z - 0.2), BLACK)
+		box("TriggerGuardFront", Vector3.new(0.05, 0.17, 0.05), at(0, -0.29, z - 0.42), BLACK)
+		box("Trigger", Vector3.new(0.04, 0.16, 0.05), at(0, -0.27, z - 0.18) * CFrame.Angles(math.rad(14), 0, 0), CHROME, M.Metal, "Trigger")
 	end
-	local function ejectionPort(z)
-		box("EjectionPort", Vector3.new(0.03, 0.12, 0.3), at(0.155, 0.06, z), DARKSTEEL)
-		box("ForwardAssist", Vector3.new(0.08, 0.08, 0.1), at(0.17, 0.1, z + 0.28), DARKSTEEL)
+	local function ejectionPort(z, y)
+		y = y or 0.06
+		box("EjectionPort", Vector3.new(0.03, 0.12, 0.3), at(0.155, y, z), rgb(18, 18, 20))
+		box("BoltCarrier", Vector3.new(0.03, 0.08, 0.24), at(0.165, y, z), CHROME, M.Metal, "Bolt")
+		info.Eject = Vector3.new(0.18, y, z)
 	end
-	local function muzzleBrake(z, d, len)
-		cyl("Muzzle", len, d, at(0, info.Muzzle.Y, z - len / 2), DARKSTEEL)
-		for i = 1, 3 do
-			box("Port", Vector3.new(d + 0.02, 0.04, 0.05), at(0, info.Muzzle.Y, z - len * (i / 4)), rgb(15, 15, 16))
-		end
-		info.Muzzle = Vector3.new(0, info.Muzzle.Y, z - len)
-	end
-	local function barrel(zStart, length, d, y)
-		cyl("Barrel", length, d, at(0, y, zStart - length / 2), DARKSTEEL)
-		info.Muzzle = Vector3.new(0, y, zStart - length)
-	end
-	local function curvedMag(z, scale)
-		local s = scale or 1
-		box("Magwell", Vector3.new(0.26, 0.2, 0.42), at(0, -0.28, z), STEEL)
-		box("Mag", Vector3.new(0.19, 0.48 * s, 0.34), at(0, -0.56, z - 0.05) * CFrame.Angles(math.rad(10), 0, 0), POLY, M.SmoothPlastic)
-		box("Mag2", Vector3.new(0.19, 0.42 * s, 0.33), at(0, -0.92 * s, z - 0.17) * CFrame.Angles(math.rad(24), 0, 0), POLY, M.SmoothPlastic)
-		box("MagBase", Vector3.new(0.22, 0.06, 0.36), at(0, -1.13 * s, z - 0.27) * CFrame.Angles(math.rad(24), 0, 0), DARKSTEEL)
-	end
-	local function boxMag(z, length, width)
-		box("Magwell", Vector3.new(0.26, 0.2, 0.42), at(0, -0.28, z), STEEL)
-		box("Mag", Vector3.new(width or 0.2, length, 0.36), at(0, -0.3 - length / 2, z - 0.04) * CFrame.Angles(math.rad(6), 0, 0), POLY, M.SmoothPlastic)
-		box("MagBase", Vector3.new((width or 0.2) + 0.03, 0.06, 0.38), at(0, -0.32 - length, z - 0.08) * CFrame.Angles(math.rad(6), 0, 0), DARKSTEEL)
-	end
-	local function adjustableStock(zRear)
-		cyl("BufferTube", 0.55, 0.18, at(0, 0.02, zRear + 0.27), DARKSTEEL)
-		box("Stock", Vector3.new(0.24, 0.42, 0.62), at(0, -0.06, zRear + 0.7), furniture, M.SmoothPlastic)
-		box("StockCheek", Vector3.new(0.22, 0.14, 0.5), at(0, 0.18, zRear + 0.68), furniture, M.SmoothPlastic)
-		box("ButtPad", Vector3.new(0.26, 0.52, 0.08), at(0, -0.08, zRear + 1.03), DARKSTEEL, M.Rubber)
-	end
-	local function fixedStock(zRear, length, wood)
-		local c = wood and WOOD or furniture
-		local mat = wood and M.Wood or M.SmoothPlastic
-		box("Stock", Vector3.new(0.24, 0.36, length), at(0, -0.04, zRear + length / 2) * CFrame.Angles(math.rad(4), 0, 0), c, mat)
-		box("StockToe", Vector3.new(0.23, 0.32, length * 0.55), at(0, -0.26, zRear + length * 0.68) * CFrame.Angles(math.rad(-8), 0, 0), c, mat)
-		box("ButtPad", Vector3.new(0.26, 0.62, 0.08), at(0, -0.14, zRear + length + 0.02), DARKSTEEL, M.Rubber)
-	end
-	local function handguard(z0, length, color, vents)
-		box("Handguard", Vector3.new(0.34, 0.36, length), at(0, 0.02, z0 - length / 2), color or furniture, M.SmoothPlastic)
-		if vents then
-			for i = 1, math.min(5, math.floor(length / 0.18)) do
-				for _, sx in { -1, 1 } do
-					box("Vent", Vector3.new(0.02, 0.08, 0.12), at(sx * 0.17, 0.04, z0 - i * (length / 6)), DARKSTEEL)
-				end
+	local function stanag(z, curve, steel)
+		local c = steel and rgb(70, 70, 66) or POLY
+		box("Magwell", Vector3.new(0.27, 0.2, 0.42), at(0, -0.29, z), STEEL)
+		box("Mag", Vector3.new(0.19, 0.48, 0.33), at(0, -0.56, z - 0.04) * CFrame.Angles(math.rad(8 * curve), 0, 0), c, M.Metal, "Mag")
+		box("Mag2", Vector3.new(0.19, 0.44, 0.32), at(0, -0.93, z - 0.04 - 0.1 * curve) * CFrame.Angles(math.rad(22 * curve), 0, 0), c, M.Metal, "Mag")
+		if steel then
+			for i = 1, 3 do
+				box("MagRib", Vector3.new(0.2, 0.04, 0.24), at(0, -0.5 - i * 0.18, z - 0.02 - i * 0.04 * curve) * CFrame.Angles(math.rad(14 * curve), 0, 0), rgb(50, 50, 48), M.Metal, "Mag")
 			end
 		end
-		info.Fore = Vector3.new(0, -0.18, z0 - length * 0.55)
+		box("MagBase", Vector3.new(0.22, 0.05, 0.35), at(0, -1.15, z - 0.06 - 0.22 * curve) * CFrame.Angles(math.rad(26 * curve), 0, 0), BLACK, M.Metal, "Mag")
 	end
-	local function frontSight(z, y)
-		box("FrontSightBase", Vector3.new(0.12, 0.14, 0.08), at(0, y, z), DARKSTEEL)
-		box("FrontSightPost", Vector3.new(0.03, 0.12, 0.03), at(0, y + 0.12, z), accent, accentMat)
+	local function straightMag(z, length, width, color)
+		box("Magwell", Vector3.new(0.27, 0.2, 0.42), at(0, -0.29, z), STEEL)
+		box("Mag", Vector3.new(width or 0.2, length, 0.34), at(0, -0.32 - length / 2, z - 0.03) * CFrame.Angles(math.rad(5), 0, 0), color or POLY, M.SmoothPlastic, "Mag")
+		box("MagBase", Vector3.new((width or 0.2) + 0.03, 0.05, 0.36), at(0, -0.34 - length, z - 0.06) * CFrame.Angles(math.rad(5), 0, 0), BLACK, M.Metal, "Mag")
 	end
-	local function optic(kind2, z, railY)
-		if kind2 == "RedDot" then
-			box("OpticMount", Vector3.new(0.18, 0.08, 0.26), at(0, railY + 0.08, z), DARKSTEEL)
-			cyl("Optic", 0.32, 0.26, at(0, railY + 0.27, z), DARKSTEEL)
-			cyl("Lens", 0.02, 0.2, at(0, railY + 0.27, z - 0.17), rgb(120, 200, 255), M.Glass).Transparency = 0.4
-			box("Dot", Vector3.new(0.03, 0.03, 0.02), at(0, railY + 0.27, z + 0.1), rgb(255, 40, 40), M.Neon)
-			info.Sight = railY + 0.27
-		elseif kind2 == "Holo" then
-			box("HoloBase", Vector3.new(0.24, 0.1, 0.42), at(0, railY + 0.09, z), DARKSTEEL)
-			box("HoloHood", Vector3.new(0.26, 0.04, 0.34), at(0, railY + 0.42, z - 0.04), DARKSTEEL)
-			box("HoloSideL", Vector3.new(0.03, 0.32, 0.3), at(-0.12, railY + 0.27, z - 0.04), DARKSTEEL)
-			box("HoloSideR", Vector3.new(0.03, 0.32, 0.3), at(0.12, railY + 0.27, z - 0.04), DARKSTEEL)
-			local glass = box("HoloGlass", Vector3.new(0.2, 0.22, 0.02), at(0, railY + 0.27, z - 0.16), rgb(150, 220, 255), M.Glass)
-			glass.Transparency = 0.5
-			box("Reticle", Vector3.new(0.03, 0.03, 0.01), at(0, railY + 0.27, z - 0.15), rgb(255, 60, 60), M.Neon)
-			info.Sight = railY + 0.27
-		else -- Scope
-			for _, dz in { -0.2, 0.2 } do
-				box("ScopeRing", Vector3.new(0.08, 0.2, 0.08), at(0, railY + 0.12, z + dz), DARKSTEEL)
+	local function m4Stock(zRear, color)
+		cyl("BufferTube", 0.62, 0.17, at(0, 0.02, zRear + 0.31), BLACK)
+		box("Stock", Vector3.new(0.23, 0.36, 0.55), at(0, -0.05, zRear + 0.72), color or POLY, M.SmoothPlastic)
+		box("StockTop", Vector3.new(0.21, 0.14, 0.5), at(0, 0.15, zRear + 0.7), color or POLY, M.SmoothPlastic)
+		box("StockLatch", Vector3.new(0.1, 0.12, 0.2), at(0, -0.24, zRear + 0.58), BLACK)
+		box("ButtPad", Vector3.new(0.25, 0.5, 0.07), at(0, -0.03, zRear + 1.01), BLACK, M.Rubber)
+		box("SlingLoop", Vector3.new(0.05, 0.12, 0.12), at(0, -0.27, zRear + 0.95), BLACK)
+	end
+	local function fixedStock(zRear, length, color, material)
+		box("Stock", Vector3.new(0.24, 0.34, length), at(0, -0.06, zRear + length / 2) * CFrame.Angles(math.rad(5), 0, 0), color, material)
+		box("StockToe", Vector3.new(0.23, 0.3, length * 0.55), at(0, -0.27, zRear + length * 0.7) * CFrame.Angles(math.rad(-8), 0, 0), color, material)
+		box("ButtPad", Vector3.new(0.26, 0.6, 0.07), at(0, -0.16, zRear + length + 0.02), BLACK, M.Rubber)
+	end
+	local function optic(kind, z, y)
+		if kind == "RedDot" then
+			box("OpticMount", Vector3.new(0.17, 0.08, 0.26), at(0, y + 0.08, z), BLACK)
+			cyl("Optic", 0.34, 0.26, at(0, y + 0.27, z), BLACK)
+			cylX("OpticKnob", 0.08, 0.1, at(0.15, y + 0.27, z), BLACK)
+			local lens = cyl("Lens", 0.02, 0.2, at(0, y + 0.27, z - 0.17), rgb(120, 200, 255), M.Glass)
+			lens.Transparency = 0.4
+			box("Dot", Vector3.new(0.03, 0.03, 0.02), at(0, y + 0.27, z + 0.1), rgb(255, 40, 40), M.Neon)
+			info.Sight = y + 0.27
+		elseif kind == "Holo" then
+			box("HoloBase", Vector3.new(0.24, 0.1, 0.44), at(0, y + 0.09, z), BLACK)
+			box("HoloHood", Vector3.new(0.26, 0.04, 0.34), at(0, y + 0.43, z - 0.04), BLACK)
+			box("HoloSideL", Vector3.new(0.03, 0.32, 0.3), at(-0.12, y + 0.27, z - 0.04), BLACK)
+			box("HoloSideR", Vector3.new(0.03, 0.32, 0.3), at(0.12, y + 0.27, z - 0.04), BLACK)
+			box("HoloButtons", Vector3.new(0.18, 0.06, 0.08), at(0, y + 0.16, z + 0.2), DARK)
+			local g = box("HoloGlass", Vector3.new(0.2, 0.22, 0.02), at(0, y + 0.27, z - 0.16), rgb(150, 220, 255), M.Glass)
+			g.Transparency = 0.5
+			box("Reticle", Vector3.new(0.03, 0.03, 0.01), at(0, y + 0.27, z - 0.15), rgb(255, 60, 60), M.Neon)
+			info.Sight = y + 0.27
+		elseif kind == "PSO" then -- side-mounted scope (SVD)
+			box("PSOMount", Vector3.new(0.12, 0.3, 0.5), at(-0.2, y - 0.05, z), BLACK)
+			local sy = y + 0.2
+			cyl("ScopeTube", 0.9, 0.17, at(-0.12, sy, z), BLACK)
+			cyl("ScopeBell", 0.3, 0.26, at(-0.12, sy, z - 0.55), BLACK)
+			cyl("EyeCup", 0.25, 0.24, at(-0.12, sy, z + 0.55), rgb(25, 25, 25), M.Rubber)
+			box("Turret", Vector3.new(0.12, 0.12, 0.12), at(-0.12, sy + 0.13, z), BLACK)
+			info.Sight = sy
+		else -- "Scope"
+			for _, dz in { -0.22, 0.22 } do
+				box("ScopeRing", Vector3.new(0.08, 0.2, 0.08), at(0, y + 0.12, z + dz), BLACK)
 			end
-			local y = railY + 0.3
-			cyl("ScopeTube", 0.9, 0.18, at(0, y, z), DARKSTEEL)
-			cyl("ScopeBellFront", 0.3, 0.3, at(0, y, z - 0.55), DARKSTEEL)
-			cyl("ScopeBellRear", 0.22, 0.26, at(0, y, z + 0.5), DARKSTEEL)
-			cyl("ScopeLens", 0.02, 0.26, at(0, y, z - 0.71), rgb(80, 140, 200), M.Glass).Transparency = 0.2
-			box("TurretTop", Vector3.new(0.14, 0.12, 0.14), at(0, y + 0.13, z), DARKSTEEL)
-			box("TurretSide", Vector3.new(0.12, 0.14, 0.14), at(0.13, y, z), DARKSTEEL)
-			box("ScopeAccent", Vector3.new(0.19, 0.02, 0.04), at(0, y, z - 0.38), accent, accentMat)
-			info.Sight = y
+			local sy = y + 0.3
+			cyl("ScopeTube", 0.95, 0.18, at(0, sy, z), BLACK)
+			cyl("ScopeBellFront", 0.32, 0.3, at(0, sy, z - 0.6), BLACK)
+			cyl("ScopeBellRear", 0.22, 0.26, at(0, sy, z + 0.55), BLACK)
+			local lens = cyl("ScopeLens", 0.02, 0.26, at(0, sy, z - 0.77), rgb(80, 140, 200), M.Glass)
+			lens.Transparency = 0.2
+			box("TurretTop", Vector3.new(0.14, 0.12, 0.14), at(0, sy + 0.13, z), BLACK)
+			box("TurretSide", Vector3.new(0.12, 0.14, 0.14), at(0.13, sy, z), BLACK)
+			cylX("ParallaxKnob", 0.08, 0.12, at(-0.13, sy, z), BLACK)
+			box("ScopeAccent", Vector3.new(0.19, 0.02, 0.04), at(0, sy, z - 0.42), accent, accentMat)
+			info.Sight = sy
 		end
 	end
-	local function bipod(z, y)
-		box("BipodMount", Vector3.new(0.16, 0.1, 0.16), at(0, y - 0.08, z), DARKSTEEL)
+	local function bipod(z, y, folded)
+		box("BipodMount", Vector3.new(0.16, 0.1, 0.16), at(0, y - 0.07, z), BLACK)
 		for _, sx in { -1, 1 } do
-			box("BipodLeg", Vector3.new(0.05, 0.55, 0.05), at(sx * 0.1, y - 0.36, z + 0.1) * CFrame.Angles(math.rad(-55), 0, math.rad(sx * 8)), DARKSTEEL)
+			if folded then
+				box("BipodLeg", Vector3.new(0.05, 0.05, 0.6), at(sx * 0.1, y - 0.12, z + 0.32), BLACK)
+			else
+				box("BipodLeg", Vector3.new(0.05, 0.55, 0.05), at(sx * 0.1, y - 0.36, z + 0.1) * CFrame.Angles(math.rad(-55), 0, math.rad(sx * 8)), BLACK)
+				box("BipodFoot", Vector3.new(0.08, 0.05, 0.1), at(sx * 0.13, y - 0.55, z + 0.32), rgb(20, 20, 20), M.Rubber)
+			end
 		end
 	end
-	local function chargingHandle(zRear)
-		box("ChargingHandle", Vector3.new(0.22, 0.05, 0.1), at(0, 0.21, zRear - 0.04), DARKSTEEL)
+	local function frontSightTower(z, y)
+		box("FSBase", Vector3.new(0.16, 0.12, 0.14), at(0, y, z), BLACK)
+		box("FSPostL", Vector3.new(0.03, 0.22, 0.06), at(-0.06, y + 0.15, z), BLACK)
+		box("FSPostR", Vector3.new(0.03, 0.22, 0.06), at(0.06, y + 0.15, z), BLACK)
+		box("FSPost", Vector3.new(0.025, 0.16, 0.025), at(0, y + 0.14, z), accent, accentMat)
 	end
 
-	----------------------------------------------------------------- styles
-	local h = recLen / 2
-	if kind == "Rifle" or kind == "Battle" or kind == "DMR" or kind == "AutoShotgun" or kind == "LMG" then
-		local hgLen = kind == "DMR" and L * 0.38 or (style.Short and L * 0.24 or L * 0.3)
-		handle.Size = Vector3.new(0.3, 0.42, recLen)
-		box("Lower", Vector3.new(0.28, 0.16, recLen * 0.9), at(0, -0.26, recLen * 0.03), STEEL)
-		topRail(-h - hgLen, h, 0.24)
-		handguard(-h, hgLen, kind == "Battle" and furniture or POLY, true)
-		local barrelD = kind == "AutoShotgun" and 0.2 or (kind == "LMG" and 0.17 or 0.12)
-		barrel(-h - hgLen, B + 0.1, barrelD, 0.04)
-		box("GasBlock", Vector3.new(0.16, 0.14, 0.1), at(0, 0.07, -h - hgLen - 0.06), DARKSTEEL)
-		muzzleBrake(info.Muzzle.Z, barrelD + 0.06, kind == "DMR" and 0.32 or 0.24)
-		pistolGrip(recLen * 0.28)
-		triggerGuard(recLen * 0.28)
-		ejectionPort(-recLen * 0.05)
-		chargingHandle(h)
-		if kind == "AutoShotgun" then
-			box("Magwell", Vector3.new(0.28, 0.2, 0.46), at(0, -0.28, -recLen * 0.12), STEEL)
-			cyl("Drum", 0.34, 0.85, at(0, -0.72, -recLen * 0.14) * CFrame.Angles(0, math.rad(90), 0), POLY, M.SmoothPlastic)
-			cyl("DrumCap", 0.36, 0.3, at(0, -0.72, -recLen * 0.14) * CFrame.Angles(0, math.rad(90), 0), accent, accentMat)
-		elseif kind == "LMG" then
-			box("AmmoBox", Vector3.new(0.4, 0.55, 0.62), at(0, -0.5, -recLen * 0.12), rgb(70, 78, 52), M.Metal)
-			box("AmmoBelt", Vector3.new(0.12, 0.1, 0.2), at(0.2, -0.16, -recLen * 0.12), CHROME, M.Metal)
-			box("CarryHandle", Vector3.new(0.08, 0.06, 0.6), at(0, 0.48, -recLen * 0.1), DARKSTEEL)
-			for _, dz in { -0.25, 0.25 } do
-				box("CarryPost", Vector3.new(0.08, 0.22, 0.06), at(0, 0.37, -recLen * 0.1 + dz), DARKSTEEL)
-			end
-			cyl("BarrelShroud", hgLen * 0.6, 0.26, at(0, 0.04, -h - hgLen - hgLen * 0.3), DARKSTEEL)
-			bipod(-h - hgLen + 0.1, -0.12)
-			info.Sight = 0.4
-			frontSight(-h - hgLen, 0.24)
-		elseif kind == "Battle" or kind == "DMR" then
-			boxMag(-recLen * 0.1, kind == "DMR" and 0.44 or 0.5, 0.22)
-		else
-			curvedMag(-recLen * 0.12)
-		end
-		if kind == "DMR" or kind == "Battle" then
-			fixedStock(h, 1.05, false)
-		elseif kind ~= "LMG" then
-			adjustableStock(h)
-		else
-			fixedStock(h, 0.95, false)
-		end
-		if kind == "DMR" then
-			bipod(-h - hgLen + 0.15, -0.12)
-		end
-		if kind ~= "LMG" then
-			optic(style.Optic or "RedDot", -recLen * 0.05, 0.24)
-		end
-		if style.Short then
-			box("ForeGrip", Vector3.new(0.14, 0.4, 0.16), at(0, -0.36, -h - hgLen * 0.5), POLY, M.SmoothPlastic)
-		end
-	elseif kind == "SMG" then
-		handle.Size = Vector3.new(0.3, 0.4, recLen)
-		box("Lower", Vector3.new(0.28, 0.14, recLen * 0.9), at(0, -0.25, 0), POLY, M.SmoothPlastic)
-		topRail(-h, h, 0.23)
-		handguard(-h, L * 0.16, POLY, true)
-		barrel(-h - L * 0.16, B + 0.15, 0.1, 0.04)
-		cyl("Suppressor", 0.6, 0.2, at(0, 0.04, info.Muzzle.Z - 0.25), DARKSTEEL)
-		info.Muzzle = Vector3.new(0, 0.04, info.Muzzle.Z - 0.55)
-		pistolGrip(recLen * 0.25)
-		triggerGuard(recLen * 0.25)
-		boxMag(-recLen * 0.18, style.Long and 0.75 or 0.62, 0.17)
-		box("ForeGrip", Vector3.new(0.14, 0.42, 0.16), at(0, -0.36, -h - L * 0.08), POLY, M.SmoothPlastic)
-		-- folding wire stock
-		for _, sx in { -0.1, 0.1 } do
-			box("StockArm", Vector3.new(0.04, 0.04, 0.8), at(sx, 0.0, h + 0.4), DARKSTEEL)
-		end
-		box("StockPad", Vector3.new(0.26, 0.4, 0.06), at(0, -0.1, h + 0.82), DARKSTEEL, M.Rubber)
-		ejectionPort(-recLen * 0.05)
-		box("AccentStripe", Vector3.new(0.31, 0.04, recLen * 0.6), at(0, -0.12, 0), accent, accentMat)
-		optic(style.Optic or "RedDot", -recLen * 0.05, 0.23)
-	elseif kind == "Sniper" then
-		local heavy = style.Heavy
-		handle.Size = Vector3.new(0.3, 0.38, recLen)
-		box("Chassis", Vector3.new(0.3, 0.2, recLen + 0.6), at(0, -0.24, -0.15), furniture, M.SmoothPlastic)
-		local bLen = B + L * 0.42
-		barrel(-h, bLen, heavy and 0.17 or 0.13, 0.05)
-		cyl("BarrelBase", 0.5, heavy and 0.22 or 0.18, at(0, 0.05, -h - 0.25), DARKSTEEL)
-		muzzleBrake(info.Muzzle.Z, heavy and 0.3 or 0.2, heavy and 0.42 or 0.28)
-		box("Forend", Vector3.new(0.3, 0.26, L * 0.28), at(0, -0.12, -h - L * 0.14), furniture, M.SmoothPlastic)
-		info.Fore = Vector3.new(0, -0.24, -h - L * 0.14)
-		pistolGrip(recLen * 0.45, -10, furniture)
-		triggerGuard(recLen * 0.45)
-		boxMag(-recLen * 0.05, heavy and 0.38 or 0.3, 0.2)
-		-- bolt handle
-		box("BoltShaft", Vector3.new(0.3, 0.05, 0.05), at(0.22, 0.1, recLen * 0.25), CHROME)
-		box("BoltKnob", Vector3.new(0.12, 0.12, 0.12), at(0.38, 0.06, recLen * 0.25), DARKSTEEL)
-		fixedStock(h + 0.25, 1.1, false)
-		box("CheekRiser", Vector3.new(0.22, 0.16, 0.5), at(0, 0.22, h + 0.65), furniture, M.SmoothPlastic)
-		topRail(-h, h, 0.22)
-		optic("Scope", -recLen * 0.05, 0.22)
-		bipod(-h - L * 0.24, -0.1)
-	elseif kind == "Pump" then
-		handle.Size = Vector3.new(0.3, 0.42, recLen)
-		barrel(-h, B + L * 0.45, 0.17, 0.08)
-		cyl("TubeMag", B + L * 0.35, 0.15, at(0, -0.12, -h - (B + L * 0.35) / 2), DARKSTEEL)
-		box("Pump", Vector3.new(0.3, 0.26, L * 0.22), at(0, -0.1, -h - L * 0.18), style.Wood and WOOD or POLY, style.Wood and M.Wood or M.SmoothPlastic)
+	-------------------------------------------------------------- styles
+	local h = L * 0.17 -- half receiver length
+	if style == "M4" then
+		handle.Size = Vector3.new(0.3, 0.38, L * 0.34)
+		box("LowerReceiver", Vector3.new(0.28, 0.2, L * 0.31), at(0, -0.26, 0.02), STEEL)
+		box("MagRelease", Vector3.new(0.05, 0.06, 0.06), at(0.16, -0.24, -0.05), BLACK)
+		box("Selector", Vector3.new(0.04, 0.05, 0.14), at(-0.16, -0.2, 0.22), accent, accentMat)
+		box("BoltCatch", Vector3.new(0.04, 0.12, 0.08), at(-0.16, -0.16, -0.08), BLACK)
+		box("ForwardAssist", Vector3.new(0.09, 0.09, 0.12), at(0.17, 0.1, h - 0.12), BLACK)
+		box("DustCover", Vector3.new(0.02, 0.12, 0.3), at(0.2, -0.02, -0.02) * CFrame.Angles(0, 0, math.rad(-40)), STEEL)
+		box("ChargingHandle", Vector3.new(0.24, 0.05, 0.12), at(0, 0.21, h - 0.04), BLACK)
+		local hg = L * 0.32
+		box("Handguard", Vector3.new(0.34, 0.34, hg), at(0, 0.01, -h - hg / 2), DARK, M.Metal)
 		for i = 1, 5 do
-			box("PumpRib", Vector3.new(0.32, 0.03, 0.03), at(0, -0.1 + ((i % 2) * 2 - 1) * 0.06, -h - L * 0.1 - i * 0.06), DARKSTEEL)
+			for _, sx in { -1, 1 } do
+				box("MLok", Vector3.new(0.02, 0.07, 0.14), at(sx * 0.17, 0.0, -h - i * hg / 6), rgb(15, 15, 16))
+			end
 		end
-		info.Fore = Vector3.new(0, -0.22, -h - L * 0.18)
-		box("Bead", Vector3.new(0.05, 0.05, 0.05), at(0, 0.19, info.Muzzle.Z + 0.05), CHROME)
-		box("LoadingGate", Vector3.new(0.2, 0.04, 0.3), at(0, -0.21, -recLen * 0.05), DARKSTEEL)
-		ejectionPort(-recLen * 0.1)
-		pistolGrip(recLen * 0.3, -20, style.Wood and WOOD or POLY)
-		triggerGuard(recLen * 0.3)
-		fixedStock(h, 1.0, style.Wood)
-		info.Sight = 0.22
-	elseif kind == "DoubleBarrel" then
-		handle.Size = Vector3.new(0.34, 0.34, recLen * 0.7)
-		handle.Color = CHROME
-		local bLen = B + L * 0.5
-		for _, sx in { -0.085, 0.085 } do
-			cyl("Barrel", bLen, 0.16, at(sx, 0.06, -recLen * 0.35 - bLen / 2), DARKSTEEL)
+		rail(-h - hg, h, 0.21)
+		barrel(-h - hg, look.Barrel + 0.05, 0.12, 0.03)
+		box("GasBlock", Vector3.new(0.15, 0.14, 0.1), at(0, 0.06, -h - hg - 0.05), BLACK)
+		frontSightTower(-h - hg + 0.08, 0.26)
+		birdcage(0.16)
+		box("RearSight", Vector3.new(0.18, 0.18, 0.08), at(0, 0.32, h - 0.12), BLACK)
+		grip(L * 0.08)
+		trigger(L * 0.08)
+		ejectionPort(-0.02)
+		stanag(-L * 0.06, 1)
+		m4Stock(h)
+		optic("RedDot", -0.05, 0.21)
+		info.Fore = Vector3.new(0, -0.18, -h - hg * 0.55)
+	elseif style == "AK" then
+		handle.Size = Vector3.new(0.28, 0.34, L * 0.36)
+		box("DustCover", Vector3.new(0.26, 0.12, L * 0.34), at(0, 0.21, 0.02), STEEL)
+		for i = 1, 3 do
+			box("CoverRib", Vector3.new(0.27, 0.13, 0.04), at(0, 0.21, -0.1 + i * 0.14), DARK)
 		end
-		box("Rib", Vector3.new(0.06, 0.04, bLen), at(0, 0.15, -recLen * 0.35 - bLen / 2), DARKSTEEL)
-		box("Forend", Vector3.new(0.3, 0.2, L * 0.24), at(0, -0.1, -recLen * 0.35 - L * 0.14), WOOD, M.Wood)
-		info.Fore = Vector3.new(0, -0.2, -recLen * 0.35 - L * 0.14)
-		info.Muzzle = Vector3.new(0, 0.06, -recLen * 0.35 - bLen)
-		box("Hammer", Vector3.new(0.05, 0.14, 0.1), at(0.08, 0.2, recLen * 0.3), DARKSTEEL)
-		box("Hammer2", Vector3.new(0.05, 0.14, 0.1), at(-0.08, 0.2, recLen * 0.3), DARKSTEEL)
-		box("Wrist", Vector3.new(0.24, 0.3, 0.5), at(0, -0.12, recLen * 0.35 + 0.22) * CFrame.Angles(math.rad(-12), 0, 0), WOOD, M.Wood)
-		info.Grip = Vector3.new(0, -0.3, recLen * 0.35 + 0.22)
-		triggerGuard(recLen * 0.35)
-		fixedStock(recLen * 0.35 + 0.45, 1.05, true)
-		info.Sight = 0.2
-	elseif kind == "Minigun" then
-		handle.Size = Vector3.new(0.6, 0.6, recLen)
+		box("RearSightBlock", Vector3.new(0.2, 0.14, 0.24), at(0, 0.24, -h + 0.05), STEEL)
+		box("RearSightLeaf", Vector3.new(0.12, 0.04, 0.3), at(0, 0.33, -h + 0.05), BLACK)
+		box("Selector", Vector3.new(0.03, 0.08, 0.42), at(0.15, 0.04, 0.05), STEEL)
+		box("ChargingHandle", Vector3.new(0.16, 0.06, 0.08), at(0.2, 0.08, -0.15), CHROME, M.Metal, "Bolt")
+		ejectionPort(-0.05, 0.08)
+		-- wooden furniture
+		local hg = L * 0.26
+		box("LowerHandguard", Vector3.new(0.32, 0.26, hg), at(0, -0.06, -h - hg / 2), WOOD, M.Wood)
+		for i = 1, 3 do
+			box("HandguardGroove", Vector3.new(0.33, 0.03, hg * 0.8), at(0, -0.06 + (i - 2) * 0.07, -h - hg / 2), WOOD_DARK, M.Wood)
+		end
+		box("UpperHandguard", Vector3.new(0.24, 0.14, hg * 0.85), at(0, 0.17, -h - hg * 0.45), WOOD, M.Wood)
+		cyl("GasTube", hg * 0.3, 0.12, at(0, 0.17, -h - hg * 0.95), STEEL)
+		barrel(-h - hg, look.Barrel + 0.35, 0.11, 0.03)
+		box("GasBlock", Vector3.new(0.14, 0.24, 0.14), at(0, 0.09, -h - hg - 0.05), STEEL)
+		box("FrontSightBase", Vector3.new(0.12, 0.2, 0.12), at(0, 0.12, info.Muzzle.Z + 0.12), STEEL)
+		box("FrontSightHoodL", Vector3.new(0.03, 0.16, 0.1), at(-0.06, 0.26, info.Muzzle.Z + 0.12), STEEL)
+		box("FrontSightHoodR", Vector3.new(0.03, 0.16, 0.1), at(0.06, 0.26, info.Muzzle.Z + 0.12), STEEL)
+		box("FrontSightPost", Vector3.new(0.025, 0.12, 0.025), at(0, 0.26, info.Muzzle.Z + 0.12), BLACK)
+		box("BayonetLug", Vector3.new(0.06, 0.08, 0.14), at(0, -0.06, info.Muzzle.Z + 0.25), STEEL)
+		-- slant brake
+		box("SlantBrake", Vector3.new(0.15, 0.15, 0.24), at(0, 0.03, info.Muzzle.Z - 0.12) * CFrame.Angles(math.rad(-12), 0, 0), STEEL)
+		info.Muzzle = Vector3.new(0, 0.03, info.Muzzle.Z - 0.24)
+		grip(L * 0.07, -20, rgb(70, 46, 30), M.Wood)
+		trigger(L * 0.07)
+		stanag(-L * 0.08, 1.6, true)
+		box("Stock", Vector3.new(0.24, 0.36, 1.0), at(0, -0.12, h + 0.5) * CFrame.Angles(math.rad(9), 0, 0), WOOD, M.Wood)
+		box("StockComb", Vector3.new(0.22, 0.14, 0.7), at(0, 0.06, h + 0.45) * CFrame.Angles(math.rad(6), 0, 0), WOOD, M.Wood)
+		box("ButtPlate", Vector3.new(0.25, 0.48, 0.06), at(0, -0.26, h + 1.0), STEEL)
+		info.Sight = 0.33
+		info.Fore = Vector3.new(0, -0.2, -h - hg * 0.5)
+	elseif style == "MP5" then
+		handle.Size = Vector3.new(0.26, 0.4, L * 0.38)
+		box("ReceiverTop", Vector3.new(0.2, 0.08, L * 0.38), at(0, 0.23, 0), STEEL)
+		box("Trigger Group", Vector3.new(0.24, 0.2, L * 0.3), at(0, -0.26, 0.06), POLY, M.SmoothPlastic)
+		local hgLen = L * 0.22
+		box("Handguard", Vector3.new(0.3, 0.3, hgLen), at(0, -0.06, -h - hgLen / 2), POLY, M.SmoothPlastic)
+		box("HandguardTip", Vector3.new(0.24, 0.24, 0.12), at(0, -0.04, -h - hgLen - 0.04), POLY, M.SmoothPlastic)
+		cyl("CockingTube", hgLen + 0.25, 0.14, at(0, 0.16, -h - hgLen / 2 - 0.1), STEEL)
+		box("CockingHandle", Vector3.new(0.18, 0.05, 0.05), at(-0.12, 0.16, -h - 0.12) * CFrame.Angles(0, math.rad(20), 0), BLACK, M.Metal, "Bolt")
+		barrel(-h - hgLen, look.Barrel + 0.15, 0.11, 0.0)
+		for i = 1, 3 do
+			box("BarrelLug", Vector3.new(0.18, 0.04, 0.03), at(0, 0, info.Muzzle.Z + 0.04 + i * 0.05), STEEL)
+		end
+		cyl("FrontSightRing", 0.06, 0.22, at(0, 0.3, -h - hgLen - 0.05), STEEL)
+		box("FrontSightPost", Vector3.new(0.02, 0.1, 0.02), at(0, 0.28, -h - hgLen - 0.05), BLACK)
+		cylX("DrumSight", 0.14, 0.18, at(0, 0.33, h - 0.1), STEEL)
+		ejectionPort(-0.08, 0.1)
+		grip(L * 0.14)
+		trigger(L * 0.14)
+		-- thin curved mag
+		box("Magwell", Vector3.new(0.22, 0.16, 0.3), at(0, -0.3, -L * 0.1), STEEL)
+		box("Mag", Vector3.new(0.14, 0.5, 0.24), at(0, -0.58, -L * 0.1 - 0.06) * CFrame.Angles(math.rad(14), 0, 0), BLACK, M.Metal, "Mag")
+		box("Mag2", Vector3.new(0.14, 0.3, 0.23), at(0, -0.9, -L * 0.1 - 0.17) * CFrame.Angles(math.rad(26), 0, 0), BLACK, M.Metal, "Mag")
+		-- retractable stock
+		for _, sx in { -0.09, 0.09 } do
+			box("StockRod", Vector3.new(0.04, 0.04, 0.75), at(sx, 0.06, h + 0.37), STEEL)
+		end
+		box("ButtPlate", Vector3.new(0.24, 0.42, 0.08), at(0, -0.06, h + 0.76), BLACK, M.Rubber)
+		info.Sight = 0.33
+		info.Fore = Vector3.new(0, -0.2, -h - hgLen * 0.5)
+	elseif style == "PDW" then
+		handle.Size = Vector3.new(0.32, 0.46, L * 0.6)
 		handle.Color = look.Body
+		handle.Material = M.SmoothPlastic
+		box("Shell", Vector3.new(0.3, 0.3, L * 0.55), at(0, -0.3, 0.05), look.Body, M.SmoothPlastic)
+		-- thumbhole grip
+		box("ThumbholeFront", Vector3.new(0.28, 0.5, 0.12), at(0, -0.62, -L * 0.12), look.Body, M.SmoothPlastic)
+		box("Grip", Vector3.new(0.24, 0.5, 0.22), at(0, -0.62, L * 0.02), POLY, M.SmoothPlastic)
+		box("ThumbholeBottom", Vector3.new(0.28, 0.08, 0.5), at(0, -0.88, -L * 0.04), look.Body, M.SmoothPlastic)
+		info.Grip = Vector3.new(0, -0.62, L * 0.02)
+		box("Trigger", Vector3.new(0.04, 0.12, 0.04), at(0, -0.5, -L * 0.07), BLACK, M.Metal, "Trigger")
+		-- translucent top magazine with rounds
+		local mag = box("TopMag", Vector3.new(0.28, 0.12, L * 0.55), at(0, 0.29, 0.02), rgb(160, 160, 150), M.Glass, "Mag")
+		mag.Transparency = 0.4
+		for i = 1, 8 do
+			box("Round", Vector3.new(0.08, 0.06, 0.04), at((i % 2 == 0) and 0.05 or -0.05, 0.29, -L * 0.2 + i * 0.07), BRASS, M.Metal, "Mag")
+		end
+		cyl("SightRing", 0.08, 0.24, at(0, 0.48, -0.1), BLACK)
+		box("SightBase", Vector3.new(0.14, 0.12, 0.3), at(0, 0.4, -0.1), BLACK)
+		barrel(-L * 0.3, look.Barrel + 0.2, 0.1, -0.05)
+		birdcage(0.14)
+		box("ChargingHandle", Vector3.new(0.18, 0.05, 0.06), at(0.17, 0.0, -L * 0.22), BLACK, M.Metal, "Bolt")
+		box("AccentStripe", Vector3.new(0.33, 0.04, L * 0.4), at(0, -0.12, 0), accent, accentMat)
+		info.Eject = Vector3.new(0, -0.9, 0.1)
+		info.Sight = 0.48
+		info.Fore = Vector3.new(0, -0.62, -L * 0.12)
+	elseif style == "FAMAS" then
+		handle.Size = Vector3.new(0.3, 0.42, L * 0.5)
+		handle.Color = look.Body
+		box("Body", Vector3.new(0.3, 0.3, L * 0.62), at(0, -0.2, 0.25), look.Body, M.SmoothPlastic)
+		-- full-length carry handle
+		box("CarryHandle", Vector3.new(0.12, 0.08, L * 0.6), at(0, 0.5, 0.05), look.Body, M.SmoothPlastic)
+		for _, dz in { -L * 0.28, L * 0.32 } do
+			box("HandlePost", Vector3.new(0.12, 0.3, 0.14), at(0, 0.34, dz), look.Body, M.SmoothPlastic)
+		end
+		box("ChargingHandle", Vector3.new(0.14, 0.06, 0.08), at(0, 0.3, -0.05), BLACK, M.Metal, "Bolt")
+		barrel(-L * 0.25, look.Barrel + 0.35, 0.11, 0.0)
+		birdcage(0.15)
+		bipod(-L * 0.3, -0.1, true)
+		box("Grip", Vector3.new(0.22, 0.5, 0.26), at(0, -0.56, -L * 0.18) * CFrame.Angles(math.rad(-12), 0, 0), POLY, M.SmoothPlastic)
+		box("HandGuard", Vector3.new(0.06, 0.36, 0.4), at(0, -0.48, -L * 0.28), look.Body, M.SmoothPlastic)
+		info.Grip = Vector3.new(0, -0.56, -L * 0.18)
+		box("Trigger", Vector3.new(0.04, 0.14, 0.04), at(0, -0.4, -L * 0.22), BLACK, M.Metal, "Trigger")
+		straightMag(L * 0.12, 0.42, 0.18, BLACK)
+		box("CheekRest", Vector3.new(0.2, 0.1, 0.5), at(0, 0.0, L * 0.45), BLACK, M.Rubber)
+		box("ButtPad", Vector3.new(0.3, 0.5, 0.06), at(0, -0.18, L * 0.56), BLACK, M.Rubber)
+		ejectionPort(L * 0.15, -0.1)
+		box("Accent", Vector3.new(0.31, 0.03, L * 0.3), at(0, -0.05, 0.1), accent, accentMat)
+		info.Sight = 0.5
+		info.Fore = Vector3.new(0, -0.3, -L * 0.3)
+	elseif style == "SCAR" then
+		handle.Size = Vector3.new(0.32, 0.36, L * 0.4)
+		handle.Color = TAN
+		box("Lower", Vector3.new(0.28, 0.22, L * 0.28), at(0, -0.26, 0.05), BLACK)
+		local front = L * 0.22
+		box("UpperFront", Vector3.new(0.32, 0.3, front), at(0, 0.03, -L * 0.2 - front / 2), TAN, M.SmoothPlastic)
+		rail(-L * 0.2 - front, L * 0.2, 0.2)
+		rail(-L * 0.2 - front + 0.05, -L * 0.2 - 0.05, -0.02, 0.17, true)
+		rail(-L * 0.2 - front + 0.05, -L * 0.2 - 0.05, -0.02, -0.17, true)
+		box("ChargingHandle", Vector3.new(0.18, 0.08, 0.1), at(-0.2, 0.08, -L * 0.12), BLACK, M.Metal, "Bolt")
+		barrel(-L * 0.2 - front, look.Barrel + 0.2, 0.13, 0.03)
+		birdcage(0.18)
+		grip(L * 0.1, -16, BLACK)
+		trigger(L * 0.1)
+		ejectionPort(-0.05)
+		straightMag(-L * 0.05, 0.48, 0.22, BLACK)
+		-- folding stock
+		box("StockHinge", Vector3.new(0.18, 0.2, 0.12), at(0, 0.0, L * 0.2 + 0.06), BLACK)
+		box("Stock", Vector3.new(0.22, 0.36, 0.75), at(0, -0.06, L * 0.2 + 0.5), TAN, M.SmoothPlastic)
+		box("StockCheek", Vector3.new(0.2, 0.12, 0.45), at(0, 0.18, L * 0.2 + 0.5), BLACK)
+		box("ButtPad", Vector3.new(0.24, 0.48, 0.07), at(0, -0.06, L * 0.2 + 0.9), BLACK, M.Rubber)
+		optic("Holo", -0.05, 0.2)
+		info.Fore = Vector3.new(0, -0.18, -L * 0.2 - front * 0.5)
+	elseif style == "SVD" then
+		handle.Size = Vector3.new(0.28, 0.34, L * 0.3)
+		box("DustCover", Vector3.new(0.26, 0.1, L * 0.3), at(0, 0.21, 0), STEEL)
+		box("ChargingHandle", Vector3.new(0.16, 0.06, 0.08), at(0.19, 0.08, -0.1), CHROME, M.Metal, "Bolt")
+		ejectionPort(-0.05, 0.08)
+		local hg = L * 0.24
+		box("Handguard", Vector3.new(0.3, 0.3, hg), at(0, 0.0, -L * 0.15 - hg / 2), WOOD, M.Wood)
+		for i = 1, 4 do
+			box("Vent", Vector3.new(0.31, 0.04, 0.1), at(0, 0.05, -L * 0.15 - i * hg / 5), WOOD_DARK, M.Wood)
+		end
+		barrel(-L * 0.15 - hg, look.Barrel + L * 0.25, 0.1, 0.03)
+		box("FrontSight", Vector3.new(0.06, 0.16, 0.08), at(0, 0.13, info.Muzzle.Z + 0.25), STEEL)
+		brake(0.15, 0.3)
+		-- skeleton thumbhole stock
+		local zr = L * 0.15
+		box("StockTop", Vector3.new(0.22, 0.14, 0.85), at(0, 0.08, zr + 0.42), WOOD, M.Wood)
+		box("StockBottom", Vector3.new(0.22, 0.12, 0.6), at(0, -0.48, zr + 0.6) * CFrame.Angles(math.rad(10), 0, 0), WOOD, M.Wood)
+		box("StockButt", Vector3.new(0.24, 0.6, 0.18), at(0, -0.2, zr + 0.85), WOOD, M.Wood)
+		box("CheekPad", Vector3.new(0.2, 0.1, 0.35), at(0, 0.2, zr + 0.5), rgb(50, 40, 30), M.Fabric)
+		box("Grip", Vector3.new(0.2, 0.5, 0.22), at(0, -0.3, zr + 0.18) * CFrame.Angles(math.rad(-20), 0, 0), WOOD, M.Wood)
+		info.Grip = Vector3.new(0, -0.3, zr + 0.18)
+		trigger(zr + 0.05)
+		straightMag(-0.05, 0.4, 0.19, STEEL)
+		optic("PSO", -0.05, 0.21)
+		info.Fore = Vector3.new(0, -0.15, -L * 0.15 - hg * 0.5)
+	elseif style == "M249" then
+		handle.Size = Vector3.new(0.34, 0.4, L * 0.32)
+		box("FeedCover", Vector3.new(0.32, 0.12, L * 0.28), at(0, 0.25, -0.02), BLACK)
+		box("FeedCoverLatch", Vector3.new(0.16, 0.06, 0.08), at(0, 0.32, h - 0.08), BLACK)
+		box("Lower", Vector3.new(0.3, 0.2, L * 0.26), at(0, -0.28, 0.04), BLACK)
+		box("CarryHandle", Vector3.new(0.08, 0.06, 0.55), at(0.0, 0.62, -h - 0.2), BLACK)
+		for _, dz in { -0.25, 0.22 } do
+			box("CarryPost", Vector3.new(0.06, 0.28, 0.06), at(0, 0.48, -h - 0.2 + dz), BLACK)
+		end
+		local hg = L * 0.2
+		box("Handguard", Vector3.new(0.34, 0.24, hg), at(0, -0.1, -h - hg / 2), POLY, M.SmoothPlastic)
+		barrel(-h, look.Barrel + L * 0.32, 0.15, 0.06)
+		box("HeatShield", Vector3.new(0.24, 0.06, L * 0.22), at(0, 0.18, -h - L * 0.12), BLACK)
+		box("GasBlock", Vector3.new(0.18, 0.18, 0.12), at(0, 0.0, -h - hg - 0.12), BLACK)
+		frontSightTower(info.Muzzle.Z + 0.2, 0.15)
+		birdcage(0.2)
+		bipod(-h - hg - 0.2, -0.05)
+		box("ChargingHandle", Vector3.new(0.16, 0.08, 0.1), at(0.2, -0.02, -0.05), BLACK, M.Metal, "Bolt")
+		info.Eject = Vector3.new(0, -0.45, 0.0)
+		box("AmmoBag", Vector3.new(0.36, 0.5, 0.55), at(-0.05, -0.62, -0.12), OD, M.Fabric, "Mag")
+		box("AmmoBagFlap", Vector3.new(0.38, 0.1, 0.57), at(-0.05, -0.36, -0.12), rgb(70, 78, 52), M.Fabric, "Mag")
+		box("Belt", Vector3.new(0.3, 0.06, 0.14), at(-0.25, -0.05, -0.05), BRASS, M.Metal)
+		grip(L * 0.07)
+		trigger(L * 0.07)
+		-- skeletal stock
+		box("StockTop", Vector3.new(0.2, 0.1, 0.8), at(0, 0.04, h + 0.4), BLACK)
+		box("StockBottom", Vector3.new(0.2, 0.1, 0.7), at(0, -0.3, h + 0.45) * CFrame.Angles(math.rad(-6), 0, 0), BLACK)
+		box("ButtPad", Vector3.new(0.24, 0.5, 0.08), at(0, -0.12, h + 0.82), BLACK, M.Rubber)
+		info.Sight = 0.42
+		info.Fore = Vector3.new(0, -0.24, -h - hg * 0.5)
+	elseif style == "AWM" then
+		handle.Size = Vector3.new(0.28, 0.32, L * 0.3)
+		box("Chassis", Vector3.new(0.3, 0.26, L * 0.62), at(0, -0.16, -L * 0.06), look.Body, M.SmoothPlastic)
+		cyl("BoltBody", L * 0.24, 0.14, at(0, 0.16, 0.02), CHROME, M.Metal, "BoltAction")
+		box("BoltHandle", Vector3.new(0.3, 0.05, 0.05), at(0.18, 0.12, h - 0.15), CHROME, M.Metal, "BoltAction")
+		ball("BoltKnob", 0.13, at(0.35, 0.08, h - 0.15), BLACK, M.Metal, "BoltAction")
+		info.Eject = Vector3.new(0.18, 0.16, 0.0)
+		barrel(-h, look.Barrel + L * 0.35, 0.13, 0.04)
+		for i = 1, 4 do
+			box("Flute", Vector3.new(0.14, 0.02, L * 0.25), at(0, 0.04 + ((i % 2) * 2 - 1) * 0.06, -h - L * 0.2), DARK)
+		end
+		brake(0.2, 0.3)
+		-- thumbhole stock (classic precision rifle shape)
+		local zr = h
+		box("StockTop", Vector3.new(0.26, 0.16, 0.9), at(0, 0.0, zr + 0.45), look.Body, M.SmoothPlastic)
+		box("CheekRiser", Vector3.new(0.22, 0.12, 0.45), at(0, 0.14, zr + 0.5), look.Body, M.SmoothPlastic)
+		box("StockButt", Vector3.new(0.26, 0.62, 0.2), at(0, -0.25, zr + 0.82), look.Body, M.SmoothPlastic)
+		box("StockBottom", Vector3.new(0.24, 0.12, 0.5), at(0, -0.5, zr + 0.55), look.Body, M.SmoothPlastic)
+		box("Grip", Vector3.new(0.22, 0.48, 0.2), at(0, -0.36, zr + 0.22) * CFrame.Angles(math.rad(-6), 0, 0), look.Body, M.SmoothPlastic)
+		box("ButtPad", Vector3.new(0.27, 0.66, 0.06), at(0, -0.24, zr + 0.93), BLACK, M.Rubber)
+		box("Monopod", Vector3.new(0.06, 0.25, 0.06), at(0, -0.6, zr + 0.72), BLACK)
+		info.Grip = Vector3.new(0, -0.36, zr + 0.22)
+		trigger(zr + 0.1)
+		straightMag(-0.02, 0.26, 0.2, BLACK)
+		rail(-h, h, 0.22)
+		optic("Scope", -0.02, 0.22)
+		bipod(-h - L * 0.25, -0.15)
+		info.Fore = Vector3.new(0, -0.3, -L * 0.25)
+	elseif style == "Barrett" then
+		handle.Size = Vector3.new(0.36, 0.42, L * 0.36)
+		box("LowerReceiver", Vector3.new(0.34, 0.28, L * 0.42), at(0, -0.33, 0.1), STEEL)
+		for i = 1, 4 do
+			box("ReceiverRib", Vector3.new(0.37, 0.04, 0.06), at(0, -0.1 + (i % 2) * 0.12, -0.5 + i * 0.25), DARK)
+		end
+		box("CarryHandle", Vector3.new(0.08, 0.06, 0.6), at(0, 0.62, -0.1), BLACK)
+		for _, dz in { -0.25, 0.25 } do
+			box("CarryPost", Vector3.new(0.06, 0.22, 0.06), at(0, 0.5, -0.1 + dz), BLACK)
+		end
+		-- recoiling barrel + big arrowhead brake
+		cyl("Barrel", look.Barrel + L * 0.35, 0.17, at(0, 0.05, -h - (look.Barrel + L * 0.35) / 2), DARK, M.Metal, "Recoil")
+		info.Muzzle = Vector3.new(0, 0.05, -h - look.Barrel - L * 0.35)
+		local bz = info.Muzzle.Z
+		box("Brake", Vector3.new(0.4, 0.22, 0.4), at(0, 0.05, bz - 0.2), BLACK, M.Metal, "Recoil")
+		box("BrakeFront", Vector3.new(0.3, 0.18, 0.12), at(0, 0.05, bz - 0.45), BLACK, M.Metal, "Recoil")
+		for _, sx in { -1, 1 } do
+			box("BrakePort", Vector3.new(0.05, 0.16, 0.12), at(sx * 0.2, 0.05, bz - 0.2), rgb(10, 10, 10), M.Metal, "Recoil")
+		end
+		info.Muzzle = Vector3.new(0, 0.05, bz - 0.5)
+		box("ChargingHandle", Vector3.new(0.16, 0.12, 0.12), at(0.24, 0.06, -0.2), BLACK, M.Metal, "Bolt")
+		ejectionPort(0.0, 0.06)
+		grip(L * 0.12, -10, BLACK)
+		trigger(L * 0.12)
+		straightMag(-0.05, 0.42, 0.26, STEEL)
+		box("Stock", Vector3.new(0.3, 0.4, 0.7), at(0, -0.22, h + 0.35), STEEL)
+		box("RecoilPad", Vector3.new(0.32, 0.62, 0.18), at(0, -0.2, h + 0.78), BLACK, M.Rubber)
+		box("Monopod", Vector3.new(0.08, 0.3, 0.08), at(0, -0.55, h + 0.55), BLACK)
+		rail(-h - 0.4, h, 0.24)
+		optic("Scope", -0.1, 0.24)
+		bipod(-h - 0.4, -0.12)
+		info.Fore = Vector3.new(0, -0.32, -h - 0.4)
+	elseif style == "Pump" then
+		handle.Size = Vector3.new(0.3, 0.42, L * 0.32)
+		box("ReceiverBottom", Vector3.new(0.28, 0.12, L * 0.3), at(0, -0.26, 0), STEEL)
+		box("LoadingPort", Vector3.new(0.2, 0.03, L * 0.2), at(0, -0.33, -0.02), rgb(18, 18, 18))
+		ejectionPort(-0.02, 0.06)
+		info.Shell = "Shell"
+		local bl = look.Barrel + L * 0.45
+		barrel(-h, bl, 0.17, 0.09)
+		box("VentRib", Vector3.new(0.06, 0.04, bl), at(0, 0.2, -h - bl / 2), BLACK)
+		ball("Bead", 0.06, at(0, 0.24, info.Muzzle.Z + 0.05), CHROME)
+		cyl("TubeMag", bl * 0.82, 0.15, at(0, -0.12, -h - bl * 0.41), DARK)
+		cyl("MagCap", 0.1, 0.17, at(0, -0.12, -h - bl * 0.82 - 0.05), BLACK)
+		-- pump forend + action bars (all move together)
+		local pz = -h - L * 0.18
+		box("Pump", Vector3.new(0.3, 0.26, L * 0.24), at(0, -0.1, pz), WOOD, M.Wood, "Pump")
+		for i = 1, 6 do
+			box("PumpGroove", Vector3.new(0.31, 0.025, 0.04), at(0, -0.1 + ((i % 2) * 2 - 1) * 0.06, pz - L * 0.1 + i * L * 0.03), WOOD_DARK, M.Wood, "Pump")
+		end
+		box("ActionBar", Vector3.new(0.02, 0.04, L * 0.25), at(0.12, -0.08, pz + L * 0.1), CHROME, M.Metal, "Pump")
+		info.Fore = Vector3.new(0, -0.22, pz)
+		-- straight wrist stock
+		box("Wrist", Vector3.new(0.24, 0.3, 0.45), at(0, -0.14, h + 0.2) * CFrame.Angles(math.rad(-14), 0, 0), WOOD, M.Wood)
+		info.Grip = Vector3.new(0, -0.24, h + 0.2)
+		trigger(h - 0.05)
+		box("Stock", Vector3.new(0.24, 0.36, 0.8), at(0, -0.24, h + 0.75) * CFrame.Angles(math.rad(6), 0, 0), WOOD, M.Wood)
+		box("ButtPad", Vector3.new(0.26, 0.56, 0.08), at(0, -0.32, h + 1.15), BLACK, M.Rubber)
+		info.Sight = 0.25
+	elseif style == "AA12" then
+		handle.Size = Vector3.new(0.34, 0.44, L * 0.5)
+		handle.Color = look.Body
+		box("UpperRib", Vector3.new(0.36, 0.08, L * 0.5), at(0, 0.26, 0), DARK)
+		for i = 1, 6 do
+			box("Rib", Vector3.new(0.37, 0.3, 0.05), at(0, 0.02, -L * 0.2 + i * L * 0.06), DARK)
+		end
+		box("CarryHandle", Vector3.new(0.1, 0.1, L * 0.4), at(0, 0.48, 0), BLACK)
+		for _, dz in { -L * 0.18, L * 0.18 } do
+			box("HandlePost", Vector3.new(0.1, 0.18, 0.1), at(0, 0.36, dz), BLACK)
+		end
+		barrel(-L * 0.25, look.Barrel + 0.35, 0.2, 0.04)
+		cyl("Shroud", 0.6, 0.3, at(0, 0.04, -L * 0.25 - 0.3), BLACK)
+		brake(0.26, 0.25)
+		grip(L * 0.12, -14, BLACK)
+		trigger(L * 0.12)
+		box("Magwell", Vector3.new(0.3, 0.2, 0.46), at(0, -0.32, -L * 0.1), STEEL)
+		cylX("Drum", 0.36, 0.9, at(0, -0.8, -L * 0.1), POLY, M.SmoothPlastic, "Mag")
+		cylX("DrumCap", 0.38, 0.32, at(0, -0.8, -L * 0.1), accent, accentMat, "Mag")
+		box("ChargingHandle", Vector3.new(0.12, 0.08, 0.08), at(0, 0.3, -0.05), BLACK, M.Metal, "Bolt")
+		ejectionPort(0.05, 0.05)
+		info.Shell = "Shell"
+		fixedStock(L * 0.25, 0.8, BLACK, M.SmoothPlastic)
+		box("ForeGrip", Vector3.new(0.14, 0.4, 0.16), at(0, -0.36, -L * 0.22), BLACK)
+		info.Sight = 0.55
+		info.Fore = Vector3.new(0, -0.36, -L * 0.22)
+	elseif style == "Double" then
+		handle.Size = Vector3.new(0.34, 0.34, L * 0.22)
+		handle.Color = CHROME
+		box("Engraving", Vector3.new(0.35, 0.18, L * 0.16), at(0, -0.02, 0), rgb(160, 150, 130), M.Metal)
+		local bl = look.Barrel + L * 0.5
+		local hinge = Vector3.new(0, -0.08, -L * 0.11)
+		model:SetAttribute("BreakPivot", hinge)
+		for _, sx in { -0.085, 0.085 } do
+			cyl("Barrel", bl, 0.16, at(sx, 0.06, -L * 0.11 - bl / 2), DARK, M.Metal, "Break")
+			cyl("Bore", 0.02, 0.1, at(sx, 0.06, -L * 0.11 - bl - 0.01), rgb(5, 5, 5), M.Metal, "Break")
+		end
+		box("Rib", Vector3.new(0.06, 0.04, bl), at(0, 0.15, -L * 0.11 - bl / 2), DARK, M.Metal, "Break")
+		ball("Bead", 0.06, at(0, 0.19, -L * 0.11 - bl + 0.05), BRASS, M.Metal, "Break")
+		box("Forend", Vector3.new(0.3, 0.2, L * 0.24), at(0, -0.1, -L * 0.11 - L * 0.16), WOOD, M.Wood, "Break")
+		info.Muzzle = Vector3.new(0, 0.06, -L * 0.11 - bl)
+		info.Fore = Vector3.new(0, -0.2, -L * 0.11 - L * 0.16)
+		box("TopLever", Vector3.new(0.06, 0.04, 0.2), at(0.05, 0.19, L * 0.1), CHROME)
+		for _, sx in { -0.08, 0.08 } do
+			box("Hammer", Vector3.new(0.05, 0.14, 0.1), at(sx, 0.2, L * 0.1) * CFrame.Angles(math.rad(-30), 0, 0), DARK, M.Metal, "Hammer")
+		end
+		box("Wrist", Vector3.new(0.24, 0.3, 0.5), at(0, -0.12, L * 0.11 + 0.22) * CFrame.Angles(math.rad(-12), 0, 0), WOOD, M.Wood)
+		info.Grip = Vector3.new(0, -0.3, L * 0.11 + 0.22)
+		trigger(L * 0.11)
+		box("Stock", Vector3.new(0.24, 0.36, 0.9), at(0, -0.2, L * 0.11 + 0.85) * CFrame.Angles(math.rad(6), 0, 0), WOOD, M.Wood)
+		box("ButtPad", Vector3.new(0.26, 0.58, 0.08), at(0, -0.28, L * 0.11 + 1.3), BLACK, M.Rubber)
+		info.Shell = "Shell"
+		info.Eject = Vector3.new(0, 0.1, -L * 0.11)
+		info.Sight = 0.22
+	elseif style == "Minigun" then
+		handle.Size = Vector3.new(0.6, 0.6, L * 0.3)
+		handle.Color = look.Body
+		local pivot = Vector3.new(0, 0.05, 0)
+		model:SetAttribute("BarrelsPivot", pivot)
+		local bl = look.Barrel + 1.0
 		for i = 1, 6 do
 			local a = i / 6 * math.pi * 2
-			cyl("Barrel" .. i, B + 1.0, 0.11, at(math.cos(a) * 0.17, 0.05 + math.sin(a) * 0.17, -h - (B + 1.0) / 2), DARKSTEEL)
+			cyl("Barrel" .. i, bl, 0.11, at(math.cos(a) * 0.17, 0.05 + math.sin(a) * 0.17, -h - bl / 2), DARK, M.Metal, "Barrels")
 		end
-		for _, dz in { 0.15, B * 0.6 + 0.4, B + 0.85 } do
-			cyl("BarrelClamp", 0.08, 0.48, at(0, 0.05, -h - dz), STEEL)
+		for _, dz in { 0.15, bl * 0.55, bl - 0.05 } do
+			cyl("BarrelClamp", 0.08, 0.48, at(0, 0.05, -h - dz), STEEL, M.Metal, "Barrels")
 		end
-		cyl("Motor", 0.5, 0.5, at(0, 0.05, -h + 0.05), accent, accentMat)
-		info.Muzzle = Vector3.new(0, 0.05, -h - B - 1.0)
-		box("AmmoBox", Vector3.new(0.5, 0.7, 0.9), at(0.55, -0.4, 0.1), rgb(70, 78, 52), M.Metal)
-		box("Feed", Vector3.new(0.3, 0.12, 0.5), at(0.32, -0.05, 0), CHROME)
-		box("RearHandle", Vector3.new(0.6, 0.08, 0.08), at(0, 0.0, h + 0.35), DARKSTEEL)
-		box("RearGrip", Vector3.new(0.12, 0.5, 0.14), at(0, -0.25, h + 0.35), POLY, M.SmoothPlastic)
-		box("TopHandle", Vector3.new(0.08, 0.08, 0.7), at(0, 0.5, 0), DARKSTEEL)
-		box("TopPost", Vector3.new(0.08, 0.22, 0.08), at(0, 0.38, 0.3), DARKSTEEL)
-		box("TopPost2", Vector3.new(0.08, 0.22, 0.08), at(0, 0.38, -0.3), DARKSTEEL)
+		cyl("Rotor", 0.5, 0.5, at(0, 0.05, -h + 0.05), accent, accentMat, "Barrels")
+		info.Muzzle = Vector3.new(0, 0.05, -h - bl)
+		box("Motor", Vector3.new(0.3, 0.3, 0.5), at(0, -0.3, 0.1), BLACK)
+		box("AmmoBox", Vector3.new(0.5, 0.7, 0.9), at(0.6, -0.4, 0.1), OD, M.Metal, "Mag")
+		box("FeedChute", Vector3.new(0.3, 0.12, 0.5), at(0.35, -0.05, 0), BRASS, M.Metal)
+		box("RearHandle", Vector3.new(0.6, 0.08, 0.08), at(0, 0.0, h + 0.35), BLACK)
+		for _, sx in { -0.25, 0.25 } do
+			box("RearHandleArm", Vector3.new(0.06, 0.06, 0.4), at(sx, 0, h + 0.15), BLACK)
+		end
+		box("RearGrip", Vector3.new(0.12, 0.5, 0.14), at(0, -0.25, h + 0.35), POLY, M.Rubber)
+		box("TopHandle", Vector3.new(0.08, 0.08, 0.7), at(0, 0.5, 0), BLACK)
+		box("TopPost", Vector3.new(0.08, 0.22, 0.08), at(0, 0.38, 0.3), BLACK)
+		box("TopPost2", Vector3.new(0.08, 0.22, 0.08), at(0, 0.38, -0.3), BLACK)
 		info.Grip = Vector3.new(0, -0.25, h + 0.35)
 		info.Fore = Vector3.new(0, 0.5, 0)
+		info.Eject = Vector3.new(-0.35, -0.2, 0)
 		info.Sight = 0.62
-	elseif kind == "RPG" then
-		handle.Size = Vector3.new(0.3, 0.3, recLen)
-		cyl("Tube", L + 0.6, 0.6, at(0, 0.2, -0.1), look.Body, M.Metal)
-		cyl("TubeRear", 0.5, 0.75, at(0, 0.2, L / 2 + 0.1), DARKSTEEL)
-		cyl("Venturi", 0.3, 0.55, at(0, 0.2, L / 2 + 0.45), DARKSTEEL)
-		-- warhead: stacked cylinders tapering to a point
-		local z = -L / 2 - 0.4
-		for i, d in { 0.62, 0.72, 0.62, 0.45, 0.25 } do
-			cyl("Warhead" .. i, 0.22, d, at(0, 0.2, z - (i - 1) * 0.2), i <= 2 and rgb(80, 92, 62) or rgb(70, 80, 54))
+	elseif style == "RPG" then
+		handle.Size = Vector3.new(0.3, 0.3, L * 0.3)
+		local tubeY = 0.25
+		cyl("Tube", L + 0.4, 0.42, at(0, tubeY, 0), STEEL)
+		for _, z in { -L * 0.18, L * 0.08 } do
+			cyl("HeatGuard", L * 0.22, 0.56, at(0, tubeY, z), WOOD, M.Wood)
 		end
-		cyl("WarheadRing", 0.06, 0.74, at(0, 0.2, z - 0.1), accent, accentMat)
-		info.Muzzle = Vector3.new(0, 0.2, -L / 2 - 0.4)
-		pistolGrip(0.2, -10)
-		triggerGuard(0.2)
-		box("ForeGrip", Vector3.new(0.16, 0.42, 0.18), at(0, -0.3, -0.9), POLY, M.SmoothPlastic)
-		info.Fore = Vector3.new(0, -0.3, -0.9)
-		box("OpticArm", Vector3.new(0.18, 0.08, 0.2), at(-0.36, 0.25, -0.2), DARKSTEEL)
-		cyl("Optic", 0.5, 0.18, at(-0.45, 0.42, -0.2), DARKSTEEL)
-		box("ShoulderPad", Vector3.new(0.5, 0.15, 0.6), at(0, -0.12, 0.8), POLY, M.Fabric)
-		info.Sight = 0.6
-	elseif kind == "GL" then
-		handle.Size = Vector3.new(0.3, 0.4, recLen)
-		cyl("Cylinder", 0.55, 0.95, at(0, -0.05, -h - 0.28), look.Body, M.Metal)
+		-- flared venturi at the back
+		for i, d in { 0.5, 0.62, 0.74 } do
+			cyl("Venturi" .. i, 0.18, d, at(0, tubeY, L / 2 + 0.2 + (i - 1) * 0.16), DARK)
+		end
+		-- warhead (hidden while empty)
+		local z = -L / 2 - 0.2
+		for i, d in { 0.3, 0.55, 0.7, 0.66, 0.5, 0.32, 0.16 } do
+			cyl("Warhead" .. i, 0.2, d, at(0, tubeY, z - (i - 1) * 0.18), i <= 3 and OD or rgb(70, 80, 54), M.Metal, "Payload")
+		end
+		cyl("WarheadBand", 0.05, 0.72, at(0, tubeY, z - 0.36), accent, accentMat, "Payload")
+		info.Muzzle = Vector3.new(0, tubeY, -L / 2 - 0.2)
+		grip(0.2, -8, BLACK)
+		trigger(0.2)
+		box("ForeGrip", Vector3.new(0.14, 0.44, 0.16), at(0, -0.24, -L * 0.25), BLACK)
+		info.Fore = Vector3.new(0, -0.24, -L * 0.25)
+		box("OpticArm", Vector3.new(0.2, 0.08, 0.24), at(-0.3, tubeY + 0.08, -0.2), BLACK)
+		cyl("Optic", 0.55, 0.2, at(-0.42, tubeY + 0.18, -0.2), BLACK)
+		cyl("OpticEye", 0.2, 0.24, at(-0.42, tubeY + 0.18, 0.12), rgb(25, 25, 25), M.Rubber)
+		box("IronSight", Vector3.new(0.06, 0.18, 0.06), at(0, tubeY + 0.3, -L * 0.3), BLACK)
+		info.Shell = "None"
+		info.Sight = tubeY + 0.32
+	elseif style == "M32" then
+		handle.Size = Vector3.new(0.3, 0.4, L * 0.3)
+		local pivot = Vector3.new(0, -0.08, -h - 0.3)
+		model:SetAttribute("CylinderPivot", pivot)
+		cyl("Cylinder", 0.6, 0.95, at(0, -0.08, -h - 0.3), look.Body, M.Metal, "Cylinder")
 		for i = 1, 6 do
 			local a = i / 6 * math.pi * 2
-			cyl("Chamber" .. i, 0.57, 0.2, at(math.cos(a) * 0.3, -0.05 + math.sin(a) * 0.3, -h - 0.28), rgb(20, 20, 22))
+			cyl("Chamber" .. i, 0.62, 0.22, at(math.cos(a) * 0.3, -0.08 + math.sin(a) * 0.3, -h - 0.3), rgb(20, 20, 22), M.Metal, "Cylinder")
 		end
-		cyl("Spindle", 0.6, 0.12, at(0, -0.05, -h - 0.28), accent, accentMat)
-		barrel(-h - 0.56, B + 0.5, 0.36, 0.1)
-		box("BarrelRail", Vector3.new(0.08, 0.06, B + 0.5), at(0, 0.31, -h - 0.56 - (B + 0.5) / 2), DARKSTEEL)
-		box("ForeGrip", Vector3.new(0.14, 0.44, 0.16), at(0, -0.3, info.Muzzle.Z + 0.35), POLY, M.SmoothPlastic)
-		info.Fore = Vector3.new(0, -0.3, info.Muzzle.Z + 0.35)
-		pistolGrip(recLen * 0.2)
-		triggerGuard(recLen * 0.2)
-		adjustableStock(h)
-		optic("Holo", 0, 0.22)
-		topRail(-h, h, 0.22)
-	elseif kind == "Railgun" then
-		handle.Size = Vector3.new(0.36, 0.44, recLen)
+		cyl("Spindle", 0.66, 0.12, at(0, -0.08, -h - 0.3), accent, accentMat)
+		box("Frame", Vector3.new(0.16, 0.12, 0.7), at(0, 0.48, -h - 0.3), BLACK)
+		barrel(-h - 0.6, look.Barrel + 0.5, 0.36, 0.12)
+		box("BarrelRail", Vector3.new(0.08, 0.06, look.Barrel + 0.5), at(0, 0.33, -h - 0.6 - (look.Barrel + 0.5) / 2), BLACK)
+		box("ForeGrip", Vector3.new(0.14, 0.44, 0.16), at(0, -0.3, info.Muzzle.Z + 0.3), BLACK)
+		info.Fore = Vector3.new(0, -0.3, info.Muzzle.Z + 0.3)
+		grip(L * 0.1)
+		trigger(L * 0.1)
+		m4Stock(h)
+		optic("Holo", -0.02, 0.2)
+		rail(-h, h, 0.2)
+		info.Shell = "None"
+	elseif style == "Railgun" then
+		handle.Size = Vector3.new(0.36, 0.44, L * 0.3)
 		handle.Color = look.Body
+		local rl = L * 0.55 + look.Barrel
 		for _, sx in { -0.16, 0.16 } do
-			box("Rail", Vector3.new(0.1, 0.18, L * 0.55 + B), at(sx, 0.04, -h - (L * 0.55 + B) / 2), DARKSTEEL)
+			box("Rail", Vector3.new(0.1, 0.2, rl), at(sx, 0.04, -h - rl / 2), DARK)
 		end
 		for i = 1, 6 do
-			local z = -h - i * ((L * 0.55 + B) / 7)
-			box("Coil", Vector3.new(0.26, 0.04, 0.06), at(0, 0.04, z), accent, M.Neon)
-			cyl("CoilRing", 0.06, 0.42, at(0, 0.04, z), DARKSTEEL)
+			local z = -h - i * (rl / 7)
+			box("Coil", Vector3.new(0.26, 0.05, 0.06), at(0, 0.04, z), accent, M.Neon, "Glow")
+			cyl("CoilRing", 0.07, 0.44, at(0, 0.04, z), DARK)
 		end
-		info.Muzzle = Vector3.new(0, 0.04, -h - L * 0.55 - B)
-		box("Capacitor", Vector3.new(0.32, 0.24, 0.6), at(0, -0.3, -recLen * 0.1), POLY, M.SmoothPlastic)
-		box("CapacitorGlow", Vector3.new(0.34, 0.06, 0.5), at(0, -0.3, -recLen * 0.1), accent, M.Neon)
-		pistolGrip(recLen * 0.3)
-		triggerGuard(recLen * 0.3)
-		fixedStock(h, 1.0, false)
-		box("StockGlow", Vector3.new(0.26, 0.04, 0.8), at(0, 0.05, h + 0.5), accent, M.Neon)
-		topRail(-h, h, 0.24)
-		optic("Scope", -recLen * 0.05, 0.24)
+		info.Muzzle = Vector3.new(0, 0.04, -h - rl)
+		box("Capacitor", Vector3.new(0.32, 0.24, 0.6), at(0, -0.3, -0.1), POLY, M.SmoothPlastic)
+		box("CapacitorGlow", Vector3.new(0.34, 0.06, 0.5), at(0, -0.3, -0.1), accent, M.Neon, "Glow")
+		grip(L * 0.1)
+		trigger(L * 0.1)
+		fixedStock(h, 1.0, POLY, M.SmoothPlastic)
+		box("StockGlow", Vector3.new(0.26, 0.04, 0.8), at(0, 0.05, h + 0.5), accent, M.Neon, "Glow")
+		rail(-h, h, 0.24)
+		optic("Scope", -0.05, 0.24)
+		info.Shell = "None"
 		info.Fore = Vector3.new(0, -0.15, -h - 0.4)
-	else -- pistols & revolvers
-		local P = L
-		if kind == "Revolver" then
-			handle.Size = Vector3.new(0.24, 0.32, P * 0.35)
-			local fat = style.Fat
-			cyl("Cylinder", 0.42, fat and 0.5 or 0.42, at(0, 0.0, -P * 0.06), CHROME)
-			for i = 1, 6 do
-				local a = i / 6 * math.pi * 2
-				box("Flute", Vector3.new(0.05, 0.05, 0.38), at(math.cos(a) * (fat and 0.24 or 0.2), math.sin(a) * (fat and 0.24 or 0.2), -P * 0.06), DARKSTEEL)
-			end
-			barrel(-P * 0.06 - 0.21, B + P * 0.35, fat and 0.2 or 0.16, 0.08)
-			box("TopRib", Vector3.new(0.08, 0.08, B + P * 0.35), at(0, 0.2, -P * 0.06 - 0.21 - (B + P * 0.35) / 2), STEEL)
-			box("Ejector", Vector3.new(0.08, 0.08, B + P * 0.25), at(0, -0.06, -P * 0.06 - 0.21 - (B + P * 0.25) / 2), STEEL)
-			box("FrontSight", Vector3.new(0.04, 0.1, 0.08), at(0, 0.28, info.Muzzle.Z + 0.08), accent, accentMat)
-			box("Hammer", Vector3.new(0.06, 0.16, 0.12), at(0, 0.18, P * 0.18) * CFrame.Angles(math.rad(-30), 0, 0), DARKSTEEL)
-			box("Grip", Vector3.new(0.22, 0.62, 0.3), at(0, -0.36, P * 0.2) * CFrame.Angles(math.rad(-22), 0, 0), WOOD, M.Wood)
-			info.Grip = Vector3.new(0, -0.36, P * 0.2)
-			triggerGuard(P * 0.12)
-			info.Sight = 0.3
-		else
-			-- slide + frame
-			local slideLen = P * 0.9
-			handle.Size = Vector3.new(0.22, 0.2, slideLen * 0.8)
-			handle.CFrame = at(0, -0.1, 0)
-			box("Slide", Vector3.new(0.24, 0.22, slideLen), at(0, 0.1, -0.05), kind == "EnergyPistol" and look.Body or STEEL, kind == "EnergyPistol" and M.SmoothPlastic or M.Metal)
-			for i = 1, 6 do
-				box("Serration", Vector3.new(0.25, 0.14, 0.025), at(0, 0.11, slideLen / 2 - 0.12 - i * 0.06), DARKSTEEL)
-			end
-			box("EjectionPort", Vector3.new(0.03, 0.1, 0.24), at(0.12, 0.13, -0.05), DARKSTEEL)
-			box("Frame", Vector3.new(0.22, 0.14, slideLen * 0.85), at(0, -0.06, -0.08), POLY, M.SmoothPlastic)
-			box("Grip", Vector3.new(0.22, 0.6, 0.32), at(0, -0.38, slideLen * 0.28) * CFrame.Angles(math.rad(-16), 0, 0), POLY, M.SmoothPlastic)
-			info.Grip = Vector3.new(0, -0.38, slideLen * 0.28)
-			box("TriggerGuard", Vector3.new(0.05, 0.05, 0.36), at(0, -0.28, slideLen * 0.02), POLY, M.SmoothPlastic)
-			box("Trigger", Vector3.new(0.04, 0.14, 0.04), at(0, -0.19, slideLen * 0.06), DARKSTEEL)
-			cyl("Barrel", 0.12, 0.12, at(0, 0.1, -slideLen / 2 - 0.08), DARKSTEEL)
-			info.Muzzle = Vector3.new(0, 0.1, -slideLen / 2 - 0.15)
-			box("FrontSight", Vector3.new(0.04, 0.06, 0.05), at(0, 0.24, -slideLen / 2 + 0.06), accent, accentMat)
-			box("RearSight", Vector3.new(0.16, 0.06, 0.05), at(0, 0.24, slideLen / 2 - 0.06), DARKSTEEL)
-			info.Sight = 0.26
-			if kind == "MachinePistol" then
-				box("ExtMag", Vector3.new(0.18, 0.55, 0.26), at(0, -0.86, slideLen * 0.36) * CFrame.Angles(math.rad(-16), 0, 0), POLY, M.SmoothPlastic)
-				cyl("Compensator", 0.22, 0.2, at(0, 0.1, -slideLen / 2 - 0.15), DARKSTEEL)
-				box("ForeGrip", Vector3.new(0.12, 0.36, 0.14), at(0, -0.3, -slideLen * 0.35), POLY, M.SmoothPlastic)
-				info.Muzzle = Vector3.new(0, 0.1, -slideLen / 2 - 0.27)
-				info.Fore = Vector3.new(0, -0.3, -slideLen * 0.35)
-			elseif kind == "EnergyPistol" then
-				for i = 1, 3 do
-					box("Coil", Vector3.new(0.26, 0.05, 0.05), at(0, 0.1, -slideLen / 2 + i * 0.14), accent, M.Neon)
-				end
-				cyl("Emitter", 0.12, 0.2, at(0, 0.1, -slideLen / 2 - 0.08), accent, M.Neon)
-			else
-				box("MagBase", Vector3.new(0.24, 0.06, 0.32), at(0, -0.68, slideLen * 0.35) * CFrame.Angles(math.rad(-16), 0, 0), DARKSTEEL)
+	elseif style == "Plasma" then
+		handle.Size = Vector3.new(0.34, 0.46, L * 0.4)
+		handle.Color = look.Body
+		handle.Material = M.SmoothPlastic
+		box("TopShell", Vector3.new(0.3, 0.14, L * 0.5), at(0, 0.3, -0.1), rgb(210, 214, 222), M.SmoothPlastic)
+		box("SideWindowL", Vector3.new(0.02, 0.2, L * 0.25), at(-0.18, 0.02, -0.05), rgb(10, 20, 30), M.Glass)
+		box("SideWindowR", Vector3.new(0.02, 0.2, L * 0.25), at(0.18, 0.02, -0.05), rgb(10, 20, 30), M.Glass)
+		for i = 1, 3 do
+			cyl("PlasmaCell" .. i, 0.12, 0.16, at(0, 0.02, -0.25 + i * 0.13), accent, M.Neon, "Glow")
+		end
+		-- twin emitter prongs
+		for _, sx in { -0.12, 0.12 } do
+			box("Prong", Vector3.new(0.08, 0.26, L * 0.35), at(sx, 0.02, -L * 0.2 - L * 0.17), rgb(210, 214, 222), M.SmoothPlastic)
+			box("ProngGlow", Vector3.new(0.02, 0.18, L * 0.3), at(sx * 0.6, 0.02, -L * 0.2 - L * 0.17), accent, M.Neon, "Glow")
+		end
+		info.Muzzle = Vector3.new(0, 0.02, -L * 0.2 - L * 0.36)
+		for i = 1, 3 do
+			box("HeatVent", Vector3.new(0.05, 0.16, 0.06), at(0.19, 0.02, 0.2 + i * 0.09), DARK, M.Metal, "Bolt")
+		end
+		grip(L * 0.12, -16, BLACK)
+		trigger(L * 0.12)
+		box("PowerCell", Vector3.new(0.2, 0.42, 0.3), at(0, -0.42, -0.2), DARK, M.Metal, "Mag")
+		box("PowerCellGlow", Vector3.new(0.22, 0.06, 0.32), at(0, -0.3, -0.2), accent, M.Neon, "Mag")
+		fixedStock(L * 0.2, 0.75, rgb(210, 214, 222), M.SmoothPlastic)
+		cyl("SightRing", 0.06, 0.26, at(0, 0.55, -0.05), DARK)
+		box("SightBase", Vector3.new(0.12, 0.14, 0.2), at(0, 0.44, -0.05), DARK)
+		info.Shell = "None"
+		info.Sight = 0.55
+		info.Fore = Vector3.new(0, -0.15, -L * 0.25)
+	elseif style == "Void" then
+		handle.Size = Vector3.new(0.5, 0.5, L * 0.3)
+		handle.Color = look.Body
+		local orbZ = -L * 0.2
+		local orbGlass = ball("OrbChamber", 0.9, at(0, 0.15, orbZ), rgb(120, 90, 160), M.Glass)
+		orbGlass.Transparency = 0.5
+		ball("Singularity", 0.42, at(0, 0.15, orbZ), accent, M.Neon, "Glow")
+		for _, sx in { -1, 1 } do
+			box("OrbCage", Vector3.new(0.06, 0.9, 0.06), at(sx * 0.42, 0.15, orbZ), DARK)
+		end
+		box("OrbCageTop", Vector3.new(0.9, 0.06, 0.06), at(0, 0.62, orbZ), DARK)
+		local pivot = Vector3.new(0, 0.15, 0)
+		model:SetAttribute("BarrelsPivot", pivot)
+		for i = 1, 3 do
+			local z = orbZ - 0.55 - i * 0.22
+			cyl("EmitterRing" .. i, 0.08, 0.8 - i * 0.12, at(0, 0.15, z), DARK, M.Metal, "Barrels")
+			for k = 1, 3 do
+				local a = k / 3 * math.pi * 2 + i
+				box("RingGlow", Vector3.new(0.06, 0.06, 0.09), at(math.cos(a) * (0.36 - i * 0.06), 0.15 + math.sin(a) * (0.36 - i * 0.06), z), accent, M.Neon, "Barrels")
 			end
 		end
-		info.Fore = info.Fore.Z < 0 and info.Fore or Vector3.new(0, -0.38, P * 0.05)
-		if kind ~= "MachinePistol" then
-			info.Fore = Vector3.new(0, -0.42, P * 0.2 + 0.05) -- two-handed pistol grip
+		info.Muzzle = Vector3.new(0, 0.15, orbZ - 1.3)
+		box("PowerCell", Vector3.new(0.36, 0.36, 0.6), at(0, 0.1, L * 0.2), DARK, M.Metal, "Mag")
+		box("PowerCellGlow", Vector3.new(0.38, 0.08, 0.5), at(0, 0.1, L * 0.2), accent, M.Neon, "Mag")
+		grip(L * 0.05, -12, BLACK)
+		trigger(L * 0.05)
+		box("ForeGrip", Vector3.new(0.14, 0.42, 0.16), at(0, -0.3, orbZ), BLACK)
+		box("TopHandle", Vector3.new(0.08, 0.08, 0.7), at(0, 0.75, 0.1), DARK)
+		info.Shell = "None"
+		info.Sight = 0.8
+		info.Fore = Vector3.new(0, -0.3, orbZ)
+	elseif style == "RayGun" then
+		handle.Size = Vector3.new(0.3, 0.3, 0.5)
+		handle.Color = look.Body
+		ball("Body", 0.6, at(0, 0.1, 0.05), look.Body, M.Metal)
+		for i = 1, 4 do
+			local d = 0.5 - i * 0.07
+			cyl("Ring" .. i, 0.08, d, at(0, 0.1, -0.3 - i * 0.14), i % 2 == 0 and CHROME or rgb(200, 60, 60), M.Metal)
+		end
+		cyl("Emitter", 0.5, 0.12, at(0, 0.1, -0.55), CHROME)
+		ball("EmitterTip", 0.2, at(0, 0.1, -0.85), accent, M.Neon, "Glow")
+		info.Muzzle = Vector3.new(0, 0.1, -0.95)
+		for k = 1, 3 do
+			local a = k / 3 * math.pi * 2 + math.pi / 2
+			box("Fin", Vector3.new(0.04, 0.3, 0.3), at(math.cos(a) * 0.32, 0.1 + math.sin(a) * 0.32, 0.25) * CFrame.Angles(0, 0, a), rgb(200, 60, 60), M.Metal)
+		end
+		cyl("Canister", 0.36, 0.16, at(0, 0.42, 0.05), accent, M.Neon, "Glow")
+		box("CanisterClip", Vector3.new(0.2, 0.06, 0.06), at(0, 0.36, 0.05), CHROME)
+		box("Grip", Vector3.new(0.2, 0.55, 0.28), at(0, -0.3, 0.25) * CFrame.Angles(math.rad(-22), 0, 0), rgb(120, 60, 40), M.Wood)
+		info.Grip = Vector3.new(0, -0.3, 0.25)
+		box("TriggerGuard", Vector3.new(0.05, 0.05, 0.3), at(0, -0.18, 0.05), CHROME)
+		box("Trigger", Vector3.new(0.04, 0.12, 0.04), at(0, -0.12, 0.08), CHROME, M.Metal, "Trigger")
+		info.Fore = Vector3.new(0, -0.38, 0.3)
+		info.Shell = "None"
+		info.Sight = 0.32
+	elseif style == "Revolver" then
+		local fat = true
+		handle.Size = Vector3.new(0.24, 0.36, 0.55)
+		model:SetAttribute("CylinderPivot", Vector3.new(0, 0.0, -0.22))
+		cyl("Cylinder", 0.44, fat and 0.52 or 0.44, at(0, 0.0, -0.22), CHROME, M.Metal, "Cylinder")
+		for i = 1, 6 do
+			local a = i / 6 * math.pi * 2
+			box("Flute", Vector3.new(0.05, 0.05, 0.4), at(math.cos(a) * 0.25, math.sin(a) * 0.25, -0.22), DARK, M.Metal, "Cylinder")
+		end
+		local bl = look.Barrel + L * 0.35
+		barrel(-0.44, bl, 0.2, 0.1)
+		box("TopRib", Vector3.new(0.1, 0.08, bl), at(0, 0.22, -0.44 - bl / 2), STEEL)
+		box("EjectorShroud", Vector3.new(0.12, 0.12, bl * 0.75), at(0, -0.06, -0.44 - bl * 0.37), STEEL)
+		box("FrontSight", Vector3.new(0.04, 0.1, 0.08), at(0, 0.3, info.Muzzle.Z + 0.08), accent, accentMat)
+		box("TopStrap", Vector3.new(0.18, 0.08, 0.5), at(0, 0.26, -0.15), STEEL)
+		box("Hammer", Vector3.new(0.06, 0.18, 0.12), at(0, 0.22, 0.2) * CFrame.Angles(math.rad(-30), 0, 0), DARK, M.Metal, "Hammer")
+		box("Grip", Vector3.new(0.22, 0.62, 0.3), at(0, -0.38, 0.32) * CFrame.Angles(math.rad(-22), 0, 0), WOOD, M.Wood)
+		box("GripScrew", Vector3.new(0.24, 0.05, 0.05), at(0, -0.36, 0.32), BRASS)
+		info.Grip = Vector3.new(0, -0.38, 0.32)
+		trigger(0.15)
+		info.Fore = Vector3.new(0, -0.42, 0.37)
+		info.Shell = "None"
+		info.Sight = 0.32
+	else -- semi-auto pistols: Pistol, Uzi, Deagle, Energy
+		local P = L
+		handle.Size = Vector3.new(0.22, 0.16, P * 0.75)
+		handle.Color = POLY
+		handle.Material = M.SmoothPlastic
+		local slideLen = P * 0.9
+		local slideH = style == "Deagle" and 0.3 or 0.22
+		local slideColor = style == "Energy" and look.Body or (style == "Deagle" and CHROME or STEEL)
+		if style == "Uzi" then
+			-- boxy stamped receiver, mag in the grip, top cocking knob
+			handle.Size = Vector3.new(0.3, 0.36, P * 0.85)
+			handle.Color = look.Body
+			handle.Material = M.Metal
+			box("TopCover", Vector3.new(0.28, 0.06, P * 0.8), at(0, 0.21, 0), DARK)
+			box("CockingKnob", Vector3.new(0.12, 0.08, 0.1), at(0, 0.27, P * 0.2), BLACK, M.Metal, "Bolt")
+			box("FrontSightEars", Vector3.new(0.16, 0.12, 0.06), at(0, 0.26, -P * 0.38), BLACK)
+			box("RearSight", Vector3.new(0.14, 0.1, 0.06), at(0, 0.26, P * 0.38), BLACK)
+			barrel(-P * 0.42, look.Barrel + 0.05, 0.12, 0.02)
+			box("BarrelNut", Vector3.new(0.18, 0.18, 0.08), at(0, 0.02, -P * 0.44), BLACK)
+			box("Grip", Vector3.new(0.24, 0.62, 0.3), at(0, -0.48, 0.05) * CFrame.Angles(math.rad(-6), 0, 0), POLY, M.SmoothPlastic)
+			box("Mag", Vector3.new(0.16, 0.45, 0.2), at(0, -0.98, 0.1) * CFrame.Angles(math.rad(-6), 0, 0), BLACK, M.Metal, "Mag")
+			box("GripSafety", Vector3.new(0.12, 0.3, 0.05), at(0, -0.42, 0.22), BLACK)
+			info.Grip = Vector3.new(0, -0.48, 0.05)
+			trigger(-0.08)
+			box("ForeGrip", Vector3.new(0.12, 0.34, 0.14), at(0, -0.3, -P * 0.3), BLACK)
+			for _, sx in { -0.12, 0.12 } do
+				box("StockArm", Vector3.new(0.03, 0.03, 0.55), at(sx, 0.1, P * 0.4 + 0.27), STEEL)
+			end
+			box("StockPad", Vector3.new(0.26, 0.2, 0.05), at(0, 0.05, P * 0.4 + 0.55), STEEL)
+			ejectionPort(0.0, 0.08)
+			info.Fore = Vector3.new(0, -0.3, -P * 0.3)
+			info.Sight = 0.32
+		else
+			-- slide (moves) + frame
+			box("Slide", Vector3.new(0.24, slideH, slideLen), at(0, 0.15, -0.04), slideColor, style == "Energy" and M.SmoothPlastic or M.Metal, "Slide")
+			for i = 1, 7 do
+				box("Serration", Vector3.new(0.25, slideH * 0.6, 0.022), at(0, 0.16, slideLen / 2 - 0.1 - i * 0.05), DARK, M.Metal, "Slide")
+			end
+			box("FrontSight", Vector3.new(0.04, 0.06, 0.05), at(0, 0.15 + slideH / 2 + 0.03, -slideLen / 2 + 0.05), accent, accentMat, "Slide")
+			box("RearSight", Vector3.new(0.17, 0.06, 0.05), at(0, 0.15 + slideH / 2 + 0.03, slideLen / 2 - 0.08), BLACK, M.Metal, "Slide")
+			box("EjectionPort", Vector3.new(0.03, 0.09, 0.22), at(0.12, 0.18, -0.06), rgb(18, 18, 20), M.Metal, "Slide")
+			info.Eject = Vector3.new(0.14, 0.2, -0.06)
+			if style == "Deagle" then
+				-- triangular-profile fixed barrel in front
+				box("BarrelBlock", Vector3.new(0.26, 0.3, P * 0.45), at(0, 0.15, -slideLen / 2 - P * 0.2), CHROME, M.Metal)
+				box("BarrelRib", Vector3.new(0.12, 0.06, P * 0.45), at(0, 0.32, -slideLen / 2 - P * 0.2), CHROME, M.Metal)
+				box("BarrelBevelL", Vector3.new(0.05, 0.22, P * 0.45), at(-0.12, 0.24, -slideLen / 2 - P * 0.2) * CFrame.Angles(0, 0, math.rad(25)), STEEL)
+				box("BarrelBevelR", Vector3.new(0.05, 0.22, P * 0.45), at(0.12, 0.24, -slideLen / 2 - P * 0.2) * CFrame.Angles(0, 0, math.rad(-25)), STEEL)
+				info.Muzzle = Vector3.new(0, 0.16, -slideLen / 2 - P * 0.43)
+				box("Hammer", Vector3.new(0.06, 0.14, 0.08), at(0, 0.28, slideLen / 2 + 0.02) * CFrame.Angles(math.rad(-30), 0, 0), DARK, M.Metal, "Hammer")
+			else
+				cyl("BarrelHood", 0.1, 0.12, at(0, 0.15, -slideLen / 2 - 0.08), DARK)
+				info.Muzzle = Vector3.new(0, 0.15, -slideLen / 2 - 0.14)
+			end
+			box("Frame", Vector3.new(0.22, 0.14, slideLen * 0.85), at(0, -0.02, -0.08), POLY, M.SmoothPlastic)
+			box("AccessoryRail", Vector3.new(0.18, 0.06, slideLen * 0.3), at(0, -0.1, -slideLen * 0.3), BLACK)
+			box("Grip", Vector3.new(0.22, 0.6, 0.32), at(0, -0.36, slideLen * 0.28) * CFrame.Angles(math.rad(-16), 0, 0), style == "Deagle" and BLACK or POLY, M.SmoothPlastic)
+			box("GripTexture", Vector3.new(0.23, 0.4, 0.26), at(0, -0.38, slideLen * 0.29) * CFrame.Angles(math.rad(-16), 0, 0), rgb(40, 40, 42), M.Fabric)
+			box("MagBase", Vector3.new(0.24, 0.05, 0.32), at(0, -0.67, slideLen * 0.36) * CFrame.Angles(math.rad(-16), 0, 0), DARK, M.Metal, "Mag")
+			box("Mag", Vector3.new(0.16, 0.4, 0.24), at(0, -0.5, slideLen * 0.32) * CFrame.Angles(math.rad(-16), 0, 0), DARK, M.Metal, "Mag")
+			info.Grip = Vector3.new(0, -0.36, slideLen * 0.28)
+			box("TriggerGuard", Vector3.new(0.05, 0.05, 0.36), at(0, -0.26, slideLen * 0.02), POLY, M.SmoothPlastic)
+			box("Trigger", Vector3.new(0.04, 0.13, 0.04), at(0, -0.17, slideLen * 0.06), DARK, M.Metal, "Trigger")
+			box("SlideStop", Vector3.new(0.03, 0.04, 0.12), at(-0.12, 0.04, 0.0), BLACK)
+			if style == "Energy" then
+				for i = 1, 3 do
+					box("Coil", Vector3.new(0.26, 0.05, 0.05), at(0, 0.16, -slideLen / 2 + i * 0.14), accent, M.Neon, "Glow")
+				end
+				cyl("Emitter", 0.12, 0.2, at(0, 0.15, -slideLen / 2 - 0.08), accent, M.Neon, "Glow")
+				info.Shell = "None"
+			end
+			info.Sight = 0.15 + slideH / 2 + 0.05
+			info.Fore = Vector3.new(0, -0.42, slideLen * 0.28 + 0.05)
 		end
 	end
 
 	if golden then
 		for _, p in model:GetChildren() do
 			if p:IsA("BasePart") and p.Material ~= M.Neon and p.Material ~= M.Glass then
-				p.Color = (p.Color == DARKSTEEL or p.Color == POLY) and rgb(190, 140, 30) or GOLD
+				p.Color = (p.Color == BLACK or p.Color == DARK or p.Color == POLY) and rgb(190, 140, 30) or GOLD
 				p.Material = M.Metal
 				p.Reflectance = 0.25
 			end
@@ -1133,13 +1564,15 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 	local function attachment(name, pos)
 		local a = Instance.new("Attachment")
 		a.Name = name
-		a.Position = handle.CFrame:PointToObjectSpace(pos)
+		a.Position = pos
 		a.Parent = handle
 	end
 	attachment("Muzzle", info.Muzzle)
 	attachment("Sight", Vector3.new(0, info.Sight, 0))
 	attachment("GripPoint", info.Grip)
 	attachment("ForePoint", info.Fore)
+	attachment("Eject", info.Eject)
+	model:SetAttribute("Shell", info.Shell)
 	return model
 end
 
@@ -1434,6 +1867,7 @@ Weapons.Defs = {
 	-- PRIMARIES ---------------------------------------------------------
 	Striker = {
 		Name = "STRIKER AR", Class = "Assault Rifle", Slot = "Primary",
+		Model = "M4A1 pattern", Kickback = 0,
 		Damage = 24, HeadMult = 1.6, FireRate = 10, Auto = true,
 		Mag = 30, Reserve = 150, Reload = 2.0,
 		Spread = 2.2, AdsSpread = 0.4, Range = 600, FalloffStart = 120,
@@ -1443,6 +1877,7 @@ Weapons.Defs = {
 	},
 	Viper = {
 		Name = "VIPER SMG", Class = "SMG", Slot = "Primary",
+		Model = "MP5 pattern", Kickback = 0,
 		Damage = 17, HeadMult = 1.4, FireRate = 15, Auto = true,
 		Mag = 35, Reserve = 175, Reload = 1.6,
 		Spread = 3.0, AdsSpread = 1.0, Range = 300, FalloffStart = 60,
@@ -1452,6 +1887,7 @@ Weapons.Defs = {
 	},
 	Brute = {
 		Name = "BRUTE SHOTGUN", Class = "Shotgun", Slot = "Primary",
+		Model = "870 pump pattern", Kickback = 6,
 		Damage = 14, HeadMult = 1.3, FireRate = 1.3, Auto = false, Pellets = 9,
 		Mag = 6, Reserve = 36, Reload = 2.6,
 		Spread = 6.5, AdsSpread = 4.5, Range = 140, FalloffStart = 25,
@@ -1461,6 +1897,7 @@ Weapons.Defs = {
 	},
 	Hornet = {
 		Name = "HORNET BURST", Class = "Burst Rifle", Slot = "Primary",
+		Model = "FAMAS-style bullpup", Kickback = 0,
 		Damage = 31, HeadMult = 1.7, FireRate = 4, Auto = false, Burst = 3, BurstDelay = 0.06,
 		Mag = 24, Reserve = 120, Reload = 2.1,
 		Spread = 1.6, AdsSpread = 0.2, Range = 700, FalloffStart = 160,
@@ -1470,6 +1907,7 @@ Weapons.Defs = {
 	},
 	Inferno = {
 		Name = "INFERNO LMG", Class = "LMG", Slot = "Primary",
+		Model = "M249 pattern", Kickback = 0.5,
 		Damage = 26, HeadMult = 1.5, FireRate = 11, Auto = true,
 		Mag = 100, Reserve = 300, Reload = 4.2,
 		Spread = 3.2, AdsSpread = 1.0, Range = 600, FalloffStart = 140,
@@ -1479,6 +1917,7 @@ Weapons.Defs = {
 	},
 	Longbow = {
 		Name = "LONGBOW SNIPER", Class = "Sniper", Slot = "Primary",
+		Model = "AWM-style bolt action", Kickback = 5,
 		Damage = 95, HeadMult = 2.5, FireRate = 0.9, Auto = false, Penetrate = 1,
 		Mag = 5, Reserve = 30, Reload = 3.0,
 		Spread = 8, AdsSpread = 0, Range = 1500, FalloffStart = 1500,
@@ -1488,6 +1927,7 @@ Weapons.Defs = {
 	},
 	Railgun = {
 		Name = "RAILGUN", Class = "Exotic", Slot = "Primary",
+		Model = "Experimental coilgun", Kickback = 6,
 		Damage = 110, HeadMult = 2, FireRate = 1.2, Auto = false, Penetrate = 99,
 		Mag = 6, Reserve = 48, Reload = 2.4,
 		Spread = 1, AdsSpread = 0, Range = 2000, FalloffStart = 2000,
@@ -1498,6 +1938,7 @@ Weapons.Defs = {
 
 	Vanguard = {
 		Name = "VANGUARD CARBINE", Class = "Assault Rifle", Slot = "Primary",
+		Model = "AK-47 pattern", Kickback = 0,
 		Damage = 22, HeadMult = 1.6, FireRate = 11.5, Auto = true,
 		Mag = 30, Reserve = 150, Reload = 1.8,
 		Spread = 2.0, AdsSpread = 0.45, Range = 500, FalloffStart = 100,
@@ -1507,6 +1948,7 @@ Weapons.Defs = {
 	},
 	Tempest = {
 		Name = "TEMPEST PDW", Class = "SMG", Slot = "Primary",
+		Model = "P90-style bullpup", Kickback = 0,
 		Damage = 15, HeadMult = 1.4, FireRate = 18, Auto = true,
 		Mag = 40, Reserve = 200, Reload = 1.9,
 		Spread = 3.2, AdsSpread = 1.1, Range = 250, FalloffStart = 50,
@@ -1516,6 +1958,7 @@ Weapons.Defs = {
 	},
 	Ranger = {
 		Name = "RANGER DMR", Class = "DMR", Slot = "Primary",
+		Model = "SVD pattern", Kickback = 1.5,
 		Damage = 48, HeadMult = 2.0, FireRate = 4, Auto = false,
 		Mag = 15, Reserve = 75, Reload = 2.3,
 		Spread = 1.4, AdsSpread = 0.05, Range = 1000, FalloffStart = 300,
@@ -1525,6 +1968,7 @@ Weapons.Defs = {
 	},
 	Warden = {
 		Name = "WARDEN BATTLE RIFLE", Class = "Battle Rifle", Slot = "Primary",
+		Model = "SCAR-H pattern", Kickback = 1,
 		Damage = 34, HeadMult = 1.6, FireRate = 7, Auto = true,
 		Mag = 20, Reserve = 100, Reload = 2.4,
 		Spread = 2.4, AdsSpread = 0.5, Range = 700, FalloffStart = 180,
@@ -1534,6 +1978,7 @@ Weapons.Defs = {
 	},
 	Razor = {
 		Name = "RAZOR AUTO-SHOTGUN", Class = "Shotgun", Slot = "Primary",
+		Model = "AA-12 pattern", Kickback = 2,
 		Damage = 11, HeadMult = 1.3, FireRate = 4, Auto = true, Pellets = 7,
 		Mag = 12, Reserve = 48, Reload = 3.0,
 		Spread = 5.5, AdsSpread = 4, Range = 120, FalloffStart = 20,
@@ -1543,6 +1988,7 @@ Weapons.Defs = {
 	},
 	Duke = {
 		Name = "DUKE DOUBLE-BARREL", Class = "Shotgun", Slot = "Primary",
+		Model = "Side-by-side coach gun", Kickback = 9,
 		Damage = 13, HeadMult = 1.3, FireRate = 3.5, Auto = false, Pellets = 12,
 		Mag = 2, Reserve = 30, Reload = 2.2,
 		Spread = 7, AdsSpread = 5, Range = 110, FalloffStart = 20,
@@ -1552,6 +1998,7 @@ Weapons.Defs = {
 	},
 	Reaper = {
 		Name = "REAPER MINIGUN", Class = "Minigun", Slot = "Primary",
+		Model = "M134 rotary", Kickback = 0.25,
 		Damage = 19, HeadMult = 1.3, FireRate = 22, Auto = true, SpinUp = 0.7,
 		Mag = 200, Reserve = 400, Reload = 6,
 		Spread = 4, AdsSpread = 2.6, Range = 500, FalloffStart = 120,
@@ -1561,6 +2008,7 @@ Weapons.Defs = {
 	},
 	Titan = {
 		Name = "TITAN .50 SNIPER", Class = "Sniper", Slot = "Primary",
+		Model = "M82 .50 BMG pattern", Kickback = 8,
 		Damage = 140, HeadMult = 2.0, FireRate = 0.6, Auto = false, Penetrate = 2,
 		Mag = 4, Reserve = 24, Reload = 3.6,
 		Spread = 9, AdsSpread = 0, Range = 2000, FalloffStart = 2000,
@@ -1570,6 +2018,7 @@ Weapons.Defs = {
 	},
 	Havoc = {
 		Name = "HAVOC RPG", Class = "Launcher", Slot = "Primary",
+		Model = "RPG-7 pattern", Kickback = 9,
 		Damage = 150, HeadMult = 1, FireRate = 0.8, Auto = false,
 		Projectile = { Speed = 170, Gravity = 0, Radius = 16, Direct = 60, Size = 0.7 },
 		Mag = 1, Reserve = 6, Reload = 2.8,
@@ -1580,6 +2029,7 @@ Weapons.Defs = {
 	},
 	Thumper = {
 		Name = "THUMPER GRENADE LAUNCHER", Class = "Launcher", Slot = "Primary",
+		Model = "M32 MGL pattern", Kickback = 3,
 		Damage = 110, HeadMult = 1, FireRate = 1.6, Auto = false,
 		Projectile = { Speed = 115, Gravity = 70, Radius = 14, Direct = 30, Size = 0.6 },
 		Mag = 6, Reserve = 18, Reload = 3.2,
@@ -1589,9 +2039,32 @@ Weapons.Defs = {
 		Look = { Body = Color3.fromRGB(60, 62, 66), Accent = Color3.fromRGB(110, 200, 70), Length = 2.4, Barrel = 0.6, Scope = false, Drum = true },
 	},
 
+	PlasmaRifle = {
+		Name = "PLASMA RIFLE", Class = "Sci-Fi", Slot = "Primary",
+		Model = "Unreal: plasma repeater", Kickback = 0,
+		Damage = 21, HeadMult = 1.6, FireRate = 10, Auto = true,
+		Mag = 40, Reserve = 200, Reload = 2.2,
+		Spread = 1.8, AdsSpread = 0.4, Range = 600, FalloffStart = 150,
+		Recoil = 0.6, ZoomFov = 55, Speed = 1.0,
+		Price = 9000, Level = 22,
+		Look = { Body = Color3.fromRGB(30, 34, 44), Accent = Color3.fromRGB(0, 230, 255), Length = 2.8, Barrel = 0.6, Scope = false, Neon = true },
+	},
+	VoidCannon = {
+		Name = "VOID CANNON", Class = "Sci-Fi", Slot = "Primary",
+		Model = "Unreal: singularity launcher", Kickback = 8,
+		Damage = 160, HeadMult = 1, FireRate = 0.55, Auto = false,
+		Projectile = { Speed = 75, Gravity = 0, Radius = 20, Direct = 40, Size = 1.6, Effect = "Void" },
+		Mag = 2, Reserve = 8, Reload = 3.4,
+		Spread = 1, AdsSpread = 0.2, Range = 600, FalloffStart = 600,
+		Recoil = 5, ZoomFov = 55, Speed = 0.85,
+		Price = 20000, Level = 40,
+		Look = { Body = Color3.fromRGB(26, 22, 36), Accent = Color3.fromRGB(180, 80, 255), Length = 3.2, Barrel = 0.4, Scope = false, Neon = true },
+	},
+
 	-- SECONDARIES ------------------------------------------------------
 	Sidekick = {
 		Name = "SIDEKICK PISTOL", Class = "Pistol", Slot = "Secondary",
+		Model = "Modern striker pistol", Kickback = 0,
 		Damage = 28, HeadMult = 1.8, FireRate = 6, Auto = false,
 		Mag = 12, Reserve = 72, Reload = 1.3,
 		Spread = 1.6, AdsSpread = 0.4, Range = 300, FalloffStart = 60,
@@ -1601,6 +2074,7 @@ Weapons.Defs = {
 	},
 	Stinger = {
 		Name = "STINGER MACHINE PISTOL", Class = "Pistol", Slot = "Secondary",
+		Model = "Uzi-style machine pistol", Kickback = 0,
 		Damage = 16, HeadMult = 1.4, FireRate = 14, Auto = true,
 		Mag = 20, Reserve = 120, Reload = 1.4,
 		Spread = 3.0, AdsSpread = 1.4, Range = 200, FalloffStart = 40,
@@ -1610,6 +2084,7 @@ Weapons.Defs = {
 	},
 	HandCannon = {
 		Name = "HAND CANNON", Class = "Revolver", Slot = "Secondary",
+		Model = ".50 AE gas-operated pistol", Kickback = 2,
 		Damage = 58, HeadMult = 2.0, FireRate = 2.2, Auto = false,
 		Mag = 6, Reserve = 36, Reload = 2.2,
 		Spread = 1.8, AdsSpread = 0.2, Range = 400, FalloffStart = 100,
@@ -1619,6 +2094,7 @@ Weapons.Defs = {
 	},
 	Judge = {
 		Name = "JUDGE REVOLVER-SHOTGUN", Class = "Revolver", Slot = "Secondary",
+		Model = "Large-frame revolver", Kickback = 3,
 		Damage = 12, HeadMult = 1.4, FireRate = 2, Auto = false, Pellets = 6,
 		Mag = 5, Reserve = 30, Reload = 2.4,
 		Spread = 5, AdsSpread = 3.5, Range = 90, FalloffStart = 15,
@@ -1628,6 +2104,7 @@ Weapons.Defs = {
 	},
 	Arc = {
 		Name = "ARC ENERGY PISTOL", Class = "Energy Pistol", Slot = "Secondary",
+		Model = "Experimental energy pistol", Kickback = 0,
 		Damage = 30, HeadMult = 1.8, FireRate = 5, Auto = false,
 		Mag = 16, Reserve = 96, Reload = 1.5,
 		Spread = 1.2, AdsSpread = 0.2, Range = 450, FalloffStart = 120,
@@ -1635,12 +2112,23 @@ Weapons.Defs = {
 		Price = 3500, Level = 16,
 		Look = { Body = Color3.fromRGB(230, 230, 240), Accent = Color3.fromRGB(0, 204, 255), Length = 1.3, Barrel = 0.3, Scope = false, Neon = true },
 	},
+	RayGun = {
+		Name = "RAY GUN", Class = "Sci-Fi", Slot = "Secondary",
+		Model = "Unreal: retro ray pistol", Kickback = 0,
+		Damage = 45, HeadMult = 1.3, FireRate = 3.2, Auto = false,
+		Projectile = { Speed = 150, Gravity = 0, Radius = 6, Direct = 40, Size = 0.5, Effect = "Zap" },
+		Mag = 10, Reserve = 60, Reload = 2.0,
+		Spread = 0.8, AdsSpread = 0.2, Range = 500, FalloffStart = 500,
+		Recoil = 1.5, ZoomFov = 60, Speed = 1.08,
+		Price = 7500, Level = 20,
+		Look = { Body = Color3.fromRGB(200, 200, 210), Accent = Color3.fromRGB(80, 255, 120), Length = 1.4, Barrel = 0.4, Scope = false, Neon = true },
+	},
 }
 
 Weapons.Order = {
 	"Striker", "Vanguard", "Viper", "Tempest", "Brute", "Duke", "Hornet", "Ranger", "Warden", "Inferno",
-	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "Railgun",
-	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc",
+	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "PlasmaRifle", "VoidCannon", "Railgun",
+	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc", "RayGun",
 }
 
 function Weapons.Get(id: string)
@@ -2242,6 +2730,10 @@ function Combat.AttachCharacter(entity, character: Model, weaponIds: { string })
 	entity.Humanoid = humanoid
 	entity.Root = root
 	entity.Dead = false
+	entity.InfiniteAmmo = false
+	if entity.Player then
+		entity.Player:SetAttribute("InfiniteAmmo", false)
+	end
 	entity.DamageLog = {}
 	entity.LastDamaged = 0
 	entity.Ammo = {}
@@ -2367,12 +2859,16 @@ end
 
 local MULTI_NAMES = { [2] = "DOUBLE KILL", [3] = "TRIPLE KILL", [4] = "QUAD KILL", [5] = "RAMPAGE" }
 local MULTI_STATS = { [2] = "DoubleKills", [3] = "TripleKills", [4] = "QuadKills", [5] = "Rampages" }
-local STREAK_NAMES = { [5] = "KILLING SPREE", [10] = "DOMINATING", [15] = "UNSTOPPABLE", [20] = "GODLIKE", [25] = "LEGENDARY" }
+local STREAK_NAMES = { [5] = "K.O STREAK 🔥", [10] = "DOMINATING", [15] = "UNSTOPPABLE", [20] = "GODLIKE", [25] = "LEGENDARY" }
 
 function Combat.HandleDeath(killer, victim, info)
 	local round = Combat.Hooks.Round
 	local victimStreak = victim.Streak
 	victim.Streak = 0
+	victim.InfiniteAmmo = false
+	if victim.Player then
+		victim.Player:SetAttribute("InfiniteAmmo", false)
+	end
 	victim.DeathsSinceKill += 1
 	victim.Holder:SetAttribute("Streak", 0)
 	if counting() then
@@ -2422,6 +2918,15 @@ function Combat.HandleDeath(killer, victim, info)
 	end
 	if STREAK_NAMES[killer.Streak] then
 		medal(STREAK_NAMES[killer.Streak], killer.Streak * 20)
+	end
+	if killer.Streak == 5 then
+		AchievementService.Add(kp, "KOStreaks", 1)
+		notify(killer, "KOStreak", { Streak = 5 })
+		for _, p in Players:GetPlayers() do
+			if p ~= kp then
+				Remotes.Notify:FireClient(p, "Message", { Text = killer.Name .. " is on a K.O STREAK 🔥", Color = Color3.fromRGB(255, 120, 40) })
+			end
+		end
 	end
 
 	-- style medals
@@ -2782,7 +3287,7 @@ function Combat.FireProjectile(entity, weaponId: string, origin: Vector3, dir: V
 			end
 			Combat.AreaDamage(entity, hitPos, spec.Radius, def.Damage, {
 				Weapon = weaponId, WeaponName = def.Name, Class = def.Class, Explosive = true, Projectile = true,
-			})
+			}, spec.Effect)
 			return
 		end
 		pos += step
@@ -2815,15 +3320,16 @@ Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flag
 	if now - (entity.LastFire[weaponId] or 0) < (1 / rate) * 0.75 then
 		return
 	end
+	local unlimited = entity.InfiniteAmmo == true
 	local reloadEnd = entity.Reload[weaponId]
-	if reloadEnd then
+	if reloadEnd and not unlimited then
 		if now >= reloadEnd - 0.3 then
 			completeReload(entity, weaponId)
 		else
 			return
 		end
 	end
-	if ammo.Mag <= 0 then
+	if ammo.Mag <= 0 and not unlimited then
 		return
 	end
 
@@ -2838,7 +3344,9 @@ Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flag
 		return
 	end
 	local cost = def.Burst and #clean or 1
-	ammo.Mag = math.max(0, ammo.Mag - cost)
+	if not unlimited then
+		ammo.Mag = math.max(0, ammo.Mag - cost)
+	end
 	entity.LastFire[weaponId] = now
 	removeSpawnProtection(entity)
 
@@ -3436,6 +3944,17 @@ function KillstreakService.Activate(entity, id: string): boolean
 		end
 		AchievementService.Add(player, "Overdrives", 1)
 		announce("OVERDRIVE", entity.Name .. " is moving and shooting faster", Config.Colors.Accent, "⚡")
+	elseif id == "InfiniteAmmo" then
+		entity.InfiniteAmmo = true
+		for weaponId in entity.Ammo do
+			entity.Reload[weaponId] = nil
+		end
+		if player then
+			player:SetAttribute("InfiniteAmmo", true)
+			Remotes.Killstreak:FireClient(player, "InfiniteAmmo", 0)
+		end
+		AchievementService.Add(player, "InfiniteAmmos", 1)
+		announce("INFINITE AMMO", entity.Name .. " never has to reload again (until they die)", Config.Colors.Gold, "♾️")
 	elseif id == "Airstrike" then
 		airstrike(entity)
 		AchievementService.Add(player, "Airstrikes", 1)
@@ -6144,6 +6663,9 @@ end)
 Remotes.Notify.OnClientEvent:Connect(function(kind, payload)
 	if kind == "Kill" then
 		HUD.Kill(payload)
+	elseif kind == "KOStreak" then
+		HUD.KOStreak()
+		Effects.Shake(1.2)
 	elseif kind == "Medal" then
 		HUD.Medals(payload.Medals)
 	elseif kind == "Achievement" then
@@ -6194,6 +6716,8 @@ Remotes.Killstreak.OnClientEvent:Connect(function(kind, duration)
 		HUD.Status("📡 UAV ACTIVE", duration)
 	elseif kind == "Overdrive" then
 		HUD.Status("⚡ OVERDRIVE", duration)
+	elseif kind == "InfiniteAmmo" then
+		Weapons.RefillReserve()
 	end
 end)
 
@@ -6204,6 +6728,10 @@ Remotes.Effect.OnClientEvent:Connect(function(kind, a, b, c)
 		Effects.Launch(a, b)
 	elseif kind == "Explosion" then
 		Effects.Explosion(a, b)
+	elseif kind == "Zap" then
+		Effects.Zap(a, b, Color3.fromRGB(80, 255, 120))
+	elseif kind == "Void" then
+		Effects.Void(a, b)
 	elseif kind == "Slam" then
 		Effects.Shockwave(a, b)
 	elseif kind == "Knife" then
@@ -6417,6 +6945,39 @@ function Effects.Explosion(position: Vector3, radius: number)
 	TweenService:Create(ball, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Size = Vector3.one * radius * 1.6, Transparency = 1 }):Play()
 	Debris:AddItem(ball, 0.4)
 	shakeFrom(position, 3, radius * 4)
+end
+
+-- Sci-fi impacts
+function Effects.Zap(position: Vector3, radius: number, color: Color3)
+	local ball = fxPart(Vector3.one, CFrame.new(position), color, 0)
+	ball.Shape = Enum.PartType.Ball
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = radius * 3
+	light.Brightness = 5
+	light.Parent = ball
+	TweenService:Create(ball, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { Size = Vector3.one * radius * 2, Transparency = 1 }):Play()
+	Debris:AddItem(ball, 0.3)
+	Effects.Sound3D("Hit", position, 0.5)
+	shakeFrom(position, 1, radius * 4)
+end
+
+function Effects.Void(position: Vector3, radius: number)
+	local purple = Color3.fromRGB(170, 70, 255)
+	-- implode then burst
+	local core = fxPart(Vector3.one * radius * 1.6, CFrame.new(position), Color3.fromRGB(20, 0, 40), 0.2)
+	core.Shape = Enum.PartType.Ball
+	core.Material = Enum.Material.Glass
+	TweenService:Create(core, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = Vector3.one * 0.5 }):Play()
+	local ring = fxPart(Vector3.new(0.4, 2, 2), CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90)), purple, 0.1)
+	ring.Shape = Enum.PartType.Cylinder
+	task.delay(0.35, function()
+		TweenService:Create(ring, TweenInfo.new(0.4, Enum.EasingStyle.Quad), { Size = Vector3.new(0.2, radius * 2.4, radius * 2.4), Transparency = 1 }):Play()
+		Effects.Zap(position, radius * 0.7, purple)
+		shakeFrom(position, 3, radius * 4)
+	end)
+	Debris:AddItem(core, 0.4)
+	Debris:AddItem(ring, 0.9)
 end
 
 function Effects.Shockwave(position: Vector3, radius: number)
@@ -6776,12 +7337,18 @@ local function buildAmmo()
 	chip(4, "🔪 <font color='#9AA2B4'>[V]</font>")
 end
 
-function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: boolean, magSize: number)
+function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: boolean, magSize: number, unlimited: boolean?)
 	if not refs.Mag then
 		return
 	end
 	refs.WeaponName.Text = name
-	refs.Reserve.Text = "/ " .. reserve
+	refs.Reserve.Text = unlimited and "/ ∞" or ("/ " .. reserve)
+	if unlimited then
+		refs.Mag.Text = "∞"
+		refs.Mag.TextColor3 = T.Accent
+		refs.MagFill.Size = UDim2.fromScale(1, 1)
+		return
+	end
 	if reloading then
 		refs.Mag.Text = "···"
 		refs.Mag.TextColor3 = T.Accent
@@ -7129,6 +7696,45 @@ function HUD.HideDeath()
 	end
 end
 
+-- K.O STREAK 🔥 (5 kills without dying) -------------------------------------------------
+function HUD.KOStreak()
+	local holder = new("Frame", { Name = "KOStreak", Size = UDim2.fromOffset(720, 150), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, ZIndex = 30, Parent = gui })
+	local band = new("Frame", { Size = UDim2.new(1, 0, 0, 96), Position = UDim2.fromScale(0.5, 0.45), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Color3.fromRGB(255, 90, 20), BorderSizePixel = 0, ZIndex = 30, Parent = holder })
+	new("UIGradient", {
+		Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 40, 20)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 170, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 40, 20)) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, 0.25), NumberSequenceKeypoint.new(0.8, 0.25), NumberSequenceKeypoint.new(1, 1) }),
+		Parent = band,
+	})
+	local title = Label({ Text = "🔥 K.O STREAK 🔥", Size = UDim2.new(1, 0, 0, 80), Position = UDim2.fromScale(0.5, 0.45), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 72, Font = T.Black, TextColor3 = Color3.new(1, 1, 1), ZIndex = 31, Parent = holder })
+	new("UIStroke", { Color = Color3.fromRGB(120, 20, 0), Thickness = 4, Parent = title })
+	local sub = Label({ Text = "5 KILLS WITHOUT DYING  ·  INFINITE AMMO AT 15", Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0.5, 0, 0.45, 56), AnchorPoint = Vector2.new(0.5, 0), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, Font = T.Black, TextColor3 = Color3.fromRGB(255, 230, 180), ZIndex = 31, Parent = holder })
+	UIKit.TextStroke(0.2).Parent = sub
+	local scale = new("UIScale", { Scale = 2.6, Parent = holder })
+	holder.Rotation = -8
+	UIKit.Tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+	UIKit.Tween(holder, 0.35, { Rotation = 0 }, Enum.EasingStyle.Back)
+	UIKit.Sound("Unlock", 0.7)
+	UIKit.Sound("Kill", 0.6)
+	hurtFlash = 0
+	-- flicker like flames
+	task.spawn(function()
+		local start = os.clock()
+		while holder.Parent and os.clock() - start < 2.6 do
+			local f = 0.5 + 0.5 * math.sin((os.clock() - start) * 18)
+			title.TextColor3 = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 220, 120), f)
+			task.wait(0.03)
+		end
+	end)
+	task.delay(2.6, function()
+		UIKit.Tween(scale, 0.3, { Scale = 0.6 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		UIKit.Tween(band, 0.3, { BackgroundTransparency = 1 })
+		UIKit.Tween(title, 0.3, { TextTransparency = 1 })
+		UIKit.Tween(sub, 0.3, { TextTransparency = 1 })
+		task.wait(0.35)
+		holder:Destroy()
+	end)
+end
+
 -- NUKE ------------------------------------------------------------------------------
 function HUD.Nuke(seconds: number, owner: string)
 	HUD.Announce({ Text = "TACTICAL NUKE INCOMING", Sub = "Dropped by " .. owner, Color = T.Red, Icon = "☢️" })
@@ -7282,6 +7888,8 @@ local function update(dt: number)
 	-- status line (killstreaks)
 	if clock < statusUntil then
 		refs.Status.Text = string.format("%s  %ds", statusText, math.ceil(statusUntil - clock))
+	elseif player:GetAttribute("InfiniteAmmo") then
+		refs.Status.Text = "♾️ INFINITE AMMO — NO RELOADS UNTIL YOU DIE"
 	elseif ClientState.Overdrive() then
 		refs.Status.Text = "⚡ OVERDRIVE ACTIVE"
 	else
@@ -7768,7 +8376,7 @@ local function renderArmory(w)
 			local card = UIKit.Panel({ BackgroundColor3 = equipped and Color3.fromRGB(50, 44, 20) or T.Panel, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 6, Parent = list })
 			UIKit.Stroke(equipped and T.Accent or (def.Pass and T.Robux or Color3.new(1, 1, 1)), equipped and 2 or 1, equipped and 0 or 0.85).Parent = card
 			Label({ Text = def.Name, Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(10, 8), TextSize = 14, Font = T.Black, ZIndex = 7, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
-			Label({ Text = string.upper(def.Class) .. (def.Pass and "  ·  💎 EXCLUSIVE" or ""), Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 26), TextSize = 10, Font = T.Bold, TextColor3 = def.Pass and T.Robux or T.Sub, ZIndex = 7, Parent = card })
+			Label({ Text = string.upper(def.Class) .. (def.Pass and "  ·  💎 EXCLUSIVE" or (def.Model and ("  ·  " .. string.upper(def.Model)) or "")), Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 26), TextSize = 10, Font = T.Bold, TextColor3 = def.Pass and T.Robux or T.Sub, ZIndex = 7, Parent = card })
 			gunPreview(card, id)
 			local dps = def.Damage * (def.Pellets or 1) * def.FireRate * (def.Burst or 1)
 			statBar(card, 126, "DAMAGE", def.Damage * (def.Pellets or 1) / 130)
@@ -9049,6 +9657,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -9078,6 +9687,14 @@ local aiming = false
 local reloading = false
 local reloadStart, reloadEnd, reloadToken = 0, 0, 0
 local lastShot = 0
+local lastShotVis = -10 -- time of the last visual shot (drives moving parts)
+local animParts = {} -- moving parts of the current viewmodel
+local animPivots = {}
+local gunFlags = {}
+local cylAngle, cylTarget, barrelAngle = 0, 0, 0
+local function infinite(): boolean
+	return player:GetAttribute("InfiniteAmmo") == true
+end
 local burstBusy = false
 local bloom = 0
 local aimAlpha = 0
@@ -9114,7 +9731,7 @@ local function updateHud()
 	end
 	if current then
 		local a = ammo[current.Id]
-		WC.HUD.SetAmmo(a.Mag, a.Reserve, current.Def.Name, reloading, Weapons.MagSize(current.Def, extended()))
+		WC.HUD.SetAmmo(a.Mag, a.Reserve, current.Def.Name, reloading, Weapons.MagSize(current.Def, extended()), infinite())
 	else
 		WC.HUD.SetAmmo(0, 0, "", false, 1)
 	end
@@ -9181,6 +9798,23 @@ local function buildViewmodel(id: string)
 	end
 	model.Parent = camera
 	viewmodel = model
+	-- remember every moving part relative to the receiver
+	animParts = {}
+	animPivots = {
+		Cylinder = model:GetAttribute("CylinderPivot"),
+		Barrels = model:GetAttribute("BarrelsPivot"),
+		Break = model:GetAttribute("BreakPivot"),
+	}
+	gunFlags = { Shell = model:GetAttribute("Shell") or "Brass" }
+	local hcf = handle.CFrame
+	for _, p in model:GetDescendants() do
+		local kind = p:IsA("BasePart") and p:GetAttribute("Anim")
+		if kind then
+			gunFlags[kind] = true
+			table.insert(animParts, { Part = p, Kind = kind, Base = hcf:ToObjectSpace(p.CFrame), Color = p.Color })
+		end
+	end
+	cylAngle, cylTarget, barrelAngle = 0, 0, 0
 end
 
 local function buildKnife()
@@ -9329,7 +9963,62 @@ local function shotVisual(dir: Vector3)
 	end
 end
 
+local function ejectShell(kind: string)
+	if not viewmodel or kind == "None" then
+		return
+	end
+	local att = viewmodel.PrimaryPart and viewmodel.PrimaryPart:FindFirstChild("Eject")
+	if not att then
+		return
+	end
+	local isShell = kind == "Shell"
+	local shell = Instance.new("Part")
+	shell.Name = "Casing"
+	shell.Size = isShell and Vector3.new(0.14, 0.14, 0.3) or Vector3.new(0.06, 0.06, 0.16)
+	shell.Color = isShell and Color3.fromRGB(190, 40, 40) or Color3.fromRGB(205, 165, 75)
+	shell.Material = Enum.Material.Metal
+	shell.CFrame = att.WorldCFrame * CFrame.Angles(0, math.rad(90), 0)
+	shell.CanCollide = false
+	shell.CanQuery = false
+	shell.CanTouch = false
+	shell.CastShadow = false
+	shell.Parent = workspace:FindFirstChild("Effects") or workspace
+	local cam = camera.CFrame
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local carry = root and root.AssemblyLinearVelocity or Vector3.zero
+	shell.AssemblyLinearVelocity = carry + cam.RightVector * (9 + math.random() * 4) + cam.UpVector * (6 + math.random() * 3) - cam.LookVector * 2
+	shell.AssemblyAngularVelocity = Vector3.new(math.random(-25, 25), math.random(-25, 25), math.random(-25, 25))
+	task.delay(0.12, function()
+		if shell.Parent then
+			shell.CanCollide = true
+		end
+	end)
+	Debris:AddItem(shell, 2.5)
+end
+
 local function kickRecoil(def)
+	lastShotVis = os.clock()
+	cylTarget += math.pi / 3
+	-- spent casings: straight out for semi/auto, after the pump / bolt is cycled otherwise
+	if not gunFlags.Break then
+		local delay = (gunFlags.Pump or gunFlags.BoltAction) and 0.3 or 0
+		local shellKind = gunFlags.Shell
+		if delay > 0 then
+			task.delay(delay, ejectShell, shellKind)
+		else
+			ejectShell(shellKind)
+		end
+	end
+	-- slight physical kickback on the big guns
+	if (def.Kickback or 0) > 0 and character and not ClientState.Driving then
+		local root = character:FindFirstChild("HumanoidRootPart")
+		local look = camera.CFrame.LookVector
+		local flat = Vector3.new(look.X, 0, look.Z)
+		if root and flat.Magnitude > 0.01 then
+			root.AssemblyLinearVelocity += -flat.Unit * def.Kickback * (Movement.State.Airborne and 1.4 or 1)
+		end
+		Effects.Shake(def.Kickback * 0.07)
+	end
 	local adsFactor = 1 - aimAlpha * 0.45
 	recoilPitch += def.Recoil * adsFactor
 	recoilYaw += (math.random() - 0.5) * def.Recoil * 0.6 * adsFactor
@@ -9340,8 +10029,12 @@ local function kickRecoil(def)
 end
 
 function WC.Reload()
-	if not current or reloading or not alive() then
+	if not current or reloading or not alive() or infinite() then
 		return
+	end
+	if gunFlags.Break then
+		task.delay(0.35, ejectShell, "Shell")
+		task.delay(0.4, ejectShell, "Shell")
 	end
 	local def = current.Def
 	local a = ammo[current.Id]
@@ -9389,7 +10082,8 @@ local function tryShoot()
 		return
 	end
 	local a = ammo[current.Id]
-	if a.Mag <= 0 then
+	local unlimited = infinite()
+	if a.Mag <= 0 and not unlimited then
 		UIKit.Sound("Empty")
 		WC.Reload()
 		return
@@ -9406,11 +10100,13 @@ local function tryShoot()
 	local spread = currentSpread()
 	local dirs = {}
 	if def.Burst then
-		local rounds = math.min(def.Burst, a.Mag)
+		local rounds = unlimited and def.Burst or math.min(def.Burst, a.Mag)
 		for i = 1, rounds do
 			dirs[i] = spreadDir(camera.CFrame * CFrame.Angles(math.rad(def.Recoil * 0.25 * (i - 1)), 0, 0), spread)
 		end
-		a.Mag -= rounds
+		if not unlimited then
+			a.Mag -= rounds
+		end
 		burstBusy = true
 		for i, dir in dirs do
 			task.delay((i - 1) * def.BurstDelay, function()
@@ -9426,12 +10122,14 @@ local function tryShoot()
 			dirs[i] = spreadDir(camera.CFrame, spread)
 			shotVisual(dirs[i])
 		end
-		a.Mag -= 1
+		if not unlimited then
+			a.Mag -= 1
+		end
 		kickRecoil(def)
 	end
 	Remotes.Fire:FireServer(current.Id, origin, dirs, flags)
 	updateHud()
-	if a.Mag <= 0 then
+	if a.Mag <= 0 and not unlimited then
 		task.delay(0.25, WC.Reload)
 	end
 end
@@ -9474,6 +10172,72 @@ function WC.OnHit(info)
 		UIKit.Sound("Kill", 1.4)
 	else
 		UIKit.Sound("Hit", info.Headshot and 1.6 or 1.1)
+	end
+end
+
+-- MOVING PARTS ---------------------------------------------------------------------
+local function animateViewmodel(dt: number, now: number)
+	if not viewmodel or not current or not viewmodel.PrimaryPart then
+		return
+	end
+	local hcf = viewmodel.PrimaryPart.CFrame
+	local a = ammo[current.Id]
+	local empty = a ~= nil and a.Mag <= 0 and not infinite()
+	local t = now - lastShotVis
+	-- fast snap back, slower return (slides, bolts)
+	local pulse = t < 0.035 and t / 0.035 or math.max(0, 1 - (t - 0.035) / 0.09)
+	-- delayed rack (pump & bolt action)
+	local cycle = (t > 0.14 and t < 0.56) and math.sin((t - 0.14) / 0.42 * math.pi) or 0
+	local magOut = 0
+	if reloading then
+		local r = math.clamp((now - reloadStart) / math.max(0.01, reloadEnd - reloadStart), 0, 1)
+		magOut = r < 0.25 and r / 0.25 or (r < 0.6 and 1 or math.max(0, 1 - (r - 0.6) / 0.25))
+	end
+	cylAngle += (cylTarget - cylAngle) * math.min(1, dt * 18)
+	if current.Def.SpinUp then
+		barrelAngle += dt * spin * 45
+	else
+		barrelAngle += dt * (1.5 + pulse * 14)
+	end
+	local glow = math.max(0, 1 - t / 0.18)
+	local function around(pivot, rot, base)
+		local p = pivot or Vector3.zero
+		return hcf * CFrame.new(p) * rot * CFrame.new(-p) * base
+	end
+	for _, ap in animParts do
+		local kind = ap.Kind
+		local cf
+		if kind == "Slide" then
+			cf = hcf * CFrame.new(0, 0, empty and 0.2 or 0.22 * pulse) * ap.Base -- locks back when empty
+		elseif kind == "Bolt" then
+			cf = hcf * CFrame.new(0, 0, empty and 0.12 or 0.14 * pulse) * ap.Base
+		elseif kind == "Recoil" then
+			cf = hcf * CFrame.new(0, 0, 0.28 * pulse) * ap.Base
+		elseif kind == "Pump" then
+			cf = hcf * CFrame.new(0, 0, 0.34 * cycle) * ap.Base
+		elseif kind == "BoltAction" then
+			cf = hcf * CFrame.new(0, 0.07 * cycle, 0.3 * cycle) * ap.Base
+		elseif kind == "Trigger" then
+			cf = hcf * CFrame.new(0, 0, (firing or pulse > 0.3) and 0.035 or 0) * ap.Base
+		elseif kind == "Hammer" then
+			cf = hcf * ap.Base * CFrame.Angles(math.rad(-35) * pulse, 0, 0)
+		elseif kind == "Mag" then
+			cf = hcf * CFrame.new(0, -1.6 * magOut, 0.15 * magOut) * ap.Base
+		elseif kind == "Cylinder" then
+			cf = around(animPivots.Cylinder, CFrame.Angles(0, 0, cylAngle), ap.Base)
+		elseif kind == "Barrels" then
+			cf = around(animPivots.Barrels, CFrame.Angles(0, 0, barrelAngle), ap.Base)
+		elseif kind == "Break" then
+			cf = around(animPivots.Break, CFrame.Angles(-0.5 * magOut, 0, 0), ap.Base)
+		else
+			cf = hcf * ap.Base
+		end
+		ap.Part.CFrame = cf
+		if kind == "Payload" and empty then
+			ap.Part.LocalTransparencyModifier = 1
+		elseif kind == "Glow" then
+			ap.Part.Color = ap.Color:Lerp(Color3.new(1, 1, 1), glow * 0.8)
+		end
 	end
 end
 
@@ -9588,6 +10352,7 @@ local function render(dt: number)
 
 		local scoped = def.Scoped and aimAlpha > 0.85
 		setViewmodelVisible(not scoped)
+		animateViewmodel(dt, now)
 		if WC.HUD then
 			WC.HUD.SetScope(scoped)
 			local px = math.tan(math.rad(currentSpread())) / math.tan(math.rad(camera.FieldOfView / 2)) * (camera.ViewportSize.Y / 2)
@@ -9725,6 +10490,7 @@ function WC.Init()
 		bindMobile()
 	end
 	Remotes.HitConfirm.OnClientEvent:Connect(WC.OnHit)
+	player:GetAttributeChangedSignal("InfiniteAmmo"):Connect(updateHud)
 	RunService:BindToRenderStep("NS_Weapons", Enum.RenderPriority.Camera.Value + 1, render)
 end
 

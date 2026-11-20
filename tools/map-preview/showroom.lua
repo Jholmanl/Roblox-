@@ -18,10 +18,10 @@ return {
 		-- gun racks
 		local n = #Weapons.Order
 		for i, id in Weapons.Order do
-			local row = i <= 11 and 0 or 1
-			local col = (i - 1) % 11
-			local x = -40 + col * 8
-			local z = -18 + row * 9
+			local row = (i - 1) // 9
+			local col = (i - 1) % 9
+			local x = -40 + col * 10
+			local z = -26 + row * 9
 			kit:Part(Vector3.new(6.5, 3, 4), CFrame.new(x, 1.5, z), Color3.fromRGB(200, 202, 208), M.SmoothPlastic)
 			kit:Neon(Vector3.new(6.6, 0.15, 0.2), CFrame.new(x, 3, z + 2), Color3.fromRGB(255, 198, 26))
 			local gun = GunBuilder.Build(id, id == "Railgun")
