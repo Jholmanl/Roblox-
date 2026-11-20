@@ -120,10 +120,14 @@ local function buildViewmodel(id: string)
 		sleeve = torso and torso.Color or sleeve
 	end
 	local cf = handle.CFrame
-	arm(model, "RightHand", Vector3.new(0.4, 0.45, 0.45), cf * CFrame.new(0.05, -0.5, L * 0.22), skin)
-	arm(model, "RightSleeve", Vector3.new(0.5, 0.5, 1.8), cf * CFrame.new(0.25, -0.75, L * 0.22 + 1.05) * CFrame.Angles(math.rad(15), 0, 0), sleeve)
-	arm(model, "LeftHand", Vector3.new(0.4, 0.4, 0.5), cf * CFrame.new(-0.05, -0.28, -L * 0.3), skin)
-	arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.0), cf * CFrame.new(-0.55, -0.55, -L * 0.3 + 1.0) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
+	local gripA = handle:FindFirstChild("GripPoint")
+	local foreA = handle:FindFirstChild("ForePoint")
+	local g = gripA and gripA.Position or Vector3.new(0, -0.45, L * 0.22)
+	local f = foreA and foreA.Position or Vector3.new(0, -0.25, -L * 0.3)
+	arm(model, "RightHand", Vector3.new(0.38, 0.42, 0.42), cf * CFrame.new(g + Vector3.new(0.04, 0.02, 0)), skin)
+	arm(model, "RightSleeve", Vector3.new(0.5, 0.5, 1.9), cf * CFrame.new(g + Vector3.new(0.3, -0.25, 1.05)) * CFrame.Angles(math.rad(14), math.rad(8), 0), sleeve)
+	arm(model, "LeftHand", Vector3.new(0.38, 0.38, 0.48), cf * CFrame.new(f + Vector3.new(-0.04, -0.06, 0)), skin)
+	arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.1), cf * CFrame.new(f + Vector3.new(-0.55, -0.32, 1.0)) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			setVMPart(p)

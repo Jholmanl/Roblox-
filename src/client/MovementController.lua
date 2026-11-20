@@ -111,7 +111,7 @@ local function endSlide()
 end
 
 function Movement.Dash()
-	if not root or ClientState.MenuOpen then
+	if not root or ClientState.MenuOpen or ClientState.Driving or (humanoid and humanoid.Sit) then
 		return
 	end
 	if os.clock() - S.LastDash < Movement.DashCooldown() then
@@ -145,6 +145,9 @@ end
 
 -- C / Ctrl: slide on the ground, slam in the air
 function Movement.Crouch()
+	if ClientState.Driving or (humanoid and humanoid.Sit) then
+		return
+	end
 	if grounded() then
 		Movement.Slide()
 	else
@@ -153,7 +156,7 @@ function Movement.Crouch()
 end
 
 local function airJump()
-	if not humanoid or grounded() or ClientState.MenuOpen then
+	if not humanoid or grounded() or ClientState.MenuOpen or humanoid.Sit then
 		return
 	end
 	if os.clock() - leftGround < 0.15 then

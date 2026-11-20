@@ -119,6 +119,7 @@ local CFmethods = {
 	end,
 	Lerp = function(a, b, t) return cf(a.p:Lerp(b.p, t), t < 0.5 and a.r or b.r) end,
 	PointToWorldSpace = function(a, v) return a * v end,
+	PointToObjectSpace = function(a, v) return a:Inverse() * v end,
 	ToWorldSpace = function(a, b) return a * b end,
 	VectorToWorldSpace = function(a, v) return matvec(a.r, v) end,
 }

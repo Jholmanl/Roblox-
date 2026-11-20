@@ -234,7 +234,7 @@ function frame() {
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
-window.preview = { load, setView, count: MAPS.length };
+window.preview = { load, setView, count: MAPS.length, look(px, py, pz, tx, ty, tz) { camera.position.set(px, py, pz); controls.target.set(tx, ty, tz); controls.update(); } };
 load(0);
 frame();
 window.__ready = true;

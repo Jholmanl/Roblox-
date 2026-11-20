@@ -16,6 +16,7 @@ Vehicle.OnChanged = nil -- (driving: boolean) -> ()
 local seat, chassis
 local flippedTime = 0
 local boostHeld = false
+local handbrake = false
 
 local function setDriving(car: Model?, vehicleSeat: VehicleSeat?)
 	Vehicle.Car = car
@@ -73,23 +74,31 @@ local function step(dt: number)
 
 	-- throttle / brake / reverse
 	local target = throttle > 0 and throttle * maxSpeed or throttle * maxSpeed * 0.4
-	local accel = 38
+	-- torque curve: strong off the line, tapering near top speed
+	local speedRatio = math.clamp(math.abs(forwardSpeed) / maxSpeed, 0, 1)
+	local accel = 46 * (1 - 0.7 * speedRatio * speedRatio)
 	if throttle ~= 0 and math.sign(throttle) ~= math.sign(forwardSpeed) and math.abs(forwardSpeed) > 2 then
 		accel = 110 -- braking
 	elseif throttle == 0 then
-		accel = 22 -- coasting
+		accel = 14 -- engine braking / rolling resistance
+	end
+	if handbrake then
+		target = 0
+		accel = 60
 	end
 	local delta = math.clamp(target - forwardSpeed, -accel * dt, accel * dt)
 	forwardSpeed += delta
 
 	-- grip: kill most sideways sliding (a little drift is fun)
 	local lateral = vel - flatForward * vel:Dot(flatForward)
-	lateral = Vector3.new(lateral.X, 0, lateral.Z) * math.max(0, 1 - dt * 6)
+	local grip = handbrake and 1.2 or 6 -- handbrake lets the rear slide out
+	lateral = Vector3.new(lateral.X, 0, lateral.Z) * math.max(0, 1 - dt * grip)
 	chassis.AssemblyLinearVelocity = flatForward * forwardSpeed + lateral + Vector3.new(0, vel.Y, 0)
 
 	-- steering scales with speed and flips when reversing
 	local steerFactor = math.clamp(forwardSpeed / 18, -1, 1)
-	local yaw = -steer * 1.9 * steerFactor
+	-- steering gets less sharp at high speed, sharper with the handbrake
+	local yaw = -steer * 1.9 * steerFactor * (1 - 0.45 * speedRatio) * (handbrake and 1.5 or 1)
 	local av = chassis.AssemblyAngularVelocity
 	chassis.AssemblyAngularVelocity = Vector3.new(av.X * 0.6, yaw, av.Z * 0.6)
 
@@ -105,6 +114,8 @@ local function step(dt: number)
 		flippedTime = 0
 	end
 	Vehicle.Speed = math.abs(forwardSpeed)
+	local cam = workspace.CurrentCamera
+	cam.FieldOfView = cam.FieldOfView + ((70 + speedRatio * 18) - cam.FieldOfView) * math.min(1, dt * 4)
 end
 
 function Vehicle.Init()
@@ -115,11 +126,15 @@ function Vehicle.Init()
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
 			boostHeld = true
+		elseif not processed and (input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.ButtonL1) then
+			handbrake = true
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input)
 		if input.KeyCode == Enum.KeyCode.LeftShift then
 			boostHeld = false
+		elseif input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.ButtonL1 then
+			handbrake = false
 		end
 	end)
 	RunService.Heartbeat:Connect(step)

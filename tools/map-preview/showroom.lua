@@ -22,10 +22,10 @@ return {
 			local col = (i - 1) % 11
 			local x = -40 + col * 8
 			local z = -18 + row * 9
-			kit:Part(Vector3.new(6.5, 3, 4), CFrame.new(x, 1.5, z), Color3.fromRGB(60, 64, 76), M.Metal)
-			kit:Neon(Vector3.new(6.6, 0.15, 4.1), CFrame.new(x, 3, z), Color3.fromRGB(255, 198, 26))
+			kit:Part(Vector3.new(6.5, 3, 4), CFrame.new(x, 1.5, z), Color3.fromRGB(200, 202, 208), M.SmoothPlastic)
+			kit:Neon(Vector3.new(6.6, 0.15, 0.2), CFrame.new(x, 3, z + 2), Color3.fromRGB(255, 198, 26))
 			local gun = GunBuilder.Build(id, id == "Railgun")
-			gun:PivotTo(CFrame.new(x, 4.2, z) * CFrame.Angles(0, math.rad(90), 0))
+			gun:PivotTo(CFrame.new(x, 4.4, z) * CFrame.Angles(0, math.rad(-90), 0))
 			gun.Parent = kit.Props
 		end
 		local styles = { "Sedan", "Sports", "Jeep", "Truck" }

@@ -201,7 +201,7 @@ local function buildVehicle(gui)
 	refs.CarName = Label({ Text = "", Size = UDim2.fromOffset(120, 16), Position = UDim2.fromOffset(170, 10), TextSize = 12, Font = T.Black, TextColor3 = T.Accent, Parent = f })
 	local _, fill = UIKit.Bar({ Size = UDim2.fromOffset(116, 8), Position = UDim2.fromOffset(170, 32), Color = T.Green, Parent = f })
 	refs.CarHealth = fill
-	Label({ Text = "W/S drive · A/D steer · SHIFT boost · SPACE exit", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, Parent = f })
+	Label({ Text = "W/S drive · A/D steer · SHIFT boost · CTRL drift · SPACE exit", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, Parent = f })
 	refs.Vehicle = f
 
 	local spinBar, spinFill = UIKit.Bar({ Size = UDim2.fromOffset(80, 4), Position = UDim2.new(0.5, 0, 0.5, 34), AnchorPoint = Vector2.new(0.5, 0), Color = T.Accent, Parent = gui })

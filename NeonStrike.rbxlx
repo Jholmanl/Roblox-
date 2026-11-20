@@ -137,40 +137,54 @@ return Achievements
       <Item class="ModuleScript" referent="3">
         <Properties>
           <string name="Name">CarBuilder</string>
-          <string name="Source"><![CDATA[-- Builds drivable cars out of parts. Styles: Sedan, Sports, Jeep, Truck.
--- Physics: 4 invisible low-friction balls carry the car (they ride up curbs),
--- the driver's client sets the velocity directly (arcade handling).
+          <string name="Source"><![CDATA[-- Builds detailed, drivable cars out of parts. Styles: Sedan, Sports, Jeep, Truck.
+-- Front of the car is the -Z side. The model pivot is on the ground under the car.
+-- Physics: 4 invisible low-friction balls carry the car (they ride up curbs);
+-- the driver's client sets the velocity directly (see VehicleController).
 local CarBuilder = {}
 
 local rgb = Color3.fromRGB
 local M = Enum.Material
 
-CarBuilder.Styles = {
-	Sedan = { W = 7, L = 14, Body = 2.4, Cabin = 2.4, CabinL = 7, CabinZ = 0.6, Wheel = 2.8, Speed = 80, Health = 450, Colors = { rgb(30, 60, 140), rgb(200, 200, 205), rgb(25, 25, 28), rgb(150, 20, 30) } },
-	Sports = { W = 7.2, L = 14, Body = 1.8, Cabin = 1.9, CabinL = 5.5, CabinZ = 1, Wheel = 2.6, Speed = 105, Health = 350, Spoiler = true, Colors = { rgb(230, 40, 40), rgb(255, 196, 26), rgb(20, 200, 120), rgb(240, 240, 240) } },
-	Jeep = { W = 7.6, L = 13, Body = 3, Cabin = 0, CabinL = 6, CabinZ = 0.5, Wheel = 3.6, Speed = 75, Health = 600, Open = true, Colors = { rgb(80, 100, 60), rgb(140, 120, 80), rgb(60, 80, 100) } },
-	Truck = { W = 8, L = 18, Body = 3, Cabin = 3.2, CabinL = 6, CabinZ = -4.5, Wheel = 3.4, Speed = 65, Health = 800, Bed = true, Colors = { rgb(160, 60, 40), rgb(230, 230, 225), rgb(40, 70, 120) } },
-}
+local BLACK = rgb(22, 22, 24)
+local TRIM = rgb(36, 37, 40)
+local CHROME = rgb(196, 198, 204)
+local TIRE = rgb(26, 26, 27)
+local GLASS = rgb(70, 92, 110)
+local INTERIOR = rgb(40, 38, 36)
 
-local function part(model, name, size, cf, color, material, collide)
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Size = size
-	p.CFrame = cf
-	p.Color = color
-	p.Material = material or M.SmoothPlastic
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.CanCollide = collide == true
-	p.Parent = model
-	return p
-end
+CarBuilder.Styles = {
+	Sedan = {
+		W = 7.2, L = 15, Wheel = 2.9, Clear = 0.9, Belt = 3.6, HoodFront = 3.05, Roof = 5.7,
+		WsBase = -1.9, RoofFront = 0.2, RoofRear = 3.1, RearBase = 4.6, TrunkTop = 3.6,
+		Speed = 80, Health = 450, Colors = { rgb(30, 60, 140), rgb(200, 200, 205), rgb(25, 25, 28), rgb(140, 22, 32), rgb(90, 100, 110) },
+	},
+	Sports = {
+		W = 7.6, L = 14.6, Wheel = 2.7, Clear = 0.55, Belt = 2.95, HoodFront = 2.8, Roof = 4.5,
+		WsBase = -1.4, RoofFront = 0.9, RoofRear = 2.1, RearBase = 5.4, TrunkTop = 3.0,
+		Speed = 105, Health = 350, Spoiler = true, Colors = { rgb(220, 30, 30), rgb(255, 190, 20), rgb(20, 190, 120), rgb(240, 240, 240), rgb(20, 20, 24) },
+	},
+	Jeep = {
+		W = 7.6, L = 13.2, Wheel = 3.7, Clear = 1.7, Belt = 4.5, HoodFront = 4.5, Roof = 7.6,
+		WsBase = -0.9, RoofFront = -0.6, RoofRear = 4.6, RearBase = 6.6, TrunkTop = 4.5,
+		Speed = 75, Health = 600, Open = true, Colors = { rgb(80, 100, 60), rgb(150, 128, 86), rgb(60, 80, 100), rgb(30, 32, 30) },
+	},
+	Truck = {
+		W = 8, L = 18.5, Wheel = 3.5, Clear = 1.5, Belt = 4.6, HoodFront = 4.4, Roof = 7.4,
+		WsBase = -3.0, RoofFront = -1.6, RoofRear = 1.4, RearBase = 1.9, TrunkTop = 4.6,
+		Speed = 65, Health = 800, Bed = true, Colors = { rgb(160, 50, 36), rgb(232, 232, 228), rgb(40, 70, 120), rgb(30, 30, 32) },
+	},
+}
 
 function CarBuilder.Build(style: string, color: Color3?, anchored: boolean?)
 	local s = CarBuilder.Styles[style] or CarBuilder.Styles.Sedan
-	local seed = math.random(1, #s.Colors)
-	local paint = color or s.Colors[seed]
-	local W, L = s.W, s.L
+	local paint = color or s.Colors[math.random(1, #s.Colors)]
+	local W, L, D = s.W, s.L, s.Wheel
+	local r = D / 2
+	local zF = -L / 2 + D * 1.02
+	local zR = L / 2 - D * 1.1
+	local Wc = W - 0.7 -- cabin width
+
 	local model = Instance.new("Model")
 	model.Name = style
 	model:SetAttribute("Vehicle", style)
@@ -178,111 +192,315 @@ function CarBuilder.Build(style: string, color: Color3?, anchored: boolean?)
 	model:SetAttribute("Health", s.Health)
 	model:SetAttribute("Speed", s.Speed)
 
-	local floorY = 1.3
-	local chassis = part(model, "Chassis", Vector3.new(W - 0.4, 1, L - 0.6), CFrame.new(0, floorY, 0), rgb(30, 30, 32), M.Metal, true)
-	chassis.PivotOffset = CFrame.new(0, -floorY, 0)
-	model.PrimaryPart = chassis
-
-	local bodyY = floorY + 0.5 + s.Body / 2
-	local body = part(model, "Body", Vector3.new(W, s.Body, L), CFrame.new(0, bodyY, 0), paint, M.SmoothPlastic, true)
-	body.Reflectance = 0.08
-	local top = floorY + 0.5 + s.Body
-	-- bumpers + grill
-	part(model, "BumperF", Vector3.new(W + 0.2, 0.8, 0.6), CFrame.new(0, floorY + 0.6, -L / 2 - 0.2), rgb(40, 40, 44), M.Metal)
-	part(model, "BumperR", Vector3.new(W + 0.2, 0.8, 0.6), CFrame.new(0, floorY + 0.6, L / 2 + 0.2), rgb(40, 40, 44), M.Metal)
-	part(model, "Grill", Vector3.new(W * 0.5, s.Body * 0.45, 0.2), CFrame.new(0, bodyY - 0.1, -L / 2 - 0.05), rgb(20, 20, 22), M.Metal)
-	-- lights
-	for _, x in { -W / 2 + 1, W / 2 - 1 } do
-		local head = part(model, "Headlight", Vector3.new(1.4, 0.6, 0.2), CFrame.new(x, bodyY + s.Body * 0.2, -L / 2 - 0.05), rgb(255, 250, 230), M.Neon)
-		if x < 0 then
-			local spot = Instance.new("SpotLight")
-			spot.Range = 45
-			spot.Brightness = 3
-			spot.Angle = 60
-			spot.Face = Enum.NormalId.Front
-			spot.Parent = head
-		end
-		part(model, "Taillight", Vector3.new(1.4, 0.5, 0.2), CFrame.new(x, bodyY + s.Body * 0.2, L / 2 + 0.05), rgb(255, 30, 30), M.Neon)
+	local function part(name, size, cf, col, material, collide, class)
+		local p = Instance.new(class or "Part")
+		p.Name = name
+		p.Size = Vector3.new(math.max(size.X, 0.05), math.max(size.Y, 0.05), math.max(size.Z, 0.05))
+		p.CFrame = cf
+		p.Color = col
+		p.Material = material or M.SmoothPlastic
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p.CanCollide = collide == true
+		p.Parent = model
+		return p
+	end
+	local function painted(name, size, cf, collide)
+		local p = part(name, size, cf, paint, M.SmoothPlastic, collide)
+		p.Reflectance = 0.12
+		return p
+	end
+	local function cylX(name, length, diameter, pos, col, material)
+		local p = part(name, Vector3.new(length, diameter, diameter), CFrame.new(pos), col, material)
+		p.Shape = Enum.PartType.Cylinder
+		return p
+	end
+	local function beam(name, a, b, thick, col, material)
+		local len = (b - a).Magnitude
+		return part(name, Vector3.new(thick, thick, len), CFrame.lookAt((a + b) / 2, b), col, material or M.SmoothPlastic)
+	end
+	local function glass(name, size, cf, class)
+		local g = part(name, size, cf, GLASS, M.Glass, true, class)
+		g.Transparency = 0.45
+		g.Reflectance = 0.25
+		g.CanQuery = false -- bullets pass through windows and hit the people inside
+		return g
 	end
 
-	-- cabin
-	if s.Open then
-		-- roll bar + windshield frame
-		for _, x in { -W / 2 + 0.4, W / 2 - 0.4 } do
-			part(model, "RollBar", Vector3.new(0.4, 3.2, 0.4), CFrame.new(x, top + 1.6, 1.5), rgb(30, 30, 30), M.Metal)
+	-- CHASSIS (physics root) -------------------------------------------------------
+	local chassisY = s.Clear + 0.5
+	local chassis = part("Chassis", Vector3.new(W - 0.6, 1, L - 1), CFrame.new(0, chassisY, 0), BLACK, M.Metal, true)
+	chassis.PivotOffset = CFrame.new(0, -chassisY, 0)
+	model.PrimaryPart = chassis
+
+	-- LOWER BODY in segments so the wheel wells are open ----------------------------
+	local archF0, archF1 = zF - r - 0.25, zF + r + 0.25
+	local archR0, archR1 = zR - r - 0.25, zR + r + 0.25
+	local bottom = s.Clear + 0.2
+	local archBottom = math.max(D + 0.12, bottom)
+	local frontTop = s.HoodFront
+	local segments = {
+		{ "FrontOverhang", -L / 2, archF0, bottom, frontTop },
+		{ "FrontFender", archF0, archF1, archBottom, frontTop },
+		{ "Rocker", archF1, archR0, bottom, s.Belt },
+		{ "RearFender", archR0, archR1, archBottom, s.Bed and s.Belt or s.TrunkTop },
+		{ "RearOverhang", archR1, L / 2, bottom, s.Bed and s.Belt or s.TrunkTop },
+	}
+	for _, seg in segments do
+		local z0, z1, y0, y1 = seg[2], seg[3], seg[4], seg[5]
+		-- the front-of-cabin area between the hood and windshield sits at belt height
+		painted(seg[1], Vector3.new(W, y1 - y0, z1 - z0), CFrame.new(0, (y0 + y1) / 2, (z0 + z1) / 2), true)
+	end
+	-- hood: rises from the nose to the windshield base (wedge = high side at +Z)
+	if s.Belt > frontTop + 0.05 then
+		local hz0, hz1 = -L / 2, s.WsBase
+		local wedge = part("Hood", Vector3.new(W, s.Belt - frontTop, hz1 - hz0), CFrame.new(0, frontTop + (s.Belt - frontTop) / 2, (hz0 + hz1) / 2), paint, M.SmoothPlastic, true, "WedgePart")
+		wedge.Reflectance = 0.12
+	end
+	-- cowl between the hood and the cabin
+	painted("Cowl", Vector3.new(W, s.Belt - frontTop + 0.01, math.max(0.1, archF1 - s.WsBase)), CFrame.new(0, (frontTop + s.Belt) / 2, s.WsBase + math.max(0.1, archF1 - s.WsBase) / 2), true)
+
+	-- hood details
+	beam("HoodLine", Vector3.new(-W * 0.22, frontTop + 0.02, -L / 2 + 0.3), Vector3.new(-W * 0.22, s.Belt + 0.02, s.WsBase - 0.1), 0.05, paint:Lerp(BLACK, 0.4))
+	beam("HoodLine2", Vector3.new(W * 0.22, frontTop + 0.02, -L / 2 + 0.3), Vector3.new(W * 0.22, s.Belt + 0.02, s.WsBase - 0.1), 0.05, paint:Lerp(BLACK, 0.4))
+	if s.Spoiler then
+		for _, x in { -1.1, 1.1 } do
+			part("HoodVent", Vector3.new(1.1, 0.06, 1.0), CFrame.new(x, s.Belt - 0.05, s.WsBase - 1.4) * CFrame.Angles(math.rad(-4), 0, 0), BLACK)
 		end
-		part(model, "RollBarTop", Vector3.new(W - 0.4, 0.4, 0.4), CFrame.new(0, top + 3.2, 1.5), rgb(30, 30, 30), M.Metal)
-		local ws = part(model, "Windshield", Vector3.new(W - 0.6, 2, 0.2), CFrame.new(0, top + 1, -1.8) * CFrame.Angles(math.rad(-15), 0, 0), rgb(150, 200, 230), M.Glass)
-		ws.Transparency = 0.5
-		part(model, "Spare", Vector3.new(0.8, s.Wheel, s.Wheel), CFrame.new(0, bodyY + 0.6, L / 2 + 0.7) * CFrame.Angles(0, math.rad(90), 0), rgb(25, 25, 25), M.Rubber).Shape = Enum.PartType.Cylinder
+	end
+
+	-- GREENHOUSE ----------------------------------------------------------------------
+	local cabinH = s.Roof - s.Belt
+	if s.Open then
+		-- jeep: upright windshield frame + roll cage
+		local wsTop = s.Belt + 2.6
+		glass("Windshield", Vector3.new(Wc, 2.4, 0.15), CFrame.new(0, s.Belt + 1.3, s.WsBase) * CFrame.Angles(math.rad(-10), 0, 0))
+		part("WindshieldFrame", Vector3.new(Wc + 0.2, 0.2, 0.25), CFrame.new(0, wsTop, s.WsBase + 0.22), TRIM, M.Metal)
+		for _, x in { -Wc / 2, Wc / 2 } do
+			part("WindshieldPost", Vector3.new(0.2, 2.6, 0.25), CFrame.new(x, s.Belt + 1.3, s.WsBase + 0.1) * CFrame.Angles(math.rad(-10), 0, 0), TRIM, M.Metal)
+			beam("CageSide", Vector3.new(x, wsTop, s.WsBase + 0.25), Vector3.new(x, s.Roof, 1.6), 0.24, TRIM, M.Metal)
+			beam("CageTop", Vector3.new(x, s.Roof, 1.6), Vector3.new(x, s.Roof, s.RoofRear), 0.24, TRIM, M.Metal)
+			beam("CageRear", Vector3.new(x, s.Roof, s.RoofRear), Vector3.new(x, s.Belt, s.RoofRear + 0.3), 0.24, TRIM, M.Metal)
+			beam("CageMid", Vector3.new(x, s.Roof, 1.6), Vector3.new(x, s.Belt, 1.6), 0.24, TRIM, M.Metal)
+		end
+		beam("CageCross", Vector3.new(-Wc / 2, s.Roof, 1.6), Vector3.new(Wc / 2, s.Roof, 1.6), 0.24, TRIM, M.Metal)
+		beam("CageCross2", Vector3.new(-Wc / 2, s.Roof, s.RoofRear), Vector3.new(Wc / 2, s.Roof, s.RoofRear), 0.24, TRIM, M.Metal)
+		local bar = part("LightBar", Vector3.new(Wc * 0.8, 0.3, 0.4), CFrame.new(0, s.Roof + 0.25, 1.6), BLACK, M.Metal)
+		for i = -2, 2 do
+			part("RoofLight", Vector3.new(0.5, 0.22, 0.05), CFrame.new(i * 1.1, s.Roof + 0.25, 1.38), rgb(255, 250, 230), M.Neon)
+		end
+		bar.Name = "LightBar"
 	else
-		local cz = s.CabinZ
-		local glass = part(model, "Cabin", Vector3.new(W - 0.7, s.Cabin, s.CabinL), CFrame.new(0, top + s.Cabin / 2, cz), rgb(120, 170, 210), M.Glass, true)
-		glass.Transparency = 0.35
-		glass.Reflectance = 0.2
-		glass.CanQuery = false -- bullets pass through windows and hit the people inside
-		part(model, "Roof", Vector3.new(W - 0.4, 0.35, s.CabinL - 0.6), CFrame.new(0, top + s.Cabin + 0.17, cz), paint, M.SmoothPlastic)
-		for _, x in { -W / 2 + 0.35, W / 2 - 0.35 } do
-			for _, z in { -s.CabinL / 2 + 0.2, s.CabinL / 2 - 0.2 } do
-				part(model, "Pillar", Vector3.new(0.3, s.Cabin, 0.3), CFrame.new(x, top + s.Cabin / 2, cz + z), paint, M.SmoothPlastic)
+		-- windshield: glass wedge from the cowl up to the roof (sides become the front side windows)
+		local wsLen = s.RoofFront - s.WsBase
+		glass("Windshield", Vector3.new(Wc, cabinH, wsLen), CFrame.new(0, s.Belt + cabinH / 2, s.WsBase + wsLen / 2), "WedgePart")
+		local midLen = s.RoofRear - s.RoofFront
+		glass("SideGlass", Vector3.new(Wc, cabinH, midLen), CFrame.new(0, s.Belt + cabinH / 2, s.RoofFront + midLen / 2))
+		local rearLen = s.RearBase - s.RoofRear
+		local rearDrop = s.Roof - (s.Bed and s.Belt or s.TrunkTop)
+		glass("RearWindow", Vector3.new(Wc, rearDrop, rearLen), CFrame.new(0, s.Roof - rearDrop / 2, s.RoofRear + rearLen / 2) * CFrame.Angles(0, math.rad(180), 0), "WedgePart")
+		painted("Roof", Vector3.new(Wc + 0.12, 0.25, midLen + 0.4), CFrame.new(0, s.Roof + 0.1, s.RoofFront + midLen / 2), true)
+		-- pillars
+		for _, x in { -Wc / 2, Wc / 2 } do
+			beam("APillar", Vector3.new(x, s.Belt, s.WsBase), Vector3.new(x, s.Roof, s.RoofFront), 0.24, paint)
+			beam("CPillar", Vector3.new(x, s.Roof, s.RoofRear), Vector3.new(x, s.Bed and s.Belt or s.TrunkTop, s.RearBase), 0.3, paint)
+			part("BPillar", Vector3.new(0.22, cabinH, 0.4), CFrame.new(x, s.Belt + cabinH / 2, s.RoofFront + midLen * 0.45), TRIM)
+			part("RoofRail", Vector3.new(0.22, 0.22, midLen + 0.3), CFrame.new(x, s.Roof, s.RoofFront + midLen / 2), paint)
+		end
+		-- wipers
+		for _, x in { -1.3, 1.0 } do
+			beam("Wiper", Vector3.new(x, s.Belt + 0.05, s.WsBase + 0.15), Vector3.new(x - 1.3, s.Belt + 0.35, s.WsBase + 0.5), 0.06, BLACK)
+		end
+	end
+	-- trunk lid / fastback deck
+	if not s.Bed and not s.Open then
+		local deckZ0 = s.RearBase
+		if L / 2 - deckZ0 > 0.2 then
+			painted("TrunkLid", Vector3.new(W, 0.15, L / 2 - deckZ0), CFrame.new(0, s.TrunkTop + 0.07, (deckZ0 + L / 2) / 2), false)
+		end
+	end
+	-- side mirrors
+	for _, sx in { -1, 1 } do
+		local base = Vector3.new(sx * (W / 2 + 0.05), s.Belt + 0.3, s.WsBase + 0.6)
+		part("MirrorArm", Vector3.new(0.5, 0.12, 0.2), CFrame.new(base + Vector3.new(sx * 0.2, 0, 0)), TRIM)
+		painted("Mirror", Vector3.new(0.25, 0.5, 0.75), CFrame.new(base + Vector3.new(sx * 0.5, 0.15, 0)), false)
+		part("MirrorGlass", Vector3.new(0.27, 0.4, 0.05), CFrame.new(base + Vector3.new(sx * 0.5, 0.15, 0.39)), rgb(160, 190, 210), M.Glass)
+	end
+
+	-- SIDES: door seams, handles, skirts ---------------------------------------------
+	local doorFront = s.Open and s.WsBase - 0.2 or s.WsBase + 0.3
+	local doorSplit = s.Open and 1.4 or s.RoofFront + (s.RoofRear - s.RoofFront) * 0.45
+	local doorRear = s.Bed and s.RoofRear + 0.3 or math.min(archR0 - 0.2, s.RoofRear + 0.6)
+	for _, sx in { -1, 1 } do
+		local x = sx * (W / 2 + 0.02)
+		local seamH = s.Belt - bottom - 0.2
+		for _, z in { doorFront, doorSplit, doorRear } do
+			part("DoorSeam", Vector3.new(0.05, seamH, 0.06), CFrame.new(x, bottom + 0.1 + seamH / 2, z), BLACK)
+		end
+		for _, z in { doorSplit - 0.6, doorRear - 0.6 } do
+			if not (s.Spoiler and z > doorSplit) then
+				part("Handle", Vector3.new(0.08, 0.14, 0.55), CFrame.new(x + sx * 0.03, s.Belt - 0.55, z), CHROME, M.Metal)
+			end
+		end
+		part("BeltTrim", Vector3.new(0.06, 0.1, archR0 - archF1), CFrame.new(x, s.Belt - 0.05, (archF1 + archR0) / 2), s.Open and paint or CHROME, M.Metal)
+		part("SideSkirt", Vector3.new(0.12, 0.4, archR0 - archF1), CFrame.new(x, bottom + 0.2, (archF1 + archR0) / 2), TRIM)
+		-- fender flares on off-road / sports styles
+		if s.Open or s.Bed or s.Spoiler then
+			for _, z in { zF, zR } do
+				part("FenderFlare", Vector3.new(0.35, 0.35, D + 0.8), CFrame.new(sx * (W / 2 + 0.15), archBottom + 0.12, z), s.Spoiler and paint or TRIM)
 			end
 		end
 	end
-	if s.Spoiler then
-		part(model, "Spoiler", Vector3.new(W - 0.6, 0.25, 1.4), CFrame.new(0, top + 1.2, L / 2 - 0.8), rgb(20, 20, 22), M.SmoothPlastic)
-		for _, x in { -2.2, 2.2 } do
-			part(model, "SpoilerLeg", Vector3.new(0.3, 1.1, 0.4), CFrame.new(x, top + 0.6, L / 2 - 0.8), rgb(20, 20, 22), M.SmoothPlastic)
-		end
-		part(model, "Stripe", Vector3.new(1.2, 0.05, L + 0.02), CFrame.new(0, top + 0.02, 0), rgb(255, 255, 255), M.SmoothPlastic)
+
+	-- FRONT --------------------------------------------------------------------------
+	local nose = -L / 2
+	part("Grille", Vector3.new(W * 0.48, frontTop - bottom - 0.7, 0.12), CFrame.new(0, bottom + 0.45 + (frontTop - bottom - 0.7) / 2, nose - 0.04), BLACK, M.Metal)
+	for i = 1, 3 do
+		part("GrilleBar", Vector3.new(W * 0.48, 0.07, 0.06), CFrame.new(0, bottom + 0.45 + i * (frontTop - bottom - 0.7) / 4, nose - 0.1), s.Spoiler and BLACK or CHROME, M.Metal)
 	end
-	if s.Bed then
-		-- open cargo bed behind the cab
-		for _, x in { -W / 2 + 0.2, W / 2 - 0.2 } do
-			part(model, "BedWall", Vector3.new(0.4, 1.8, L - s.CabinL - 1.5), CFrame.new(x, top + 0.9, (s.CabinL + 1.5) / 2 - 0.2), paint, M.SmoothPlastic, true)
+	part("BumperF", Vector3.new(W + 0.15, 0.7, 0.45), CFrame.new(0, bottom + 0.35, nose - 0.12), s.Open and BLACK or paint:Lerp(BLACK, 0.15), M.SmoothPlastic, true)
+	part("PlateF", Vector3.new(1.6, 0.5, 0.05), CFrame.new(0, bottom + 0.4, nose - 0.36), rgb(240, 240, 240))
+	for _, sx in { -1, 1 } do
+		local hx = sx * (W / 2 - 0.95)
+		local hy = frontTop - 0.42
+		if s.Open then
+			cylX("HeadlightRing", 0.2, 0.95, Vector3.new(0, 0, 0), CHROME, M.Metal).CFrame = CFrame.new(hx, hy, nose - 0.08) * CFrame.Angles(0, math.rad(90), 0)
+			cylX("Headlight", 0.22, 0.75, Vector3.new(0, 0, 0), rgb(255, 250, 230), M.Neon).CFrame = CFrame.new(hx, hy, nose - 0.1) * CFrame.Angles(0, math.rad(90), 0)
+		else
+			part("HeadlightHousing", Vector3.new(1.5, 0.55, 0.22), CFrame.new(hx, hy, nose - 0.06), rgb(200, 210, 220), M.Glass).Transparency = 0.3
+			part("Headlight", Vector3.new(0.6, 0.32, 0.12), CFrame.new(hx - sx * 0.3, hy, nose - 0.02), rgb(255, 250, 230), M.Neon)
+			part("DRL", Vector3.new(1.3, 0.07, 0.1), CFrame.new(hx, hy - 0.22, nose - 0.05), rgb(255, 255, 255), M.Neon)
 		end
-		part(model, "Tailgate", Vector3.new(W, 1.8, 0.4), CFrame.new(0, top + 0.9, L / 2 - 0.2), paint, M.SmoothPlastic, true)
+		part("FogLight", Vector3.new(0.4, 0.22, 0.08), CFrame.new(sx * (W / 2 - 1.1), bottom + 0.35, nose - 0.36), rgb(255, 240, 200), M.Neon)
+	end
+	local lightPart = model:FindFirstChild("Headlight")
+	if lightPart then
+		local spot = Instance.new("SpotLight")
+		spot.Range = 50
+		spot.Brightness = 3
+		spot.Angle = 60
+		spot.Face = s.Open and Enum.NormalId.Right or Enum.NormalId.Front
+		spot.Parent = lightPart
+	end
+	if s.Open or s.Bed then
+		-- bull bar
+		for _, sx in { -1.4, 1.4 } do
+			part("BullBarPost", Vector3.new(0.2, 1.8, 0.2), CFrame.new(sx, bottom + 1.1, nose - 0.6), BLACK, M.Metal)
+		end
+		part("BullBar", Vector3.new(3.4, 0.2, 0.2), CFrame.new(0, bottom + 2, nose - 0.6), BLACK, M.Metal)
 	end
 
-	-- wheels (visual) + support balls (physics)
-	local wz = L / 2 - s.Wheel * 0.75
-	for _, x in { -W / 2 + 0.2, W / 2 - 0.2 } do
-		for _, z in { -wz, wz } do
-			local wheel = part(model, "Wheel", Vector3.new(1.3, s.Wheel, s.Wheel), CFrame.new(x, s.Wheel / 2, z), rgb(25, 25, 25), M.Rubber)
-			wheel.Shape = Enum.PartType.Cylinder
-			local rim = part(model, "Rim", Vector3.new(1.35, s.Wheel * 0.55, s.Wheel * 0.55), CFrame.new(x, s.Wheel / 2, z), rgb(190, 190, 196), M.Metal)
-			rim.Shape = Enum.PartType.Cylinder
-			local ball = part(model, "Support", Vector3.new(2.4, 2.4, 2.4), CFrame.new(x * 0.7, 1.2, z), rgb(0, 0, 0), M.SmoothPlastic, true)
+	-- REAR -----------------------------------------------------------------------------
+	local tail = L / 2
+	local tailTop = s.Bed and s.Belt or s.TrunkTop
+	part("BumperR", Vector3.new(W + 0.15, 0.7, 0.45), CFrame.new(0, bottom + 0.35, tail + 0.12), s.Open and BLACK or paint:Lerp(BLACK, 0.15), M.SmoothPlastic, true)
+	part("PlateR", Vector3.new(1.6, 0.5, 0.05), CFrame.new(0, bottom + 1.0, tail + 0.03), rgb(240, 240, 240))
+	part("PlateStripe", Vector3.new(1.6, 0.1, 0.06), CFrame.new(0, bottom + 1.2, tail + 0.04), rgb(30, 60, 150))
+	for _, sx in { -1, 1 } do
+		local tx = sx * (W / 2 - 0.8)
+		part("Taillight", Vector3.new(1.4, 0.5, 0.1), CFrame.new(tx, tailTop - 0.45, tail + 0.03), rgb(255, 30, 30), M.Neon)
+		part("ReverseLight", Vector3.new(0.4, 0.2, 0.1), CFrame.new(tx - sx * 0.4, tailTop - 0.85, tail + 0.03), rgb(240, 240, 240), M.Neon)
+		cylX("Exhaust", 0.6, 0.32, Vector3.new(0, 0, 0), CHROME, M.Metal).CFrame = CFrame.new(sx * (W / 2 - 1.6), bottom + 0.1, tail + 0.25) * CFrame.Angles(0, math.rad(90), 0)
+	end
+	if s.Spoiler then
+		painted("Spoiler", Vector3.new(W - 0.6, 0.2, 1.3), CFrame.new(0, tailTop + 1.1, tail - 0.8), false)
+		for _, x in { -2.3, 2.3 } do
+			part("SpoilerLeg", Vector3.new(0.25, 1.0, 0.4), CFrame.new(x, tailTop + 0.55, tail - 0.8), BLACK)
+		end
+		for x = -2, 2 do
+			part("Diffuser", Vector3.new(0.08, 0.35, 0.8), CFrame.new(x * 0.8, bottom + 0.1, tail - 0.1), BLACK)
+		end
+		part("Stripe", Vector3.new(0.7, 0.03, L * 0.62), CFrame.new(-0.55, s.Belt + 0.02, -L * 0.18), rgb(245, 245, 245))
+		part("Stripe2", Vector3.new(0.7, 0.03, L * 0.62), CFrame.new(0.55, s.Belt + 0.02, -L * 0.18), rgb(245, 245, 245))
+	end
+	if s.Open then
+		-- spare wheel on the tailgate
+		cylX("Spare", 1.0, D * 0.9, Vector3.new(0, 0, 0), TIRE, M.Rubber).CFrame = CFrame.new(0, s.Belt - 0.3, tail + 0.55) * CFrame.Angles(0, math.rad(90), 0)
+		cylX("SpareRim", 1.04, D * 0.5, Vector3.new(0, 0, 0), CHROME, M.Metal).CFrame = CFrame.new(0, s.Belt - 0.3, tail + 0.56) * CFrame.Angles(0, math.rad(90), 0)
+		-- snorkel
+		local sx = W / 2 + 0.2
+		part("Snorkel", Vector3.new(0.35, 2.6, 0.35), CFrame.new(sx, s.Belt + 1.1, s.WsBase + 0.1), BLACK)
+	end
+
+	-- PICKUP BED -----------------------------------------------------------------------
+	if s.Bed then
+		local z0 = s.RearBase + 0.2
+		local len = L / 2 - z0
+		part("BedFloor", Vector3.new(W - 0.6, 0.2, len), CFrame.new(0, s.Belt - 1.6, z0 + len / 2), rgb(40, 40, 42), M.DiamondPlate)
+		for _, sx in { -1, 1 } do
+			part("BedRail", Vector3.new(0.18, 0.12, len), CFrame.new(sx * (W / 2 - 0.1), s.Belt + 0.08, z0 + len / 2), CHROME, M.Metal)
+		end
+		painted("Tailgate", Vector3.new(W, 1.7, 0.25), CFrame.new(0, s.Belt - 0.85, L / 2 - 0.12), true)
+		part("TowHitch", Vector3.new(0.4, 0.4, 0.9), CFrame.new(0, bottom + 0.1, tail + 0.6), BLACK, M.Metal)
+		for i = -2, 2 do
+			part("CabLight", Vector3.new(0.4, 0.15, 0.25), CFrame.new(i * 0.9, s.Roof + 0.28, s.RoofFront + 0.2), rgb(255, 170, 30), M.Neon)
+		end
+	end
+
+	-- INTERIOR -------------------------------------------------------------------------
+	local seatZ = (s.Open and 1.6 or s.RoofFront + (s.RoofRear - s.RoofFront) * 0.55)
+	local seatY = s.Belt - 1.55
+	part("Dashboard", Vector3.new(Wc - 0.2, 0.9, 1.1), CFrame.new(0, s.Belt - 0.25, s.WsBase + 0.75), INTERIOR)
+	part("Floor", Vector3.new(Wc - 0.2, 0.2, (s.RearBase - s.WsBase) * 0.8), CFrame.new(0, s.Clear + 1.05, (s.WsBase + s.RearBase) / 2), INTERIOR)
+	for _, sx in { -1, 1 } do
+		part("SeatBack", Vector3.new(1.7, 2.2, 0.4), CFrame.new(sx * Wc * 0.24, seatY + 1.3, seatZ + 1.0) * CFrame.Angles(math.rad(-12), 0, 0), INTERIOR, M.Fabric)
+		part("Headrest", Vector3.new(1.0, 0.6, 0.35), CFrame.new(sx * Wc * 0.24, seatY + 2.65, seatZ + 1.25), INTERIOR, M.Fabric)
+	end
+	local wheel = part("SteeringWheel", Vector3.new(0.12, 1.1, 1.1), CFrame.new(-Wc * 0.24, s.Belt + 0.15, s.WsBase + 1.45) * CFrame.Angles(math.rad(-25), math.rad(90), 0), BLACK)
+	wheel.Shape = Enum.PartType.Cylinder
+
+	-- WHEELS ---------------------------------------------------------------------------
+	local tireW = s.Open and 1.5 or (s.Bed and 1.4 or 1.25)
+	for _, sx in { -1, 1 } do
+		for _, z in { zF, zR } do
+			local cx = sx * (W / 2 - tireW / 2 + 0.25)
+			local center = Vector3.new(cx, r, z)
+			cylX("Tire", tireW, D, center, TIRE, M.Rubber)
+			cylX("Sidewall", tireW + 0.02, D * 0.8, center, rgb(36, 36, 38), M.Rubber)
+			cylX("Rim", tireW + 0.04, D * 0.62, center, s.Spoiler and rgb(40, 40, 44) or (s.Open and rgb(70, 70, 74) or CHROME), M.Metal)
+			cylX("Hub", tireW + 0.1, D * 0.18, center, rgb(60, 60, 64), M.Metal)
+			local face = cx + sx * (tireW / 2 + 0.04)
+			for k = 0, 4 do
+				part("Spoke", Vector3.new(0.06, D * 0.24, 0.16), CFrame.new(face, r, z) * CFrame.Angles(math.rad(k * 72), 0, 0) * CFrame.new(0, D * 0.17, 0), s.Spoiler and rgb(25, 25, 28) or rgb(150, 152, 158), M.Metal)
+			end
+			if s.Spoiler then
+				part("Caliper", Vector3.new(0.1, D * 0.2, D * 0.18), CFrame.new(face - sx * 0.05, r + D * 0.18, z - D * 0.12), rgb(220, 30, 30))
+			end
+			-- physics support (invisible)
+			local ball = part("Support", Vector3.new(2.4, 2.4, 2.4), CFrame.new(sx * W * 0.32, 1.2, z), BLACK, M.SmoothPlastic, true)
 			ball.Shape = Enum.PartType.Ball
 			ball.Transparency = 1
 			ball.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.02, 0, 100, 1)
 		end
-	end
-	-- wheel arches
-	for _, z in { -wz, wz } do
-		part(model, "Arch", Vector3.new(W + 0.1, 0.4, s.Wheel + 0.6), CFrame.new(0, s.Wheel + 0.2, z), rgb(30, 30, 32), M.SmoothPlastic)
+		-- wheel well liners (dark, behind the tires)
+		for _, z in { zF, zR } do
+			part("WellLiner", Vector3.new(0.1, 0.5, D + 0.4), CFrame.new(sx * (W / 2 - tireW - 0.1), archBottom - 0.1, z), BLACK)
+		end
 	end
 
-	-- seats
+	-- SEATS (functional) -----------------------------------------------------------
 	local seat = Instance.new("VehicleSeat")
 	seat.Name = "DriverSeat"
-	seat.Size = Vector3.new(2, 0.6, 2)
-	seat.CFrame = CFrame.new(-1.4, top - 0.4, s.CabinZ + 0.6)
-	seat.Color = rgb(30, 30, 30)
+	seat.Size = Vector3.new(1.7, 0.5, 1.8)
+	seat.CFrame = CFrame.new(-Wc * 0.24, seatY, seatZ)
+	seat.Color = INTERIOR
+	seat.Material = M.Fabric
 	seat.HeadsUpDisplay = false
 	seat.MaxSpeed = 0
-	seat.Transparency = 0
 	seat.Parent = model
 	local passenger = Instance.new("Seat")
 	passenger.Name = "PassengerSeat"
-	passenger.Size = Vector3.new(2, 0.6, 2)
-	passenger.CFrame = CFrame.new(1.4, top - 0.4, s.CabinZ + 0.6)
-	passenger.Color = rgb(30, 30, 30)
+	passenger.Size = Vector3.new(1.7, 0.5, 1.8)
+	passenger.CFrame = CFrame.new(Wc * 0.24, seatY, seatZ)
+	passenger.Color = INTERIOR
+	passenger.Material = M.Fabric
 	passenger.Parent = model
 
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			p.Anchored = anchored == true
 			if p ~= chassis then
+				p.Massless = not p.CanCollide
 				local w = Instance.new("WeldConstraint")
 				w.Part0 = chassis
 				w.Part1 = p
@@ -411,22 +629,58 @@ return Config
       <Item class="ModuleScript" referent="5">
         <Properties>
           <string name="Name">GunBuilder</string>
-          <string name="Source"><![CDATA[-- Builds a gun model out of parts from the weapon's Look table.
--- No meshes needed, so the game runs with zero uploaded assets.
+          <string name="Source"><![CDATA[-- Builds detailed gun models out of parts (no uploaded meshes needed).
+-- Every weapon gets a realistic silhouette for its type: receivers, rails,
+-- handguards, curved mags, optics, stocks, muzzle devices, bipods...
 -- The barrel points down the Handle's -Z axis.
+-- Attachments on the Handle: Muzzle, Sight (ADS height), GripPoint (right hand), ForePoint (left hand).
 local Weapons = require(script.Parent.Weapons)
 
 local GunBuilder = {}
 
-local GOLD = Color3.fromRGB(255, 196, 40)
+local rgb = Color3.fromRGB
+local M = Enum.Material
+local GOLD = rgb(255, 196, 40)
+local STEEL = rgb(78, 81, 88)
+local DARKSTEEL = rgb(44, 46, 50)
+local POLY = rgb(58, 60, 64)
+local WOOD = rgb(122, 76, 42)
+local CHROME = rgb(190, 192, 198)
+local ALONG_Z = CFrame.Angles(0, math.rad(90), 0) -- cylinders run along X; rotate onto Z
 
-local function part(parent, name, size, cf, color, material, shape)
+-- weapon id -> style + options
+local STYLES = {
+	Striker = { "Rifle", Optic = "RedDot" },
+	Vanguard = { "Rifle", Short = true, Optic = "Holo" },
+	Hornet = { "Rifle", Optic = "Scope" },
+	Warden = { "Battle", Optic = "Holo" },
+	Ranger = { "DMR", Optic = "Scope" },
+	Viper = { "SMG", Optic = "RedDot" },
+	Tempest = { "SMG", Optic = "Holo", Long = true },
+	Inferno = { "LMG" },
+	Longbow = { "Sniper" },
+	Titan = { "Sniper", Heavy = true },
+	Brute = { "Pump", Wood = true },
+	Razor = { "AutoShotgun" },
+	Duke = { "DoubleBarrel" },
+	Reaper = { "Minigun" },
+	Havoc = { "RPG" },
+	Thumper = { "GL" },
+	Railgun = { "Railgun" },
+	Sidekick = { "Pistol" },
+	Stinger = { "MachinePistol" },
+	HandCannon = { "Revolver" },
+	Judge = { "Revolver", Fat = true },
+	Arc = { "EnergyPistol" },
+}
+
+local function newPart(model, name, size, cf, color, material, shape)
 	local p = Instance.new("Part")
 	p.Name = name
-	p.Size = size
+	p.Size = Vector3.new(math.max(size.X, 0.05), math.max(size.Y, 0.05), math.max(size.Z, 0.05))
 	p.CFrame = cf
 	p.Color = color
-	p.Material = material or Enum.Material.SmoothPlastic
+	p.Material = material or M.SmoothPlastic
 	if shape then
 		p.Shape = shape
 	end
@@ -437,90 +691,455 @@ local function part(parent, name, size, cf, color, material, shape)
 	p.CastShadow = false
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = parent
+	p.Parent = model
 	return p
 end
 
--- Returns Model (PrimaryPart = Handle) with "Muzzle" and "Sight" attachments on the Handle.
 function GunBuilder.Build(weaponId: string, golden: boolean?)
 	local def = Weapons.Get(weaponId)
 	local look = def.Look
+	local style = STYLES[weaponId] or { "Rifle" }
+	local kind = style[1]
 	local L = look.Length
 	local B = look.Barrel
-	local bodyColor = golden and GOLD or look.Body
-	local bodyMat = golden and Enum.Material.Metal or Enum.Material.SmoothPlastic
-	local accentMat = look.Neon and Enum.Material.Neon or Enum.Material.SmoothPlastic
 
 	local model = Instance.new("Model")
 	model.Name = weaponId
 
-	local origin = CFrame.new()
-	local handle = part(model, "Handle", Vector3.new(0.35, 0.45, L), origin, bodyColor, bodyMat)
-	if golden then
-		handle.Reflectance = 0.25
+	local furniture = style.Wood and WOOD or look.Body -- stock / handguard / grip color
+	local accent = look.Accent
+	local accentMat = look.Neon and M.Neon or M.SmoothPlastic
+	local parts = {}
+
+	local function box(name, size, cf, color, material)
+		local p = newPart(model, name, size, cf, color or STEEL, material or M.Metal)
+		table.insert(parts, p)
+		return p
 	end
+	local function cyl(name, length, diameter, cf, color, material)
+		local p = newPart(model, name, Vector3.new(length, diameter, diameter), cf * ALONG_Z, color or STEEL, material or M.Metal, Enum.PartType.Cylinder)
+		table.insert(parts, p)
+		return p
+	end
+	local function at(x, y, z)
+		return CFrame.new(x, y, z)
+	end
+
+	-- the Handle is always the receiver / main body
+	local recLen = L * 0.34
+	local handle = newPart(model, "Handle", Vector3.new(0.3, 0.4, recLen), at(0, 0, 0), STEEL, M.Metal)
 	model.PrimaryPart = handle
 
-	local alongZ = CFrame.Angles(0, math.rad(90), 0) -- cylinders run along X, rotate onto Z
-	local pieces = {
-		part(model, "Barrel", Vector3.new(B + 0.1, 0.18, 0.18), origin * CFrame.new(0, 0.08, -L / 2 - B / 2 + 0.05) * alongZ, Color3.fromRGB(25, 25, 28), Enum.Material.Metal, Enum.PartType.Cylinder),
-		part(model, "Grip", Vector3.new(0.24, 0.6, 0.32), origin * CFrame.new(0, -0.42, L * 0.22) * CFrame.Angles(math.rad(-15), 0, 0), Color3.fromRGB(28, 28, 30)),
-		part(model, "Mag", Vector3.new(0.22, 0.55, 0.32), origin * CFrame.new(0, -0.45, -L * 0.12), bodyColor, bodyMat),
-		part(model, "Rail", Vector3.new(0.37, 0.06, L * 0.85), origin * CFrame.new(0, 0.25, 0), look.Accent, accentMat),
-		part(model, "Stripe", Vector3.new(0.37, 0.08, L * 0.5), origin * CFrame.new(0, -0.05, -L * 0.1), look.Accent, accentMat),
-	}
-	if L >= 2 then
-		table.insert(pieces, part(model, "Stock", Vector3.new(0.28, 0.38, 0.7), origin * CFrame.new(0, -0.08, L / 2 + 0.3), bodyColor, bodyMat))
+	local info = { Grip = Vector3.new(0, -0.42, recLen * 0.25), Fore = Vector3.new(0, -0.22, -recLen * 0.9), Muzzle = Vector3.new(0, 0.05, -L / 2 - B), Sight = 0.42 }
+
+	----------------------------------------------------------------- shared pieces
+	local function topRail(z0, z1, y)
+		local len = z1 - z0
+		box("Rail", Vector3.new(0.2, 0.06, len), at(0, y, (z0 + z1) / 2), DARKSTEEL)
+		local count = math.floor(len / 0.11)
+		for i = 0, math.min(count, 14) - 1 do
+			box("RailSlot", Vector3.new(0.24, 0.045, 0.045), at(0, y + 0.04, z0 + 0.06 + i * (len / math.max(1, count))), DARKSTEEL)
+		end
+	end
+	local function pistolGrip(z, angle, color)
+		box("Grip", Vector3.new(0.22, 0.62, 0.3), at(0, -0.46, z) * CFrame.Angles(math.rad(angle or -16), 0, 0), color or POLY, M.SmoothPlastic)
+		box("GripCap", Vector3.new(0.24, 0.06, 0.32), at(0, -0.78, z + 0.1) * CFrame.Angles(math.rad(angle or -16), 0, 0), color or POLY, M.SmoothPlastic)
+		info.Grip = Vector3.new(0, -0.46, z)
+	end
+	local function triggerGuard(z)
+		box("TriggerGuard", Vector3.new(0.06, 0.05, 0.46), at(0, -0.36, z - 0.18), DARKSTEEL)
+		box("TriggerGuardFront", Vector3.new(0.06, 0.18, 0.05), at(0, -0.28, z - 0.4), DARKSTEEL)
+		box("Trigger", Vector3.new(0.04, 0.17, 0.05), at(0, -0.27, z - 0.17) * CFrame.Angles(math.rad(12), 0, 0), CHROME)
+	end
+	local function ejectionPort(z)
+		box("EjectionPort", Vector3.new(0.03, 0.12, 0.3), at(0.155, 0.06, z), DARKSTEEL)
+		box("ForwardAssist", Vector3.new(0.08, 0.08, 0.1), at(0.17, 0.1, z + 0.28), DARKSTEEL)
+	end
+	local function muzzleBrake(z, d, len)
+		cyl("Muzzle", len, d, at(0, info.Muzzle.Y, z - len / 2), DARKSTEEL)
+		for i = 1, 3 do
+			box("Port", Vector3.new(d + 0.02, 0.04, 0.05), at(0, info.Muzzle.Y, z - len * (i / 4)), rgb(15, 15, 16))
+		end
+		info.Muzzle = Vector3.new(0, info.Muzzle.Y, z - len)
+	end
+	local function barrel(zStart, length, d, y)
+		cyl("Barrel", length, d, at(0, y, zStart - length / 2), DARKSTEEL)
+		info.Muzzle = Vector3.new(0, y, zStart - length)
+	end
+	local function curvedMag(z, scale)
+		local s = scale or 1
+		box("Magwell", Vector3.new(0.26, 0.2, 0.42), at(0, -0.28, z), STEEL)
+		box("Mag", Vector3.new(0.19, 0.48 * s, 0.34), at(0, -0.56, z - 0.05) * CFrame.Angles(math.rad(10), 0, 0), POLY, M.SmoothPlastic)
+		box("Mag2", Vector3.new(0.19, 0.42 * s, 0.33), at(0, -0.92 * s, z - 0.17) * CFrame.Angles(math.rad(24), 0, 0), POLY, M.SmoothPlastic)
+		box("MagBase", Vector3.new(0.22, 0.06, 0.36), at(0, -1.13 * s, z - 0.27) * CFrame.Angles(math.rad(24), 0, 0), DARKSTEEL)
+	end
+	local function boxMag(z, length, width)
+		box("Magwell", Vector3.new(0.26, 0.2, 0.42), at(0, -0.28, z), STEEL)
+		box("Mag", Vector3.new(width or 0.2, length, 0.36), at(0, -0.3 - length / 2, z - 0.04) * CFrame.Angles(math.rad(6), 0, 0), POLY, M.SmoothPlastic)
+		box("MagBase", Vector3.new((width or 0.2) + 0.03, 0.06, 0.38), at(0, -0.32 - length, z - 0.08) * CFrame.Angles(math.rad(6), 0, 0), DARKSTEEL)
+	end
+	local function adjustableStock(zRear)
+		cyl("BufferTube", 0.55, 0.18, at(0, 0.02, zRear + 0.27), DARKSTEEL)
+		box("Stock", Vector3.new(0.24, 0.42, 0.62), at(0, -0.06, zRear + 0.7), furniture, M.SmoothPlastic)
+		box("StockCheek", Vector3.new(0.22, 0.14, 0.5), at(0, 0.18, zRear + 0.68), furniture, M.SmoothPlastic)
+		box("ButtPad", Vector3.new(0.26, 0.52, 0.08), at(0, -0.08, zRear + 1.03), DARKSTEEL, M.Rubber)
+	end
+	local function fixedStock(zRear, length, wood)
+		local c = wood and WOOD or furniture
+		local mat = wood and M.Wood or M.SmoothPlastic
+		box("Stock", Vector3.new(0.24, 0.36, length), at(0, -0.04, zRear + length / 2) * CFrame.Angles(math.rad(4), 0, 0), c, mat)
+		box("StockToe", Vector3.new(0.23, 0.32, length * 0.55), at(0, -0.26, zRear + length * 0.68) * CFrame.Angles(math.rad(-8), 0, 0), c, mat)
+		box("ButtPad", Vector3.new(0.26, 0.62, 0.08), at(0, -0.14, zRear + length + 0.02), DARKSTEEL, M.Rubber)
+	end
+	local function handguard(z0, length, color, vents)
+		box("Handguard", Vector3.new(0.34, 0.36, length), at(0, 0.02, z0 - length / 2), color or furniture, M.SmoothPlastic)
+		if vents then
+			for i = 1, math.min(5, math.floor(length / 0.18)) do
+				for _, sx in { -1, 1 } do
+					box("Vent", Vector3.new(0.02, 0.08, 0.12), at(sx * 0.17, 0.04, z0 - i * (length / 6)), DARKSTEEL)
+				end
+			end
+		end
+		info.Fore = Vector3.new(0, -0.18, z0 - length * 0.55)
+	end
+	local function frontSight(z, y)
+		box("FrontSightBase", Vector3.new(0.12, 0.14, 0.08), at(0, y, z), DARKSTEEL)
+		box("FrontSightPost", Vector3.new(0.03, 0.12, 0.03), at(0, y + 0.12, z), accent, accentMat)
+	end
+	local function optic(kind2, z, railY)
+		if kind2 == "RedDot" then
+			box("OpticMount", Vector3.new(0.18, 0.08, 0.26), at(0, railY + 0.08, z), DARKSTEEL)
+			cyl("Optic", 0.32, 0.26, at(0, railY + 0.27, z), DARKSTEEL)
+			cyl("Lens", 0.02, 0.2, at(0, railY + 0.27, z - 0.17), rgb(120, 200, 255), M.Glass).Transparency = 0.4
+			box("Dot", Vector3.new(0.03, 0.03, 0.02), at(0, railY + 0.27, z + 0.1), rgb(255, 40, 40), M.Neon)
+			info.Sight = railY + 0.27
+		elseif kind2 == "Holo" then
+			box("HoloBase", Vector3.new(0.24, 0.1, 0.42), at(0, railY + 0.09, z), DARKSTEEL)
+			box("HoloHood", Vector3.new(0.26, 0.04, 0.34), at(0, railY + 0.42, z - 0.04), DARKSTEEL)
+			box("HoloSideL", Vector3.new(0.03, 0.32, 0.3), at(-0.12, railY + 0.27, z - 0.04), DARKSTEEL)
+			box("HoloSideR", Vector3.new(0.03, 0.32, 0.3), at(0.12, railY + 0.27, z - 0.04), DARKSTEEL)
+			local glass = box("HoloGlass", Vector3.new(0.2, 0.22, 0.02), at(0, railY + 0.27, z - 0.16), rgb(150, 220, 255), M.Glass)
+			glass.Transparency = 0.5
+			box("Reticle", Vector3.new(0.03, 0.03, 0.01), at(0, railY + 0.27, z - 0.15), rgb(255, 60, 60), M.Neon)
+			info.Sight = railY + 0.27
+		else -- Scope
+			for _, dz in { -0.2, 0.2 } do
+				box("ScopeRing", Vector3.new(0.08, 0.2, 0.08), at(0, railY + 0.12, z + dz), DARKSTEEL)
+			end
+			local y = railY + 0.3
+			cyl("ScopeTube", 0.9, 0.18, at(0, y, z), DARKSTEEL)
+			cyl("ScopeBellFront", 0.3, 0.3, at(0, y, z - 0.55), DARKSTEEL)
+			cyl("ScopeBellRear", 0.22, 0.26, at(0, y, z + 0.5), DARKSTEEL)
+			cyl("ScopeLens", 0.02, 0.26, at(0, y, z - 0.71), rgb(80, 140, 200), M.Glass).Transparency = 0.2
+			box("TurretTop", Vector3.new(0.14, 0.12, 0.14), at(0, y + 0.13, z), DARKSTEEL)
+			box("TurretSide", Vector3.new(0.12, 0.14, 0.14), at(0.13, y, z), DARKSTEEL)
+			box("ScopeAccent", Vector3.new(0.19, 0.02, 0.04), at(0, y, z - 0.38), accent, accentMat)
+			info.Sight = y
+		end
+	end
+	local function bipod(z, y)
+		box("BipodMount", Vector3.new(0.16, 0.1, 0.16), at(0, y - 0.08, z), DARKSTEEL)
+		for _, sx in { -1, 1 } do
+			box("BipodLeg", Vector3.new(0.05, 0.55, 0.05), at(sx * 0.1, y - 0.36, z + 0.1) * CFrame.Angles(math.rad(-55), 0, math.rad(sx * 8)), DARKSTEEL)
+		end
+	end
+	local function chargingHandle(zRear)
+		box("ChargingHandle", Vector3.new(0.22, 0.05, 0.1), at(0, 0.21, zRear - 0.04), DARKSTEEL)
 	end
 
-	local sightHeight = 0.36
-	if look.Scope then
-		sightHeight = 0.48
-		table.insert(pieces, part(model, "Scope", Vector3.new(0.9, 0.24, 0.24), origin * CFrame.new(0, 0.46, -0.1) * alongZ, Color3.fromRGB(20, 20, 22), Enum.Material.Metal, Enum.PartType.Cylinder))
-		table.insert(pieces, part(model, "Lens", Vector3.new(0.02, 0.2, 0.2), origin * CFrame.new(0, 0.46, -0.56) * alongZ, look.Accent, Enum.Material.Neon, Enum.PartType.Cylinder))
-	else
-		table.insert(pieces, part(model, "SightFront", Vector3.new(0.06, 0.12, 0.06), origin * CFrame.new(0, 0.34, -L / 2 + 0.1), look.Accent, Enum.Material.Neon))
-		table.insert(pieces, part(model, "SightRear", Vector3.new(0.2, 0.1, 0.06), origin * CFrame.new(0, 0.33, L / 2 - 0.2), Color3.fromRGB(20, 20, 20)))
-	end
-
-	-- special silhouettes
-	if look.Tube then
-		table.insert(pieces, part(model, "Tube", Vector3.new(L + 0.6, 0.8, 0.8), origin * CFrame.new(0, 0.2, -0.1) * alongZ, bodyColor, bodyMat, Enum.PartType.Cylinder))
-		table.insert(pieces, part(model, "TubeRing", Vector3.new(0.3, 0.9, 0.9), origin * CFrame.new(0, 0.2, -L / 2 - 0.2) * alongZ, look.Accent, accentMat, Enum.PartType.Cylinder))
-		table.insert(pieces, part(model, "Warhead", Vector3.new(0.7, 0.55, 0.55), origin * CFrame.new(0, 0.2, -L / 2 - 0.65) * alongZ, Color3.fromRGB(90, 100, 70), Enum.Material.Metal, Enum.PartType.Cylinder))
-	end
-	if look.Rotary then
+	----------------------------------------------------------------- styles
+	local h = recLen / 2
+	if kind == "Rifle" or kind == "Battle" or kind == "DMR" or kind == "AutoShotgun" or kind == "LMG" then
+		local hgLen = kind == "DMR" and L * 0.38 or (style.Short and L * 0.24 or L * 0.3)
+		handle.Size = Vector3.new(0.3, 0.42, recLen)
+		box("Lower", Vector3.new(0.28, 0.16, recLen * 0.9), at(0, -0.26, recLen * 0.03), STEEL)
+		topRail(-h - hgLen, h, 0.24)
+		handguard(-h, hgLen, kind == "Battle" and furniture or POLY, true)
+		local barrelD = kind == "AutoShotgun" and 0.2 or (kind == "LMG" and 0.17 or 0.12)
+		barrel(-h - hgLen, B + 0.1, barrelD, 0.04)
+		box("GasBlock", Vector3.new(0.16, 0.14, 0.1), at(0, 0.07, -h - hgLen - 0.06), DARKSTEEL)
+		muzzleBrake(info.Muzzle.Z, barrelD + 0.06, kind == "DMR" and 0.32 or 0.24)
+		pistolGrip(recLen * 0.28)
+		triggerGuard(recLen * 0.28)
+		ejectionPort(-recLen * 0.05)
+		chargingHandle(h)
+		if kind == "AutoShotgun" then
+			box("Magwell", Vector3.new(0.28, 0.2, 0.46), at(0, -0.28, -recLen * 0.12), STEEL)
+			cyl("Drum", 0.34, 0.85, at(0, -0.72, -recLen * 0.14) * CFrame.Angles(0, math.rad(90), 0), POLY, M.SmoothPlastic)
+			cyl("DrumCap", 0.36, 0.3, at(0, -0.72, -recLen * 0.14) * CFrame.Angles(0, math.rad(90), 0), accent, accentMat)
+		elseif kind == "LMG" then
+			box("AmmoBox", Vector3.new(0.4, 0.55, 0.62), at(0, -0.5, -recLen * 0.12), rgb(70, 78, 52), M.Metal)
+			box("AmmoBelt", Vector3.new(0.12, 0.1, 0.2), at(0.2, -0.16, -recLen * 0.12), CHROME, M.Metal)
+			box("CarryHandle", Vector3.new(0.08, 0.06, 0.6), at(0, 0.48, -recLen * 0.1), DARKSTEEL)
+			for _, dz in { -0.25, 0.25 } do
+				box("CarryPost", Vector3.new(0.08, 0.22, 0.06), at(0, 0.37, -recLen * 0.1 + dz), DARKSTEEL)
+			end
+			cyl("BarrelShroud", hgLen * 0.6, 0.26, at(0, 0.04, -h - hgLen - hgLen * 0.3), DARKSTEEL)
+			bipod(-h - hgLen + 0.1, -0.12)
+			info.Sight = 0.4
+			frontSight(-h - hgLen, 0.24)
+		elseif kind == "Battle" or kind == "DMR" then
+			boxMag(-recLen * 0.1, kind == "DMR" and 0.44 or 0.5, 0.22)
+		else
+			curvedMag(-recLen * 0.12)
+		end
+		if kind == "DMR" or kind == "Battle" then
+			fixedStock(h, 1.05, false)
+		elseif kind ~= "LMG" then
+			adjustableStock(h)
+		else
+			fixedStock(h, 0.95, false)
+		end
+		if kind == "DMR" then
+			bipod(-h - hgLen + 0.15, -0.12)
+		end
+		if kind ~= "LMG" then
+			optic(style.Optic or "RedDot", -recLen * 0.05, 0.24)
+		end
+		if style.Short then
+			box("ForeGrip", Vector3.new(0.14, 0.4, 0.16), at(0, -0.36, -h - hgLen * 0.5), POLY, M.SmoothPlastic)
+		end
+	elseif kind == "SMG" then
+		handle.Size = Vector3.new(0.3, 0.4, recLen)
+		box("Lower", Vector3.new(0.28, 0.14, recLen * 0.9), at(0, -0.25, 0), POLY, M.SmoothPlastic)
+		topRail(-h, h, 0.23)
+		handguard(-h, L * 0.16, POLY, true)
+		barrel(-h - L * 0.16, B + 0.15, 0.1, 0.04)
+		cyl("Suppressor", 0.6, 0.2, at(0, 0.04, info.Muzzle.Z - 0.25), DARKSTEEL)
+		info.Muzzle = Vector3.new(0, 0.04, info.Muzzle.Z - 0.55)
+		pistolGrip(recLen * 0.25)
+		triggerGuard(recLen * 0.25)
+		boxMag(-recLen * 0.18, style.Long and 0.75 or 0.62, 0.17)
+		box("ForeGrip", Vector3.new(0.14, 0.42, 0.16), at(0, -0.36, -h - L * 0.08), POLY, M.SmoothPlastic)
+		-- folding wire stock
+		for _, sx in { -0.1, 0.1 } do
+			box("StockArm", Vector3.new(0.04, 0.04, 0.8), at(sx, 0.0, h + 0.4), DARKSTEEL)
+		end
+		box("StockPad", Vector3.new(0.26, 0.4, 0.06), at(0, -0.1, h + 0.82), DARKSTEEL, M.Rubber)
+		ejectionPort(-recLen * 0.05)
+		box("AccentStripe", Vector3.new(0.31, 0.04, recLen * 0.6), at(0, -0.12, 0), accent, accentMat)
+		optic(style.Optic or "RedDot", -recLen * 0.05, 0.23)
+	elseif kind == "Sniper" then
+		local heavy = style.Heavy
+		handle.Size = Vector3.new(0.3, 0.38, recLen)
+		box("Chassis", Vector3.new(0.3, 0.2, recLen + 0.6), at(0, -0.24, -0.15), furniture, M.SmoothPlastic)
+		local bLen = B + L * 0.42
+		barrel(-h, bLen, heavy and 0.17 or 0.13, 0.05)
+		cyl("BarrelBase", 0.5, heavy and 0.22 or 0.18, at(0, 0.05, -h - 0.25), DARKSTEEL)
+		muzzleBrake(info.Muzzle.Z, heavy and 0.3 or 0.2, heavy and 0.42 or 0.28)
+		box("Forend", Vector3.new(0.3, 0.26, L * 0.28), at(0, -0.12, -h - L * 0.14), furniture, M.SmoothPlastic)
+		info.Fore = Vector3.new(0, -0.24, -h - L * 0.14)
+		pistolGrip(recLen * 0.45, -10, furniture)
+		triggerGuard(recLen * 0.45)
+		boxMag(-recLen * 0.05, heavy and 0.38 or 0.3, 0.2)
+		-- bolt handle
+		box("BoltShaft", Vector3.new(0.3, 0.05, 0.05), at(0.22, 0.1, recLen * 0.25), CHROME)
+		box("BoltKnob", Vector3.new(0.12, 0.12, 0.12), at(0.38, 0.06, recLen * 0.25), DARKSTEEL)
+		fixedStock(h + 0.25, 1.1, false)
+		box("CheekRiser", Vector3.new(0.22, 0.16, 0.5), at(0, 0.22, h + 0.65), furniture, M.SmoothPlastic)
+		topRail(-h, h, 0.22)
+		optic("Scope", -recLen * 0.05, 0.22)
+		bipod(-h - L * 0.24, -0.1)
+	elseif kind == "Pump" then
+		handle.Size = Vector3.new(0.3, 0.42, recLen)
+		barrel(-h, B + L * 0.45, 0.17, 0.08)
+		cyl("TubeMag", B + L * 0.35, 0.15, at(0, -0.12, -h - (B + L * 0.35) / 2), DARKSTEEL)
+		box("Pump", Vector3.new(0.3, 0.26, L * 0.22), at(0, -0.1, -h - L * 0.18), style.Wood and WOOD or POLY, style.Wood and M.Wood or M.SmoothPlastic)
+		for i = 1, 5 do
+			box("PumpRib", Vector3.new(0.32, 0.03, 0.03), at(0, -0.1 + ((i % 2) * 2 - 1) * 0.06, -h - L * 0.1 - i * 0.06), DARKSTEEL)
+		end
+		info.Fore = Vector3.new(0, -0.22, -h - L * 0.18)
+		box("Bead", Vector3.new(0.05, 0.05, 0.05), at(0, 0.19, info.Muzzle.Z + 0.05), CHROME)
+		box("LoadingGate", Vector3.new(0.2, 0.04, 0.3), at(0, -0.21, -recLen * 0.05), DARKSTEEL)
+		ejectionPort(-recLen * 0.1)
+		pistolGrip(recLen * 0.3, -20, style.Wood and WOOD or POLY)
+		triggerGuard(recLen * 0.3)
+		fixedStock(h, 1.0, style.Wood)
+		info.Sight = 0.22
+	elseif kind == "DoubleBarrel" then
+		handle.Size = Vector3.new(0.34, 0.34, recLen * 0.7)
+		handle.Color = CHROME
+		local bLen = B + L * 0.5
+		for _, sx in { -0.085, 0.085 } do
+			cyl("Barrel", bLen, 0.16, at(sx, 0.06, -recLen * 0.35 - bLen / 2), DARKSTEEL)
+		end
+		box("Rib", Vector3.new(0.06, 0.04, bLen), at(0, 0.15, -recLen * 0.35 - bLen / 2), DARKSTEEL)
+		box("Forend", Vector3.new(0.3, 0.2, L * 0.24), at(0, -0.1, -recLen * 0.35 - L * 0.14), WOOD, M.Wood)
+		info.Fore = Vector3.new(0, -0.2, -recLen * 0.35 - L * 0.14)
+		info.Muzzle = Vector3.new(0, 0.06, -recLen * 0.35 - bLen)
+		box("Hammer", Vector3.new(0.05, 0.14, 0.1), at(0.08, 0.2, recLen * 0.3), DARKSTEEL)
+		box("Hammer2", Vector3.new(0.05, 0.14, 0.1), at(-0.08, 0.2, recLen * 0.3), DARKSTEEL)
+		box("Wrist", Vector3.new(0.24, 0.3, 0.5), at(0, -0.12, recLen * 0.35 + 0.22) * CFrame.Angles(math.rad(-12), 0, 0), WOOD, M.Wood)
+		info.Grip = Vector3.new(0, -0.3, recLen * 0.35 + 0.22)
+		triggerGuard(recLen * 0.35)
+		fixedStock(recLen * 0.35 + 0.45, 1.05, true)
+		info.Sight = 0.2
+	elseif kind == "Minigun" then
+		handle.Size = Vector3.new(0.6, 0.6, recLen)
+		handle.Color = look.Body
 		for i = 1, 6 do
 			local a = i / 6 * math.pi * 2
-			table.insert(pieces, part(model, "Barrel" .. i, Vector3.new(B + 0.6, 0.12, 0.12), origin * CFrame.new(math.cos(a) * 0.17, 0.08 + math.sin(a) * 0.17, -L / 2 - B / 2 + 0.1) * alongZ, Color3.fromRGB(30, 30, 34), Enum.Material.Metal, Enum.PartType.Cylinder))
+			cyl("Barrel" .. i, B + 1.0, 0.11, at(math.cos(a) * 0.17, 0.05 + math.sin(a) * 0.17, -h - (B + 1.0) / 2), DARKSTEEL)
 		end
-		table.insert(pieces, part(model, "Housing", Vector3.new(0.5, 0.55, 0.55), origin * CFrame.new(0, 0.08, -L / 2 - B + 0.3) * alongZ, look.Accent, accentMat, Enum.PartType.Cylinder))
-		table.insert(pieces, part(model, "AmmoBox", Vector3.new(0.5, 0.6, 0.9), origin * CFrame.new(0.3, -0.35, 0.1), Color3.fromRGB(70, 80, 50), Enum.Material.Metal))
-	end
-	if look.Double then
-		table.insert(pieces, part(model, "Barrel2", Vector3.new(B + 0.1, 0.18, 0.18), origin * CFrame.new(0, 0.26, -L / 2 - B / 2 + 0.05) * alongZ, Color3.fromRGB(25, 25, 28), Enum.Material.Metal, Enum.PartType.Cylinder))
-	end
-	if look.Drum then
-		table.insert(pieces, part(model, "Drum", Vector3.new(0.45, 0.8, 0.8), origin * CFrame.new(0, -0.5, -L * 0.12), look.Accent, accentMat, Enum.PartType.Cylinder))
+		for _, dz in { 0.15, B * 0.6 + 0.4, B + 0.85 } do
+			cyl("BarrelClamp", 0.08, 0.48, at(0, 0.05, -h - dz), STEEL)
+		end
+		cyl("Motor", 0.5, 0.5, at(0, 0.05, -h + 0.05), accent, accentMat)
+		info.Muzzle = Vector3.new(0, 0.05, -h - B - 1.0)
+		box("AmmoBox", Vector3.new(0.5, 0.7, 0.9), at(0.55, -0.4, 0.1), rgb(70, 78, 52), M.Metal)
+		box("Feed", Vector3.new(0.3, 0.12, 0.5), at(0.32, -0.05, 0), CHROME)
+		box("RearHandle", Vector3.new(0.6, 0.08, 0.08), at(0, 0.0, h + 0.35), DARKSTEEL)
+		box("RearGrip", Vector3.new(0.12, 0.5, 0.14), at(0, -0.25, h + 0.35), POLY, M.SmoothPlastic)
+		box("TopHandle", Vector3.new(0.08, 0.08, 0.7), at(0, 0.5, 0), DARKSTEEL)
+		box("TopPost", Vector3.new(0.08, 0.22, 0.08), at(0, 0.38, 0.3), DARKSTEEL)
+		box("TopPost2", Vector3.new(0.08, 0.22, 0.08), at(0, 0.38, -0.3), DARKSTEEL)
+		info.Grip = Vector3.new(0, -0.25, h + 0.35)
+		info.Fore = Vector3.new(0, 0.5, 0)
+		info.Sight = 0.62
+	elseif kind == "RPG" then
+		handle.Size = Vector3.new(0.3, 0.3, recLen)
+		cyl("Tube", L + 0.6, 0.6, at(0, 0.2, -0.1), look.Body, M.Metal)
+		cyl("TubeRear", 0.5, 0.75, at(0, 0.2, L / 2 + 0.1), DARKSTEEL)
+		cyl("Venturi", 0.3, 0.55, at(0, 0.2, L / 2 + 0.45), DARKSTEEL)
+		-- warhead: stacked cylinders tapering to a point
+		local z = -L / 2 - 0.4
+		for i, d in { 0.62, 0.72, 0.62, 0.45, 0.25 } do
+			cyl("Warhead" .. i, 0.22, d, at(0, 0.2, z - (i - 1) * 0.2), i <= 2 and rgb(80, 92, 62) or rgb(70, 80, 54))
+		end
+		cyl("WarheadRing", 0.06, 0.74, at(0, 0.2, z - 0.1), accent, accentMat)
+		info.Muzzle = Vector3.new(0, 0.2, -L / 2 - 0.4)
+		pistolGrip(0.2, -10)
+		triggerGuard(0.2)
+		box("ForeGrip", Vector3.new(0.16, 0.42, 0.18), at(0, -0.3, -0.9), POLY, M.SmoothPlastic)
+		info.Fore = Vector3.new(0, -0.3, -0.9)
+		box("OpticArm", Vector3.new(0.18, 0.08, 0.2), at(-0.36, 0.25, -0.2), DARKSTEEL)
+		cyl("Optic", 0.5, 0.18, at(-0.45, 0.42, -0.2), DARKSTEEL)
+		box("ShoulderPad", Vector3.new(0.5, 0.15, 0.6), at(0, -0.12, 0.8), POLY, M.Fabric)
+		info.Sight = 0.6
+	elseif kind == "GL" then
+		handle.Size = Vector3.new(0.3, 0.4, recLen)
+		cyl("Cylinder", 0.55, 0.95, at(0, -0.05, -h - 0.28), look.Body, M.Metal)
+		for i = 1, 6 do
+			local a = i / 6 * math.pi * 2
+			cyl("Chamber" .. i, 0.57, 0.2, at(math.cos(a) * 0.3, -0.05 + math.sin(a) * 0.3, -h - 0.28), rgb(20, 20, 22))
+		end
+		cyl("Spindle", 0.6, 0.12, at(0, -0.05, -h - 0.28), accent, accentMat)
+		barrel(-h - 0.56, B + 0.5, 0.36, 0.1)
+		box("BarrelRail", Vector3.new(0.08, 0.06, B + 0.5), at(0, 0.31, -h - 0.56 - (B + 0.5) / 2), DARKSTEEL)
+		box("ForeGrip", Vector3.new(0.14, 0.44, 0.16), at(0, -0.3, info.Muzzle.Z + 0.35), POLY, M.SmoothPlastic)
+		info.Fore = Vector3.new(0, -0.3, info.Muzzle.Z + 0.35)
+		pistolGrip(recLen * 0.2)
+		triggerGuard(recLen * 0.2)
+		adjustableStock(h)
+		optic("Holo", 0, 0.22)
+		topRail(-h, h, 0.22)
+	elseif kind == "Railgun" then
+		handle.Size = Vector3.new(0.36, 0.44, recLen)
+		handle.Color = look.Body
+		for _, sx in { -0.16, 0.16 } do
+			box("Rail", Vector3.new(0.1, 0.18, L * 0.55 + B), at(sx, 0.04, -h - (L * 0.55 + B) / 2), DARKSTEEL)
+		end
+		for i = 1, 6 do
+			local z = -h - i * ((L * 0.55 + B) / 7)
+			box("Coil", Vector3.new(0.26, 0.04, 0.06), at(0, 0.04, z), accent, M.Neon)
+			cyl("CoilRing", 0.06, 0.42, at(0, 0.04, z), DARKSTEEL)
+		end
+		info.Muzzle = Vector3.new(0, 0.04, -h - L * 0.55 - B)
+		box("Capacitor", Vector3.new(0.32, 0.24, 0.6), at(0, -0.3, -recLen * 0.1), POLY, M.SmoothPlastic)
+		box("CapacitorGlow", Vector3.new(0.34, 0.06, 0.5), at(0, -0.3, -recLen * 0.1), accent, M.Neon)
+		pistolGrip(recLen * 0.3)
+		triggerGuard(recLen * 0.3)
+		fixedStock(h, 1.0, false)
+		box("StockGlow", Vector3.new(0.26, 0.04, 0.8), at(0, 0.05, h + 0.5), accent, M.Neon)
+		topRail(-h, h, 0.24)
+		optic("Scope", -recLen * 0.05, 0.24)
+		info.Fore = Vector3.new(0, -0.15, -h - 0.4)
+	else -- pistols & revolvers
+		local P = L
+		if kind == "Revolver" then
+			handle.Size = Vector3.new(0.24, 0.32, P * 0.35)
+			local fat = style.Fat
+			cyl("Cylinder", 0.42, fat and 0.5 or 0.42, at(0, 0.0, -P * 0.06), CHROME)
+			for i = 1, 6 do
+				local a = i / 6 * math.pi * 2
+				box("Flute", Vector3.new(0.05, 0.05, 0.38), at(math.cos(a) * (fat and 0.24 or 0.2), math.sin(a) * (fat and 0.24 or 0.2), -P * 0.06), DARKSTEEL)
+			end
+			barrel(-P * 0.06 - 0.21, B + P * 0.35, fat and 0.2 or 0.16, 0.08)
+			box("TopRib", Vector3.new(0.08, 0.08, B + P * 0.35), at(0, 0.2, -P * 0.06 - 0.21 - (B + P * 0.35) / 2), STEEL)
+			box("Ejector", Vector3.new(0.08, 0.08, B + P * 0.25), at(0, -0.06, -P * 0.06 - 0.21 - (B + P * 0.25) / 2), STEEL)
+			box("FrontSight", Vector3.new(0.04, 0.1, 0.08), at(0, 0.28, info.Muzzle.Z + 0.08), accent, accentMat)
+			box("Hammer", Vector3.new(0.06, 0.16, 0.12), at(0, 0.18, P * 0.18) * CFrame.Angles(math.rad(-30), 0, 0), DARKSTEEL)
+			box("Grip", Vector3.new(0.22, 0.62, 0.3), at(0, -0.36, P * 0.2) * CFrame.Angles(math.rad(-22), 0, 0), WOOD, M.Wood)
+			info.Grip = Vector3.new(0, -0.36, P * 0.2)
+			triggerGuard(P * 0.12)
+			info.Sight = 0.3
+		else
+			-- slide + frame
+			local slideLen = P * 0.9
+			handle.Size = Vector3.new(0.22, 0.2, slideLen * 0.8)
+			handle.CFrame = at(0, -0.1, 0)
+			box("Slide", Vector3.new(0.24, 0.22, slideLen), at(0, 0.1, -0.05), kind == "EnergyPistol" and look.Body or STEEL, kind == "EnergyPistol" and M.SmoothPlastic or M.Metal)
+			for i = 1, 6 do
+				box("Serration", Vector3.new(0.25, 0.14, 0.025), at(0, 0.11, slideLen / 2 - 0.12 - i * 0.06), DARKSTEEL)
+			end
+			box("EjectionPort", Vector3.new(0.03, 0.1, 0.24), at(0.12, 0.13, -0.05), DARKSTEEL)
+			box("Frame", Vector3.new(0.22, 0.14, slideLen * 0.85), at(0, -0.06, -0.08), POLY, M.SmoothPlastic)
+			box("Grip", Vector3.new(0.22, 0.6, 0.32), at(0, -0.38, slideLen * 0.28) * CFrame.Angles(math.rad(-16), 0, 0), POLY, M.SmoothPlastic)
+			info.Grip = Vector3.new(0, -0.38, slideLen * 0.28)
+			box("TriggerGuard", Vector3.new(0.05, 0.05, 0.36), at(0, -0.28, slideLen * 0.02), POLY, M.SmoothPlastic)
+			box("Trigger", Vector3.new(0.04, 0.14, 0.04), at(0, -0.19, slideLen * 0.06), DARKSTEEL)
+			cyl("Barrel", 0.12, 0.12, at(0, 0.1, -slideLen / 2 - 0.08), DARKSTEEL)
+			info.Muzzle = Vector3.new(0, 0.1, -slideLen / 2 - 0.15)
+			box("FrontSight", Vector3.new(0.04, 0.06, 0.05), at(0, 0.24, -slideLen / 2 + 0.06), accent, accentMat)
+			box("RearSight", Vector3.new(0.16, 0.06, 0.05), at(0, 0.24, slideLen / 2 - 0.06), DARKSTEEL)
+			info.Sight = 0.26
+			if kind == "MachinePistol" then
+				box("ExtMag", Vector3.new(0.18, 0.55, 0.26), at(0, -0.86, slideLen * 0.36) * CFrame.Angles(math.rad(-16), 0, 0), POLY, M.SmoothPlastic)
+				cyl("Compensator", 0.22, 0.2, at(0, 0.1, -slideLen / 2 - 0.15), DARKSTEEL)
+				box("ForeGrip", Vector3.new(0.12, 0.36, 0.14), at(0, -0.3, -slideLen * 0.35), POLY, M.SmoothPlastic)
+				info.Muzzle = Vector3.new(0, 0.1, -slideLen / 2 - 0.27)
+				info.Fore = Vector3.new(0, -0.3, -slideLen * 0.35)
+			elseif kind == "EnergyPistol" then
+				for i = 1, 3 do
+					box("Coil", Vector3.new(0.26, 0.05, 0.05), at(0, 0.1, -slideLen / 2 + i * 0.14), accent, M.Neon)
+				end
+				cyl("Emitter", 0.12, 0.2, at(0, 0.1, -slideLen / 2 - 0.08), accent, M.Neon)
+			else
+				box("MagBase", Vector3.new(0.24, 0.06, 0.32), at(0, -0.68, slideLen * 0.35) * CFrame.Angles(math.rad(-16), 0, 0), DARKSTEEL)
+			end
+		end
+		info.Fore = info.Fore.Z < 0 and info.Fore or Vector3.new(0, -0.38, P * 0.05)
+		if kind ~= "MachinePistol" then
+			info.Fore = Vector3.new(0, -0.42, P * 0.2 + 0.05) -- two-handed pistol grip
+		end
 	end
 
-	for _, p in pieces do
+	if golden then
+		for _, p in model:GetChildren() do
+			if p:IsA("BasePart") and p.Material ~= M.Neon and p.Material ~= M.Glass then
+				p.Color = (p.Color == DARKSTEEL or p.Color == POLY) and rgb(190, 140, 30) or GOLD
+				p.Material = M.Metal
+				p.Reflectance = 0.25
+			end
+		end
+	end
+
+	for _, p in parts do
 		local w = Instance.new("WeldConstraint")
 		w.Part0 = handle
 		w.Part1 = p
 		w.Parent = handle
 	end
-
-	local muzzle = Instance.new("Attachment")
-	muzzle.Name = "Muzzle"
-	muzzle.Position = look.Tube and Vector3.new(0, 0.2, -L / 2 - 0.4) or Vector3.new(0, 0.08, -L / 2 - B)
-	muzzle.Parent = handle
-
-	local sight = Instance.new("Attachment")
-	sight.Name = "Sight"
-	sight.Position = Vector3.new(0, sightHeight, 0)
-	sight.Parent = handle
-
+	local function attachment(name, pos)
+		local a = Instance.new("Attachment")
+		a.Name = name
+		a.Position = handle.CFrame:PointToObjectSpace(pos)
+		a.Parent = handle
+	end
+	attachment("Muzzle", info.Muzzle)
+	attachment("Sight", Vector3.new(0, info.Sight, 0))
+	attachment("GripPoint", info.Grip)
+	attachment("ForePoint", info.Fore)
 	return model
 end
 
@@ -528,6 +1147,8 @@ end
 function GunBuilder.BuildTool(weaponId: string, golden: boolean?)
 	local def = Weapons.Get(weaponId)
 	local model = GunBuilder.Build(weaponId, golden)
+	local handle = model.PrimaryPart
+	local grip = handle:FindFirstChild("GripPoint")
 	local tool = Instance.new("Tool")
 	tool.Name = def.Name
 	tool.CanBeDropped = false
@@ -535,7 +1156,7 @@ function GunBuilder.BuildTool(weaponId: string, golden: boolean?)
 	tool.ManualActivationOnly = true
 	tool:SetAttribute("WeaponId", weaponId)
 	tool:SetAttribute("Slot", def.Slot)
-	tool.Grip = CFrame.new(0, -0.35, def.Look.Length * 0.22)
+	tool.Grip = grip and CFrame.new(grip.Position) or CFrame.new(0, -0.35, def.Look.Length * 0.22)
 	for _, child in model:GetChildren() do
 		child.Parent = tool
 	end
@@ -6910,7 +7531,7 @@ local function buildVehicle(gui)
 	refs.CarName = Label({ Text = "", Size = UDim2.fromOffset(120, 16), Position = UDim2.fromOffset(170, 10), TextSize = 12, Font = T.Black, TextColor3 = T.Accent, Parent = f })
 	local _, fill = UIKit.Bar({ Size = UDim2.fromOffset(116, 8), Position = UDim2.fromOffset(170, 32), Color = T.Green, Parent = f })
 	refs.CarHealth = fill
-	Label({ Text = "W/S drive · A/D steer · SHIFT boost · SPACE exit", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, Parent = f })
+	Label({ Text = "W/S drive · A/D steer · SHIFT boost · CTRL drift · SPACE exit", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, Parent = f })
 	refs.Vehicle = f
 
 	local spinBar, spinFill = UIKit.Bar({ Size = UDim2.fromOffset(80, 4), Position = UDim2.new(0.5, 0, 0.5, 34), AnchorPoint = Vector2.new(0.5, 0), Color = T.Accent, Parent = gui })
@@ -7837,7 +8458,7 @@ local function endSlide()
 end
 
 function Movement.Dash()
-	if not root or ClientState.MenuOpen then
+	if not root or ClientState.MenuOpen or ClientState.Driving or (humanoid and humanoid.Sit) then
 		return
 	end
 	if os.clock() - S.LastDash < Movement.DashCooldown() then
@@ -7871,6 +8492,9 @@ end
 
 -- C / Ctrl: slide on the ground, slam in the air
 function Movement.Crouch()
+	if ClientState.Driving or (humanoid and humanoid.Sit) then
+		return
+	end
 	if grounded() then
 		Movement.Slide()
 	else
@@ -7879,7 +8503,7 @@ function Movement.Crouch()
 end
 
 local function airJump()
-	if not humanoid or grounded() or ClientState.MenuOpen then
+	if not humanoid or grounded() or ClientState.MenuOpen or humanoid.Sit then
 		return
 	end
 	if os.clock() - leftGround < 0.15 then
@@ -8289,6 +8913,7 @@ Vehicle.OnChanged = nil -- (driving: boolean) -> ()
 local seat, chassis
 local flippedTime = 0
 local boostHeld = false
+local handbrake = false
 
 local function setDriving(car: Model?, vehicleSeat: VehicleSeat?)
 	Vehicle.Car = car
@@ -8346,23 +8971,31 @@ local function step(dt: number)
 
 	-- throttle / brake / reverse
 	local target = throttle > 0 and throttle * maxSpeed or throttle * maxSpeed * 0.4
-	local accel = 38
+	-- torque curve: strong off the line, tapering near top speed
+	local speedRatio = math.clamp(math.abs(forwardSpeed) / maxSpeed, 0, 1)
+	local accel = 46 * (1 - 0.7 * speedRatio * speedRatio)
 	if throttle ~= 0 and math.sign(throttle) ~= math.sign(forwardSpeed) and math.abs(forwardSpeed) > 2 then
 		accel = 110 -- braking
 	elseif throttle == 0 then
-		accel = 22 -- coasting
+		accel = 14 -- engine braking / rolling resistance
+	end
+	if handbrake then
+		target = 0
+		accel = 60
 	end
 	local delta = math.clamp(target - forwardSpeed, -accel * dt, accel * dt)
 	forwardSpeed += delta
 
 	-- grip: kill most sideways sliding (a little drift is fun)
 	local lateral = vel - flatForward * vel:Dot(flatForward)
-	lateral = Vector3.new(lateral.X, 0, lateral.Z) * math.max(0, 1 - dt * 6)
+	local grip = handbrake and 1.2 or 6 -- handbrake lets the rear slide out
+	lateral = Vector3.new(lateral.X, 0, lateral.Z) * math.max(0, 1 - dt * grip)
 	chassis.AssemblyLinearVelocity = flatForward * forwardSpeed + lateral + Vector3.new(0, vel.Y, 0)
 
 	-- steering scales with speed and flips when reversing
 	local steerFactor = math.clamp(forwardSpeed / 18, -1, 1)
-	local yaw = -steer * 1.9 * steerFactor
+	-- steering gets less sharp at high speed, sharper with the handbrake
+	local yaw = -steer * 1.9 * steerFactor * (1 - 0.45 * speedRatio) * (handbrake and 1.5 or 1)
 	local av = chassis.AssemblyAngularVelocity
 	chassis.AssemblyAngularVelocity = Vector3.new(av.X * 0.6, yaw, av.Z * 0.6)
 
@@ -8378,6 +9011,8 @@ local function step(dt: number)
 		flippedTime = 0
 	end
 	Vehicle.Speed = math.abs(forwardSpeed)
+	local cam = workspace.CurrentCamera
+	cam.FieldOfView = cam.FieldOfView + ((70 + speedRatio * 18) - cam.FieldOfView) * math.min(1, dt * 4)
 end
 
 function Vehicle.Init()
@@ -8388,11 +9023,15 @@ function Vehicle.Init()
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
 			boostHeld = true
+		elseif not processed and (input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.ButtonL1) then
+			handbrake = true
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input)
 		if input.KeyCode == Enum.KeyCode.LeftShift then
 			boostHeld = false
+		elseif input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.ButtonL1 then
+			handbrake = false
 		end
 	end)
 	RunService.Heartbeat:Connect(step)
@@ -8527,10 +9166,14 @@ local function buildViewmodel(id: string)
 		sleeve = torso and torso.Color or sleeve
 	end
 	local cf = handle.CFrame
-	arm(model, "RightHand", Vector3.new(0.4, 0.45, 0.45), cf * CFrame.new(0.05, -0.5, L * 0.22), skin)
-	arm(model, "RightSleeve", Vector3.new(0.5, 0.5, 1.8), cf * CFrame.new(0.25, -0.75, L * 0.22 + 1.05) * CFrame.Angles(math.rad(15), 0, 0), sleeve)
-	arm(model, "LeftHand", Vector3.new(0.4, 0.4, 0.5), cf * CFrame.new(-0.05, -0.28, -L * 0.3), skin)
-	arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.0), cf * CFrame.new(-0.55, -0.55, -L * 0.3 + 1.0) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
+	local gripA = handle:FindFirstChild("GripPoint")
+	local foreA = handle:FindFirstChild("ForePoint")
+	local g = gripA and gripA.Position or Vector3.new(0, -0.45, L * 0.22)
+	local f = foreA and foreA.Position or Vector3.new(0, -0.25, -L * 0.3)
+	arm(model, "RightHand", Vector3.new(0.38, 0.42, 0.42), cf * CFrame.new(g + Vector3.new(0.04, 0.02, 0)), skin)
+	arm(model, "RightSleeve", Vector3.new(0.5, 0.5, 1.9), cf * CFrame.new(g + Vector3.new(0.3, -0.25, 1.05)) * CFrame.Angles(math.rad(14), math.rad(8), 0), sleeve)
+	arm(model, "LeftHand", Vector3.new(0.38, 0.38, 0.48), cf * CFrame.new(f + Vector3.new(-0.04, -0.06, 0)), skin)
+	arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.1), cf * CFrame.new(f + Vector3.new(-0.55, -0.32, 1.0)) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			setVMPart(p)
