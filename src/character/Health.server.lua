@@ -1,0 +1,2 @@
+-- Replaces Roblox's default Health regen script. Regen is handled by
+-- CombatService so it can pause after taking damage.

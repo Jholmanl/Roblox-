@@ -1,0 +1,83 @@
+# NEON STRIKE
+
+A fast, movement-heavy free-for-all shooter for Roblox. The HUD and menus follow the layout players already know from the big shooters: score bar and timer at the top, killfeed in the top-right, health bottom-left, ammo bottom-right, medals and hitmarkers in the center, plus an Armory, a Robux Store, and an Achievements menu.
+
+Everything is built from code, so no uploaded assets are required. That includes the map, the guns (built from parts, with 3D previews in the Armory), and all of the UI.
+
+## Quick start
+
+1. Open **`NeonStrike.rbxlx`** in Roblox Studio. It's already built.
+2. Go to **Game Settings → Security** and turn on **Enable Studio Access to API Services** so DataStores (saving) work.
+3. Press **Play**. Bots fill the server, so you can play solo right away.
+4. Publish, then set up the Robux store (see below).
+
+To edit the code with live sync, install [Rojo](https://rojo.space) and run `rojo serve`. To rebuild the place file, run `rojo build -o NeonStrike.rbxlx`.
+
+## What makes it different
+
+| Feature | What it does |
+|---|---|
+| **Slide** (C on the ground) | Slide while sprinting. You keep full accuracy while sliding. |
+| **Ground Slam** (C in the air) | Crash down from height. Deals area damage on impact. |
+| **Dash** (Q) | Burst in any direction. Getting a kill right after a dash earns a *Blink Kill*. |
+| **Double jump** (Space in the air) | Everyone gets one air jump. The Triple Jump pass adds a second. |
+| **Jump pads** | Launch you across the arena. |
+| **Killstreaks** | 3 kills: UAV (enemies shown through walls). 5: Overdrive (faster movement and fire rate). 7: Airstrike. 15: **Tactical Nuke**, which ends the match and makes you the winner. |
+| **20+ medals** | Headshot, Double/Triple/Quad Kill, Rampage, Revenge, Bounty Claimed, Buzzkill, Comeback, First Blood, Long Shot, No Scope, Point Blank, Slide/Air/Blink Kill, Meteor Strike, Collateral, From the Grave, Clutch, Assist… |
+| **77 achievements** | Six categories (Combat, Streaks, Style, Rivalry, Arsenal, Career). Each one pays out cash. |
+| **Killcam card** | Shows who killed you, which weapon they used, the distance, and how much HP they had left. |
+| **Progression** | XP, levels (max 100), cash, and 10 guns to unlock by level and price. Also daily login rewards and an end-of-match podium screen. |
+| **Bots** | AI opponents with strafing, reaction times and preferred ranges. They fill empty slots, up to 8 combatants. |
+| **Mobile and gamepad** | Touch buttons for fire, aim, reload, knife, grenade, swap, slide and dash. Gamepad bindings too. |
+
+## Robux store (paid advantages)
+
+Everything is defined in `src/shared/Monetization.lua`.
+
+**Game passes**: VIP (2x cash, +10 HP, gold name, chat tag), 2x XP, Golden Arsenal (+10% damage on all guns), Juggernaut Armor (+35 HP), Railgun (exclusive gun that pierces enemies), Radar Pro (killstreaks need one fewer kill, longer UAV), Vampire Rounds (heal on kill), Speed Demon, Extended Mags, Fast Hands, Grenadier, Instant Respawn, Triple Jump.
+
+**Developer products**: 1k, 5k and 25k cash packs, a 30-minute 3x XP boost, an Airstrike call-in, and a Tactical Nuke call-in.
+
+The game also links to the store from several places: a VIP banner on the main menu, an Instant Respawn button on the death screen, a "+ GET CASH" button in the Armory, a 2x XP button on the results screen, and an automatic Store pop-up when you can't afford a gun.
+
+**To make purchases work:**
+1. Publish the game, then open the [Creator Dashboard](https://create.roblox.com) and go to your experience → **Monetization**.
+2. Create each Game Pass and Developer Product.
+3. Paste each numeric ID into the matching `Id = 0` in `Monetization.lua`.
+
+The `Price` field there is only the label shown in the UI. The real price is whatever you set on the dashboard.
+
+To test paid perks in Studio without buying them, set `Config.StudioGrantAllPasses = true`.
+
+## Controls
+
+| Key | Action | Key | Action |
+|---|---|---|---|
+| WASD / Shift | Move / sprint | LMB / RMB | Shoot / aim (ADS) |
+| Space (in air) | Double jump | R | Reload |
+| C / Ctrl | Slide (ground), Slam (air) | 1 / 2 / wheel | Swap weapon |
+| Q | Dash | V or F | Knife |
+| G | Grenade | Z / X | Use bought Airstrike / Nuke |
+| B / N / J | Armory / Store / Achievements | Tab | Scoreboard |
+
+## Project layout
+
+```
+src/shared/     Config, Weapons, Achievements, Monetization, GunBuilder, Remotes, Sounds, Util
+src/server/     Main (wiring), DataService, AchievementService, MonetizationService,
+                CombatService, KillstreakService, RoundService, MapService, BotService
+src/client/     ClientMain, HUD, Menus, WeaponController, MovementController, Effects, UIKit, ClientState
+src/character/  Health (replaces default regen)
+```
+
+Tuning knobs:
+- Match length, kills to win, bot count, movement and rewards: `Config.lua`
+- Gun stats, prices and unlock levels: `Weapons.lua`
+- Achievements: `Achievements.lua`
+
+To use your own map, put a `Map` model in Workspace with a `Spawns` folder of parts. Parts with a `JumpPad` (number) attribute launch players, and parts with a `HealthPack` attribute heal them.
+
+## Notes
+
+- Combat is server-authoritative. The server validates fire rate, ammo, reloads, weapon ownership and shot origin, and it does all hit detection and damage.
+- Sounds use files that ship with Roblox so the game works immediately. Swap in your own in `Sounds.lua` for a punchier feel.
