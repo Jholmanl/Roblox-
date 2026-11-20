@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EVENTS = {
 	-- client -> server
 	"Deploy", "Fire", "Reload", "Knife", "Grenade", "Slam", "JumpPad",
-	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken",
+	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken", "Vote", "SaveSettings",
 	-- server -> client
 	"Effect", "HitConfirm", "Damaged", "KillFeed", "Notify", "KillInfo",
 	"DataSync", "Killstreak", "MatchResults",

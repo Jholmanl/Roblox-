@@ -7,7 +7,7 @@ Config.ModeName = "FREE FOR ALL"
 -- Match flow
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
 Config.MatchLength = 300 -- 5 minute matches
-Config.ResultsLength = 12
+Config.ResultsLength = 16 -- includes map voting
 Config.KillsToWin = 30
 
 -- Bots fill the server up to this many combatants so it is never empty
@@ -80,6 +80,14 @@ Config.Killstreaks = {
 Config.AirstrikeRadius = 16
 Config.AirstrikeDamage = 160
 Config.NukeCountdown = 10
+
+-- Map info for menus (the maps themselves live in ServerScriptService.Server.Maps)
+Config.Maps = {
+	Downtown = { Name = "DOWNTOWN", Icon = "🏙️", Desc = "City streets & rooftops" },
+	Harbor = { Name = "HARBOR", Icon = "⚓", Desc = "Containers, cranes & a cargo ship" },
+	Timberline = { Name = "TIMBERLINE", Icon = "🌲", Desc = "Forest river valley" },
+	Arena = { Name = "NEON ARENA", Icon = "⚡", Desc = "Fast close-quarters arena" },
+}
 
 -- Set true to pretend you own every game pass while testing in Studio.
 Config.StudioGrantAllPasses = false

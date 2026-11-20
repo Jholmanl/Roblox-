@@ -15,6 +15,7 @@ local Remotes = require(Shared.Remotes)
 local Util = require(Shared.Util)
 local UIKit = require(script.Parent.UIKit)
 local ClientState = require(script.Parent.ClientState)
+local Effects = require(script.Parent.Effects)
 
 local player = Players.LocalPlayer
 local T = UIKit.Theme
@@ -25,6 +26,7 @@ Menus.OnDeploy = nil -- injected
 Menus.Notify = function(_text, _color) end -- injected (HUD.Message)
 
 local gui
+local renderSettings
 local windows = {}
 local openName = nil
 local mainMenu, scoreboard, results
@@ -330,6 +332,65 @@ local function renderAchievements(w)
 	end
 end
 
+-- SETTINGS ------------------------------------------------------------------------------
+local function saveSettings()
+	Effects.ShakeScale = ClientState.Settings.Shake
+	Remotes.SaveSettings:FireServer(ClientState.Settings)
+end
+
+function renderSettings(w)
+	clear(w.Content)
+	clear(w.Right)
+	local S = ClientState.Settings
+	local list = scroller(w.Content)
+	local function row(order, title, desc)
+		local r = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 64), BackgroundColor3 = T.Panel, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 6, Parent = list })
+		Label({ Text = title, Size = UDim2.new(0.5, 0, 0, 22), Position = UDim2.fromOffset(16, 10), TextSize = 16, Font = T.Black, ZIndex = 7, Parent = r })
+		Label({ Text = desc, Size = UDim2.new(0.5, 0, 0, 16), Position = UDim2.fromOffset(16, 34), TextSize = 12, Font = T.Medium, TextColor3 = T.Sub, ZIndex = 7, Parent = r })
+		local controls = new("Frame", { Size = UDim2.new(0.5, -16, 1, 0), Position = UDim2.new(0.5, 0, 0, 0), BackgroundTransparency = 1, ZIndex = 7, Parent = r }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		return controls
+	end
+	local function stepper(parent, text, onMinus, onPlus)
+		local minus = UIKit.Button({ Text = "−", Size = UDim2.fromOffset(40, 36), Color = T.Panel3, LayoutOrder = 1, Parent = parent }, onMinus)
+		minus.ZIndex = 8
+		local value = UIKit.Panel({ Size = UDim2.fromOffset(90, 36), BackgroundColor3 = T.Panel2, LayoutOrder = 2, ZIndex = 8, Parent = parent })
+		Label({ Text = text, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, Font = T.Black, ZIndex = 9, Parent = value })
+		local plus = UIKit.Button({ Text = "+", Size = UDim2.fromOffset(40, 36), Color = T.Panel3, LayoutOrder = 3, Parent = parent }, onPlus)
+		plus.ZIndex = 8
+	end
+	local function change(key, value)
+		S[key] = value
+		saveSettings()
+		w.Render()
+	end
+	stepper(row(1, "FIELD OF VIEW", "Wider view vs. bigger targets"), tostring(S.FOV), function()
+		change("FOV", math.max(60, S.FOV - 5))
+	end, function()
+		change("FOV", math.min(100, S.FOV + 5))
+	end)
+	stepper(row(2, "AIM SENSITIVITY", "Mouse speed while aiming down sights"), string.format("%.1fx", S.AdsSens), function()
+		change("AdsSens", math.max(0.2, math.floor((S.AdsSens - 0.1) * 10 + 0.5) / 10))
+	end, function()
+		change("AdsSens", math.min(1.5, math.floor((S.AdsSens + 0.1) * 10 + 0.5) / 10))
+	end)
+	local shakeRow = row(3, "SCREEN SHAKE", "Reduce if explosions make you dizzy")
+	for i, opt in { { "OFF", 0 }, { "LOW", 0.5 }, { "FULL", 1 } } do
+		local b = UIKit.Button({ Text = opt[1], Size = UDim2.fromOffset(70, 36), Color = math.abs(S.Shake - opt[2]) < 0.01 and T.Accent or T.Panel3, TextSize = 13, LayoutOrder = i, Parent = shakeRow }, function()
+			change("Shake", opt[2])
+		end)
+		b.ZIndex = 8
+	end
+	local crossRow = row(4, "CROSSHAIR COLOR", "Pick what stands out on every map")
+	for i, name in { "White", "Green", "Cyan", "Red", "Yellow" } do
+		local b = UIKit.Button({ Text = S.Crosshair == name and "✓" or "", Size = UDim2.fromOffset(36, 36), Color = ClientState.CrosshairColors[name], TextColor = Color3.new(0, 0, 0), TextSize = 16, LayoutOrder = i, Parent = crossRow }, function()
+			change("Crosshair", name)
+		end)
+		b.ZIndex = 8
+	end
+end
+
 -- OPEN / CLOSE ---------------------------------------------------------------------
 function Menus.Open(name: string, tab: string?)
 	local w = windows[name]
@@ -425,6 +486,9 @@ function Menus.ShowScoreboard(on: boolean)
 end
 
 -- RESULTS ------------------------------------------------------------------------------
+local voteCards = {}
+local myVote = nil
+
 local function buildResults()
 	results = new("TextButton", { Name = "Results", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.25, Text = "", AutoButtonColor = false, Modal = true, Visible = false, ZIndex = 8, Parent = gui })
 end
@@ -471,7 +535,43 @@ function Menus.ShowResults(info)
 		end)
 		b.ZIndex = 10
 	end
+	-- map vote
+	local options = string.split(ReplicatedStorage:GetAttribute("VoteOptions") or "", ",")
+	if #options > 0 and options[1] ~= "" then
+		local vote = new("Frame", { Name = "Vote", Size = UDim2.fromOffset(600, 96), Position = UDim2.new(0.5, 0, 1, -14), AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 1, ZIndex = 9, Parent = results })
+		Label({ Text = "VOTE FOR THE NEXT MAP", Size = UDim2.new(1, 0, 0, 16), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = T.Accent, ZIndex = 10, Parent = vote })
+		local row = new("Frame", { Size = UDim2.new(1, 0, 0, 74), Position = UDim2.fromOffset(0, 22), BackgroundTransparency = 1, ZIndex = 9, Parent = vote }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		voteCards = {}
+		for i, id in options do
+			local info = Config.Maps[id] or { Name = id, Icon = "🗺️", Desc = "" }
+			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 74), Color = T.Panel2, LayoutOrder = i, Parent = row }, function()
+				myVote = id
+				Remotes.Vote:FireServer(id)
+			end)
+			card.ZIndex = 10
+			Label({ Text = info.Icon .. "  " .. info.Name, Size = UDim2.new(1, -12, 0, 22), Position = UDim2.fromOffset(10, 8), TextSize = 15, Font = T.Black, ZIndex = 11, Parent = card })
+			Label({ Text = info.Desc, Size = UDim2.new(1, -12, 0, 14), Position = UDim2.fromOffset(10, 30), TextSize = 10, Font = T.Medium, TextColor3 = T.Sub, ZIndex = 11, Parent = card })
+			local count = Label({ Text = "0 VOTES", Size = UDim2.new(1, -12, 0, 16), Position = UDim2.fromOffset(10, 50), TextSize = 12, Font = T.Black, TextColor3 = T.Accent, ZIndex = 11, Parent = card })
+			voteCards[id] = { Card = card, Count = count }
+		end
+	end
 	ClientState.MenuOpen = true
+end
+
+local function updateVotes()
+	for id, c in voteCards do
+		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
+		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
+		UIKit.SetButtonColor(c.Card, id == myVote and T.Accent or T.Panel2)
+		for _, l in c.Card:GetChildren() do
+			if l:IsA("TextLabel") and l ~= c.Count then
+				l.TextColor3 = id == myVote and Color3.new(0, 0, 0) or (l.TextSize > 12 and T.Text or T.Sub)
+			end
+		end
+		c.Count.TextColor3 = id == myVote and Color3.new(0, 0, 0) or T.Accent
+	end
 end
 
 function Menus.HideResults()
@@ -533,7 +633,7 @@ local function buildMainMenu()
 		end
 	end)
 	play.ZIndex = 2
-	for i, item in { { "🔫  ARMORY", "Armory", T.Panel2 }, { "💎  STORE", "Store", T.Robux }, { "🏆  ACHIEVEMENTS", "Achievements", T.Panel2 } } do
+	for i, item in { { "🔫  ARMORY", "Armory", T.Panel2 }, { "💎  STORE", "Store", T.Robux }, { "🏆  ACHIEVEMENTS", "Achievements", T.Panel2 }, { "⚙️  SETTINGS", "Settings", T.Panel2 } } do
 		local b = UIKit.Button({ Text = item[1], Size = UDim2.fromOffset(320, 46), Color = item[3], TextSize = 18, LayoutOrder = i + 1, Parent = buttons }, function()
 			Menus.Open(item[2])
 		end)
@@ -541,7 +641,7 @@ local function buildMainMenu()
 	end
 
 	local controls = Label({
-		Text = "WASD move · SHIFT sprint · SPACE double jump · C slide (ground) / slam (air) · Q dash\nLMB shoot · RMB aim · R reload · 1/2 swap · V knife · G grenade · Z/X call-ins · TAB scores",
+		Text = "WASD move · SHIFT sprint · SPACE double jump · C slide / slam · Q dash · E drive cars\nLMB shoot · RMB aim · R reload · 1/2 swap · V knife · G grenade · Z/X call-ins · TAB scores",
 		Size = UDim2.new(1, 0, 0, 40), Position = UDim2.new(0, 0, 1, -70), TextSize = 12, Font = T.Medium, TextColor3 = T.Sub, TextWrapped = true, ZIndex = 2, Parent = left,
 	})
 	controls.TextYAlignment = Enum.TextYAlignment.Top
@@ -619,6 +719,11 @@ function Menus.Init(playerGui: PlayerGui)
 		renderAchievements(ach)
 	end
 
+	local settings = window("Settings", "⚙️ SETTINGS", nil)
+	settings.Render = function()
+		renderSettings(settings)
+	end
+
 	buildScoreboard()
 	buildResults()
 	buildMainMenu()
@@ -640,6 +745,9 @@ function Menus.Init(playerGui: PlayerGui)
 		end
 		if results.Visible and ReplicatedStorage:GetAttribute("MatchState") ~= "Results" then
 			Menus.HideResults()
+			myVote = nil
+		elseif results.Visible then
+			updateVotes()
 		end
 	end)
 end

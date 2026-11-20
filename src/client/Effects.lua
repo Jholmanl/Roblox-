@@ -11,6 +11,8 @@ local Config = require(Shared.Config)
 
 local player = Players.LocalPlayer
 local Effects = {}
+local uavUntil = 0
+Effects.LastFired = setmetatable({}, { __mode = "k" }) -- [character] = os.clock() of their last shot (minimap)
 
 local function folder()
 	return workspace:FindFirstChild("Effects") or workspace
@@ -80,8 +82,9 @@ end
 
 -- CAMERA SHAKE -----------------------------------------------------------------
 local shake = 0
+Effects.ShakeScale = 1 -- from settings (0 = off)
 function Effects.Shake(amount: number)
-	shake = math.max(shake, amount)
+	shake = math.max(shake, amount * Effects.ShakeScale)
 end
 
 function Effects.StepShake(dt: number): CFrame
@@ -131,6 +134,7 @@ function Effects.RemoteShot(character: Model?, weaponId: string, ends)
 	if not character or character == player.Character then
 		return
 	end
+	Effects.LastFired[character] = os.clock()
 	local def = Weapons.Get(weaponId)
 	local tool = character:FindFirstChildOfClass("Tool")
 	local handle = tool and tool:FindFirstChild("Handle")
@@ -154,8 +158,69 @@ function Effects.RemoteShot(character: Model?, weaponId: string, ends)
 	Effects.Sound3D(def and def.Class == "Sniper" and "ShotHeavy" or "Shot", from, 0.9 + math.random() * 0.2)
 end
 
+-- Target reaction: briefly flash the character you hit (white, gold for headshots).
+function Effects.HitFlash(position: Vector3?, headshot: boolean?)
+	if not position then
+		return
+	end
+	local best, bestDist = nil, 6
+	local candidates = {}
+	for _, p in Players:GetPlayers() do
+		if p ~= player and p.Character then
+			table.insert(candidates, p.Character)
+		end
+	end
+	local bots = workspace:FindFirstChild("Bots")
+	if bots then
+		for _, b in bots:GetChildren() do
+			table.insert(candidates, b)
+		end
+	end
+	for _, char in candidates do
+		local root = char:FindFirstChild("HumanoidRootPart")
+		if root then
+			local d = (root.Position - position).Magnitude
+			if d < bestDist then
+				best, bestDist = char, d
+			end
+		end
+	end
+	if not best then
+		return
+	end
+	local h = Instance.new("Highlight")
+	h.FillColor = headshot and Config.Colors.Gold or Color3.new(1, 1, 1)
+	h.FillTransparency = 0.35
+	h.OutlineTransparency = 1
+	h.DepthMode = Enum.HighlightDepthMode.Occluded
+	h.Adornee = best
+	h.Parent = folder()
+	TweenService:Create(h, TweenInfo.new(0.15), { FillTransparency = 1 }):Play()
+	Debris:AddItem(h, 0.2)
+end
+
+-- Rocket / grenade-launcher launch from someone else
+function Effects.Launch(character: Model?, weaponId: string)
+	if not character or character == player.Character then
+		return
+	end
+	Effects.LastFired[character] = os.clock()
+	local def = Weapons.Get(weaponId)
+	local tool = character:FindFirstChildOfClass("Tool")
+	local handle = tool and tool:FindFirstChild("Handle")
+	local muzzle = handle and handle:FindFirstChild("Muzzle")
+	local pos = muzzle and muzzle.WorldPosition or (character:FindFirstChild("Head") and character.Head.Position)
+	if pos then
+		Effects.Flash(pos, def and def.Look.Accent)
+		Effects.Sound3D("ShotHeavy", pos, 0.7)
+	end
+end
+
+function Effects.UAVActive(): boolean
+	return os.clock() < uavUntil
+end
+
 -- UAV: highlight every enemy through walls.
-local uavUntil = 0
 local highlights = {}
 local function clearHighlights()
 	for _, h in highlights do

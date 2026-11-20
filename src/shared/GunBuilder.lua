@@ -70,6 +70,27 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 		table.insert(pieces, part(model, "SightRear", Vector3.new(0.2, 0.1, 0.06), origin * CFrame.new(0, 0.33, L / 2 - 0.2), Color3.fromRGB(20, 20, 20)))
 	end
 
+	-- special silhouettes
+	if look.Tube then
+		table.insert(pieces, part(model, "Tube", Vector3.new(L + 0.6, 0.8, 0.8), origin * CFrame.new(0, 0.2, -0.1) * alongZ, bodyColor, bodyMat, Enum.PartType.Cylinder))
+		table.insert(pieces, part(model, "TubeRing", Vector3.new(0.3, 0.9, 0.9), origin * CFrame.new(0, 0.2, -L / 2 - 0.2) * alongZ, look.Accent, accentMat, Enum.PartType.Cylinder))
+		table.insert(pieces, part(model, "Warhead", Vector3.new(0.7, 0.55, 0.55), origin * CFrame.new(0, 0.2, -L / 2 - 0.65) * alongZ, Color3.fromRGB(90, 100, 70), Enum.Material.Metal, Enum.PartType.Cylinder))
+	end
+	if look.Rotary then
+		for i = 1, 6 do
+			local a = i / 6 * math.pi * 2
+			table.insert(pieces, part(model, "Barrel" .. i, Vector3.new(B + 0.6, 0.12, 0.12), origin * CFrame.new(math.cos(a) * 0.17, 0.08 + math.sin(a) * 0.17, -L / 2 - B / 2 + 0.1) * alongZ, Color3.fromRGB(30, 30, 34), Enum.Material.Metal, Enum.PartType.Cylinder))
+		end
+		table.insert(pieces, part(model, "Housing", Vector3.new(0.5, 0.55, 0.55), origin * CFrame.new(0, 0.08, -L / 2 - B + 0.3) * alongZ, look.Accent, accentMat, Enum.PartType.Cylinder))
+		table.insert(pieces, part(model, "AmmoBox", Vector3.new(0.5, 0.6, 0.9), origin * CFrame.new(0.3, -0.35, 0.1), Color3.fromRGB(70, 80, 50), Enum.Material.Metal))
+	end
+	if look.Double then
+		table.insert(pieces, part(model, "Barrel2", Vector3.new(B + 0.1, 0.18, 0.18), origin * CFrame.new(0, 0.26, -L / 2 - B / 2 + 0.05) * alongZ, Color3.fromRGB(25, 25, 28), Enum.Material.Metal, Enum.PartType.Cylinder))
+	end
+	if look.Drum then
+		table.insert(pieces, part(model, "Drum", Vector3.new(0.45, 0.8, 0.8), origin * CFrame.new(0, -0.5, -L * 0.12), look.Accent, accentMat, Enum.PartType.Cylinder))
+	end
+
 	for _, p in pieces do
 		local w = Instance.new("WeldConstraint")
 		w.Part0 = handle
@@ -79,7 +100,7 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 
 	local muzzle = Instance.new("Attachment")
 	muzzle.Name = "Muzzle"
-	muzzle.Position = Vector3.new(0, 0.08, -L / 2 - B)
+	muzzle.Position = look.Tube and Vector3.new(0, 0.2, -L / 2 - 0.4) or Vector3.new(0, 0.08, -L / 2 - B)
 	muzzle.Parent = handle
 
 	local sight = Instance.new("Attachment")

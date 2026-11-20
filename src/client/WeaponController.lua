@@ -20,7 +20,10 @@ local camera = workspace.CurrentCamera
 local WC = {}
 WC.HUD = nil -- injected
 
-local BASE_FOV = 72
+local function baseFov()
+	return ClientState.Settings.FOV or 72
+end
+local spin = 0 -- minigun spin-up progress (0..1)
 
 local current = nil -- { Id, Def, Tool }
 local ammo = {} -- [weaponId] = { Mag, Reserve }
@@ -76,7 +79,7 @@ local function alive(): boolean
 end
 
 local function canAct(): boolean
-	return alive() and not ClientState.MenuOpen
+	return alive() and not ClientState.MenuOpen and not ClientState.Driving
 end
 
 -- VIEWMODEL --------------------------------------------------------------------
@@ -262,6 +265,9 @@ local function shotVisual(dir: Vector3)
 		return
 	end
 	local def = current.Def
+	if def.Projectile then
+		return -- the server simulates and replicates the rocket
+	end
 	rayParams.FilterDescendantsInstances = { character, camera, workspace:FindFirstChild("Effects") }
 	local origin = camera.CFrame.Position
 	local result = workspace:Raycast(origin, dir * def.Range, rayParams)
@@ -327,6 +333,9 @@ local function tryShoot()
 		return
 	end
 	if now - equipTime < 0.25 then
+		return
+	end
+	if def.SpinUp and spin < 1 then
 		return
 	end
 	local a = ammo[current.Id]
@@ -395,7 +404,18 @@ function WC.Grenade()
 	UIKit.Sound("Dash", 0.6)
 end
 
+function WC.Spin(): number
+	return spin
+end
+
+function WC.CurrentDef()
+	return current and current.Def or nil
+end
+
 function WC.OnHit(info)
+	if not info.Vehicle then
+		Effects.HitFlash(info.Position, info.Headshot)
+	end
 	if WC.HUD then
 		WC.HUD.Hitmarker(info.Headshot, info.Killed)
 		WC.HUD.DamageNumber(info.Position, info.Damage, info.Headshot)
@@ -416,7 +436,15 @@ local function render(dt: number)
 	camera = workspace.CurrentCamera
 	local now = os.clock()
 	local S = Movement.State
-	local isAlive = alive()
+	local isAlive = alive() and not ClientState.Driving
+	if current and current.Def.SpinUp then
+		local spinning = firing and canAct() and not reloading
+		spin = math.clamp(spin + (spinning and dt / current.Def.SpinUp or -dt * 1.5), 0, 1)
+	else
+		spin = 0
+	end
+	-- ADS sensitivity
+	UserInputService.MouseDeltaSensitivity = aimAlpha > 0.5 and (ClientState.Settings.AdsSens or 0.7) or 1
 
 	-- input-driven state
 	if not isAlive or ClientState.MenuOpen then
@@ -438,7 +466,7 @@ local function render(dt: number)
 	if isAlive then
 		camera.CFrame = camera.CFrame * CFrame.Angles(math.rad(recoilPitch), math.rad(recoilYaw), 0) * Effects.StepShake(dt)
 
-		local fov = BASE_FOV
+		local fov = baseFov()
 		if S.Sprinting then
 			fov += 8
 		end
@@ -479,6 +507,10 @@ local function render(dt: number)
 
 		kick = lerp(kick, 0, math.min(1, dt * 14))
 		local kickCF = CFrame.new(0, 0, kick * 0.18) * CFrame.Angles(math.rad(kick * 4), 0, 0)
+		if def.SpinUp and spin > 0 then
+			-- minigun rumble while spinning
+			kickCF *= CFrame.new((math.random() - 0.5) * 0.02 * spin, (math.random() - 0.5) * 0.02 * spin, 0)
+		end
 
 		local reloadCF = CFrame.identity
 		if reloading then
@@ -522,6 +554,7 @@ local function render(dt: number)
 			knifeModel.Parent = nil
 		end
 	else
+		setViewmodelVisible(false)
 		if WC.HUD then
 			WC.HUD.SetScope(false)
 			WC.HUD.SetCrosshair(0, false)

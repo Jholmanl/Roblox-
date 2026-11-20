@@ -64,6 +64,13 @@ local list = {
 	{ Id = "Grave", Name = "From the Grave", Desc = "Get a kill after you've died", Stat = "GraveKills", Goal = 1, Reward = 750, Icon = "⚰️", Category = "Style" },
 	{ Id = "Clutch", Name = "Clutch Factor", Desc = "Get a kill with 20 HP or less", Stat = "ClutchKills", Goal = 1, Reward = 250, Icon = "❤️‍🩹", Category = "Style" },
 	{ Id = "Clutch50", Name = "Cockroach", Desc = "Get 50 clutch kills", Stat = "ClutchKills", Goal = 50, Reward = 3000, Icon = "🪳", Category = "Style" },
+	{ Id = "Roadkill", Name = "Hit and Run", Desc = "Run someone over with a car", Stat = "Roadkills", Goal = 1, Reward = 300, Icon = "🚗", Category = "Vehicles" },
+	{ Id = "Roadkill25", Name = "Road Rage", Desc = "Get 25 roadkills", Stat = "Roadkills", Goal = 25, Reward = 3000, Icon = "🏎️", Category = "Vehicles" },
+	{ Id = "CarBoom", Name = "Car Bomb", Desc = "Blow up a vehicle", Stat = "CarsDestroyed", Goal = 1, Reward = 300, Icon = "💥", Category = "Vehicles" },
+	{ Id = "CarBoom25", Name = "Scrapyard", Desc = "Blow up 25 vehicles", Stat = "CarsDestroyed", Goal = 25, Reward = 3000, Icon = "🔥", Category = "Vehicles" },
+	{ Id = "Drive1", Name = "Learner's Permit", Desc = "Get behind the wheel", Stat = "Drives", Goal = 1, Reward = 100, Icon = "🔑", Category = "Vehicles" },
+	{ Id = "Drive50", Name = "Getaway Driver", Desc = "Drive 50 times", Stat = "Drives", Goal = 50, Reward = 2000, Icon = "🚙", Category = "Vehicles" },
+	{ Id = "Explosive50", Name = "Boom Squad", Desc = "Get 50 explosive kills", Stat = "ExplosiveKills", Goal = 50, Reward = 3000, Icon = "🧨", Category = "Vehicles" },
 	{ Id = "JumpPad", Name = "Frequent Flyer", Desc = "Use jump pads 100 times", Stat = "JumpPads", Goal = 100, Reward = 500, Icon = "🚀", Category = "Style" },
 
 	-- Rivalry
@@ -74,19 +81,10 @@ local list = {
 	{ Id = "FirstBlood", Name = "First Blood", Desc = "Get the first kill of a match", Stat = "FirstBloods", Goal = 1, Reward = 250, Icon = "🩸", Category = "Rivalry" },
 	{ Id = "Comeback", Name = "Comeback Kid", Desc = "Get a kill after dying 3 times in a row", Stat = "Comebacks", Goal = 1, Reward = 200, Icon = "🔄", Category = "Rivalry" },
 
-	-- Arsenal mastery
-	{ Id = "MStriker", Name = "Striker Mastery", Desc = "100 kills with the Striker AR", Stat = "Kills_Striker", Goal = 100, Reward = 1000, Icon = "🔫", Category = "Arsenal" },
-	{ Id = "MViper", Name = "Viper Mastery", Desc = "100 kills with the Viper SMG", Stat = "Kills_Viper", Goal = 100, Reward = 1000, Icon = "🐍", Category = "Arsenal" },
-	{ Id = "MBrute", Name = "Brute Mastery", Desc = "100 kills with the Brute Shotgun", Stat = "Kills_Brute", Goal = 100, Reward = 1000, Icon = "🦬", Category = "Arsenal" },
-	{ Id = "MHornet", Name = "Hornet Mastery", Desc = "100 kills with the Hornet Burst", Stat = "Kills_Hornet", Goal = 100, Reward = 1500, Icon = "🐝", Category = "Arsenal" },
-	{ Id = "MInferno", Name = "Inferno Mastery", Desc = "100 kills with the Inferno LMG", Stat = "Kills_Inferno", Goal = 100, Reward = 1500, Icon = "🔥", Category = "Arsenal" },
-	{ Id = "MLongbow", Name = "Longbow Mastery", Desc = "100 kills with the Longbow Sniper", Stat = "Kills_Longbow", Goal = 100, Reward = 2000, Icon = "🏹", Category = "Arsenal" },
-	{ Id = "MRailgun", Name = "Railgun Mastery", Desc = "100 kills with the Railgun", Stat = "Kills_Railgun", Goal = 100, Reward = 2000, Icon = "⚡", Category = "Arsenal" },
-	{ Id = "MSidekick", Name = "Sidekick Mastery", Desc = "100 kills with the Sidekick Pistol", Stat = "Kills_Sidekick", Goal = 100, Reward = 1000, Icon = "🔫", Category = "Arsenal" },
-	{ Id = "MStinger", Name = "Stinger Mastery", Desc = "100 kills with the Stinger", Stat = "Kills_Stinger", Goal = 100, Reward = 1000, Icon = "🦂", Category = "Arsenal" },
-	{ Id = "MHandCannon", Name = "Hand Cannon Mastery", Desc = "100 kills with the Hand Cannon", Stat = "Kills_HandCannon", Goal = 100, Reward = 1500, Icon = "🤠", Category = "Arsenal" },
+	-- Arsenal (weapon mastery achievements are generated below)
 	{ Id = "Buy1", Name = "Window Shopper", Desc = "Buy a weapon from the Armory", Stat = "WeaponsBought", Goal = 1, Reward = 100, Icon = "🛒", Category = "Arsenal" },
-	{ Id = "BuyAll", Name = "Collector", Desc = "Own 9 weapons", Stat = "WeaponsOwned", Goal = 9, Reward = 5000, Icon = "🗃️", Category = "Arsenal" },
+	{ Id = "Own8", Name = "Collector", Desc = "Own 8 weapons", Stat = "WeaponsOwned", Goal = 8, Reward = 3000, Icon = "🗃️", Category = "Arsenal" },
+	{ Id = "Own16", Name = "Arms Dealer", Desc = "Own 16 weapons", Stat = "WeaponsOwned", Goal = 16, Reward = 10000, Icon = "🏪", Category = "Arsenal" },
 
 	-- Career
 	{ Id = "Win1", Name = "Winner Winner", Desc = "Win a match", Stat = "Wins", Goal = 1, Reward = 500, Icon = "🏆", Category = "Career" },
@@ -105,10 +103,26 @@ local list = {
 	{ Id = "Supporter", Name = "Supporter", Desc = "Buy anything from the Store", Stat = "RobuxPurchases", Goal = 1, Reward = 1000, Icon = "💚", Category = "Career" },
 }
 
+-- one mastery achievement per weapon + one "conquer" achievement per map
+local Weapons = require(script.Parent.Weapons)
+for _, id in Weapons.Order do
+	local def = Weapons.Get(id)
+	table.insert(list, {
+		Id = "M" .. id, Name = def.Name .. " Mastery", Desc = "Get 100 kills with the " .. def.Name,
+		Stat = "Kills_" .. id, Goal = 100, Reward = 1000 + (def.Level or 1) * 50, Icon = "🔫", Category = "Arsenal",
+	})
+end
+for _, m in { { "Downtown", "🏙️" }, { "Harbor", "⚓" }, { "Timberline", "🌲" }, { "Arena", "⚡" } } do
+	table.insert(list, {
+		Id = "Win" .. m[1], Name = "Conquer " .. m[1], Desc = "Win a match on " .. m[1],
+		Stat = "Wins_" .. m[1], Goal = 1, Reward = 750, Icon = m[2], Category = "Career",
+	})
+end
+
 Achievements.List = list
 Achievements.ById = {}
 Achievements.ByStat = {}
-Achievements.Categories = { "Combat", "Streaks", "Style", "Rivalry", "Arsenal", "Career" }
+Achievements.Categories = { "Combat", "Streaks", "Style", "Vehicles", "Rivalry", "Arsenal", "Career" }
 
 for _, a in list do
 	Achievements.ById[a.Id] = a
@@ -122,6 +136,169 @@ return Achievements
       </Item>
       <Item class="ModuleScript" referent="3">
         <Properties>
+          <string name="Name">CarBuilder</string>
+          <string name="Source"><![CDATA[-- Builds drivable cars out of parts. Styles: Sedan, Sports, Jeep, Truck.
+-- Physics: 4 invisible low-friction balls carry the car (they ride up curbs),
+-- the driver's client sets the velocity directly (arcade handling).
+local CarBuilder = {}
+
+local rgb = Color3.fromRGB
+local M = Enum.Material
+
+CarBuilder.Styles = {
+	Sedan = { W = 7, L = 14, Body = 2.4, Cabin = 2.4, CabinL = 7, CabinZ = 0.6, Wheel = 2.8, Speed = 80, Health = 450, Colors = { rgb(30, 60, 140), rgb(200, 200, 205), rgb(25, 25, 28), rgb(150, 20, 30) } },
+	Sports = { W = 7.2, L = 14, Body = 1.8, Cabin = 1.9, CabinL = 5.5, CabinZ = 1, Wheel = 2.6, Speed = 105, Health = 350, Spoiler = true, Colors = { rgb(230, 40, 40), rgb(255, 196, 26), rgb(20, 200, 120), rgb(240, 240, 240) } },
+	Jeep = { W = 7.6, L = 13, Body = 3, Cabin = 0, CabinL = 6, CabinZ = 0.5, Wheel = 3.6, Speed = 75, Health = 600, Open = true, Colors = { rgb(80, 100, 60), rgb(140, 120, 80), rgb(60, 80, 100) } },
+	Truck = { W = 8, L = 18, Body = 3, Cabin = 3.2, CabinL = 6, CabinZ = -4.5, Wheel = 3.4, Speed = 65, Health = 800, Bed = true, Colors = { rgb(160, 60, 40), rgb(230, 230, 225), rgb(40, 70, 120) } },
+}
+
+local function part(model, name, size, cf, color, material, collide)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or M.SmoothPlastic
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.CanCollide = collide == true
+	p.Parent = model
+	return p
+end
+
+function CarBuilder.Build(style: string, color: Color3?, anchored: boolean?)
+	local s = CarBuilder.Styles[style] or CarBuilder.Styles.Sedan
+	local seed = math.random(1, #s.Colors)
+	local paint = color or s.Colors[seed]
+	local W, L = s.W, s.L
+	local model = Instance.new("Model")
+	model.Name = style
+	model:SetAttribute("Vehicle", style)
+	model:SetAttribute("MaxHealth", s.Health)
+	model:SetAttribute("Health", s.Health)
+	model:SetAttribute("Speed", s.Speed)
+
+	local floorY = 1.3
+	local chassis = part(model, "Chassis", Vector3.new(W - 0.4, 1, L - 0.6), CFrame.new(0, floorY, 0), rgb(30, 30, 32), M.Metal, true)
+	chassis.PivotOffset = CFrame.new(0, -floorY, 0)
+	model.PrimaryPart = chassis
+
+	local bodyY = floorY + 0.5 + s.Body / 2
+	local body = part(model, "Body", Vector3.new(W, s.Body, L), CFrame.new(0, bodyY, 0), paint, M.SmoothPlastic, true)
+	body.Reflectance = 0.08
+	local top = floorY + 0.5 + s.Body
+	-- bumpers + grill
+	part(model, "BumperF", Vector3.new(W + 0.2, 0.8, 0.6), CFrame.new(0, floorY + 0.6, -L / 2 - 0.2), rgb(40, 40, 44), M.Metal)
+	part(model, "BumperR", Vector3.new(W + 0.2, 0.8, 0.6), CFrame.new(0, floorY + 0.6, L / 2 + 0.2), rgb(40, 40, 44), M.Metal)
+	part(model, "Grill", Vector3.new(W * 0.5, s.Body * 0.45, 0.2), CFrame.new(0, bodyY - 0.1, -L / 2 - 0.05), rgb(20, 20, 22), M.Metal)
+	-- lights
+	for _, x in { -W / 2 + 1, W / 2 - 1 } do
+		local head = part(model, "Headlight", Vector3.new(1.4, 0.6, 0.2), CFrame.new(x, bodyY + s.Body * 0.2, -L / 2 - 0.05), rgb(255, 250, 230), M.Neon)
+		if x < 0 then
+			local spot = Instance.new("SpotLight")
+			spot.Range = 45
+			spot.Brightness = 3
+			spot.Angle = 60
+			spot.Face = Enum.NormalId.Front
+			spot.Parent = head
+		end
+		part(model, "Taillight", Vector3.new(1.4, 0.5, 0.2), CFrame.new(x, bodyY + s.Body * 0.2, L / 2 + 0.05), rgb(255, 30, 30), M.Neon)
+	end
+
+	-- cabin
+	if s.Open then
+		-- roll bar + windshield frame
+		for _, x in { -W / 2 + 0.4, W / 2 - 0.4 } do
+			part(model, "RollBar", Vector3.new(0.4, 3.2, 0.4), CFrame.new(x, top + 1.6, 1.5), rgb(30, 30, 30), M.Metal)
+		end
+		part(model, "RollBarTop", Vector3.new(W - 0.4, 0.4, 0.4), CFrame.new(0, top + 3.2, 1.5), rgb(30, 30, 30), M.Metal)
+		local ws = part(model, "Windshield", Vector3.new(W - 0.6, 2, 0.2), CFrame.new(0, top + 1, -1.8) * CFrame.Angles(math.rad(-15), 0, 0), rgb(150, 200, 230), M.Glass)
+		ws.Transparency = 0.5
+		part(model, "Spare", Vector3.new(0.8, s.Wheel, s.Wheel), CFrame.new(0, bodyY + 0.6, L / 2 + 0.7) * CFrame.Angles(0, math.rad(90), 0), rgb(25, 25, 25), M.Rubber).Shape = Enum.PartType.Cylinder
+	else
+		local cz = s.CabinZ
+		local glass = part(model, "Cabin", Vector3.new(W - 0.7, s.Cabin, s.CabinL), CFrame.new(0, top + s.Cabin / 2, cz), rgb(120, 170, 210), M.Glass, true)
+		glass.Transparency = 0.35
+		glass.Reflectance = 0.2
+		glass.CanQuery = false -- bullets pass through windows and hit the people inside
+		part(model, "Roof", Vector3.new(W - 0.4, 0.35, s.CabinL - 0.6), CFrame.new(0, top + s.Cabin + 0.17, cz), paint, M.SmoothPlastic)
+		for _, x in { -W / 2 + 0.35, W / 2 - 0.35 } do
+			for _, z in { -s.CabinL / 2 + 0.2, s.CabinL / 2 - 0.2 } do
+				part(model, "Pillar", Vector3.new(0.3, s.Cabin, 0.3), CFrame.new(x, top + s.Cabin / 2, cz + z), paint, M.SmoothPlastic)
+			end
+		end
+	end
+	if s.Spoiler then
+		part(model, "Spoiler", Vector3.new(W - 0.6, 0.25, 1.4), CFrame.new(0, top + 1.2, L / 2 - 0.8), rgb(20, 20, 22), M.SmoothPlastic)
+		for _, x in { -2.2, 2.2 } do
+			part(model, "SpoilerLeg", Vector3.new(0.3, 1.1, 0.4), CFrame.new(x, top + 0.6, L / 2 - 0.8), rgb(20, 20, 22), M.SmoothPlastic)
+		end
+		part(model, "Stripe", Vector3.new(1.2, 0.05, L + 0.02), CFrame.new(0, top + 0.02, 0), rgb(255, 255, 255), M.SmoothPlastic)
+	end
+	if s.Bed then
+		-- open cargo bed behind the cab
+		for _, x in { -W / 2 + 0.2, W / 2 - 0.2 } do
+			part(model, "BedWall", Vector3.new(0.4, 1.8, L - s.CabinL - 1.5), CFrame.new(x, top + 0.9, (s.CabinL + 1.5) / 2 - 0.2), paint, M.SmoothPlastic, true)
+		end
+		part(model, "Tailgate", Vector3.new(W, 1.8, 0.4), CFrame.new(0, top + 0.9, L / 2 - 0.2), paint, M.SmoothPlastic, true)
+	end
+
+	-- wheels (visual) + support balls (physics)
+	local wz = L / 2 - s.Wheel * 0.75
+	for _, x in { -W / 2 + 0.2, W / 2 - 0.2 } do
+		for _, z in { -wz, wz } do
+			local wheel = part(model, "Wheel", Vector3.new(1.3, s.Wheel, s.Wheel), CFrame.new(x, s.Wheel / 2, z), rgb(25, 25, 25), M.Rubber)
+			wheel.Shape = Enum.PartType.Cylinder
+			local rim = part(model, "Rim", Vector3.new(1.35, s.Wheel * 0.55, s.Wheel * 0.55), CFrame.new(x, s.Wheel / 2, z), rgb(190, 190, 196), M.Metal)
+			rim.Shape = Enum.PartType.Cylinder
+			local ball = part(model, "Support", Vector3.new(2.4, 2.4, 2.4), CFrame.new(x * 0.7, 1.2, z), rgb(0, 0, 0), M.SmoothPlastic, true)
+			ball.Shape = Enum.PartType.Ball
+			ball.Transparency = 1
+			ball.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.02, 0, 100, 1)
+		end
+	end
+	-- wheel arches
+	for _, z in { -wz, wz } do
+		part(model, "Arch", Vector3.new(W + 0.1, 0.4, s.Wheel + 0.6), CFrame.new(0, s.Wheel + 0.2, z), rgb(30, 30, 32), M.SmoothPlastic)
+	end
+
+	-- seats
+	local seat = Instance.new("VehicleSeat")
+	seat.Name = "DriverSeat"
+	seat.Size = Vector3.new(2, 0.6, 2)
+	seat.CFrame = CFrame.new(-1.4, top - 0.4, s.CabinZ + 0.6)
+	seat.Color = rgb(30, 30, 30)
+	seat.HeadsUpDisplay = false
+	seat.MaxSpeed = 0
+	seat.Transparency = 0
+	seat.Parent = model
+	local passenger = Instance.new("Seat")
+	passenger.Name = "PassengerSeat"
+	passenger.Size = Vector3.new(2, 0.6, 2)
+	passenger.CFrame = CFrame.new(1.4, top - 0.4, s.CabinZ + 0.6)
+	passenger.Color = rgb(30, 30, 30)
+	passenger.Parent = model
+
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Anchored = anchored == true
+			if p ~= chassis then
+				local w = Instance.new("WeldConstraint")
+				w.Part0 = chassis
+				w.Part1 = p
+				w.Parent = p
+			end
+		end
+	end
+	return model
+end
+
+return CarBuilder
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="4">
+        <Properties>
           <string name="Name">Config</string>
           <string name="Source"><![CDATA[-- Global game tuning. Change numbers here to rebalance the whole game.
 local Config = {}
@@ -132,7 +309,7 @@ Config.ModeName = "FREE FOR ALL"
 -- Match flow
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
 Config.MatchLength = 300 -- 5 minute matches
-Config.ResultsLength = 12
+Config.ResultsLength = 16 -- includes map voting
 Config.KillsToWin = 30
 
 -- Bots fill the server up to this many combatants so it is never empty
@@ -206,6 +383,14 @@ Config.AirstrikeRadius = 16
 Config.AirstrikeDamage = 160
 Config.NukeCountdown = 10
 
+-- Map info for menus (the maps themselves live in ServerScriptService.Server.Maps)
+Config.Maps = {
+	Downtown = { Name = "DOWNTOWN", Icon = "🏙️", Desc = "City streets & rooftops" },
+	Harbor = { Name = "HARBOR", Icon = "⚓", Desc = "Containers, cranes & a cargo ship" },
+	Timberline = { Name = "TIMBERLINE", Icon = "🌲", Desc = "Forest river valley" },
+	Arena = { Name = "NEON ARENA", Icon = "⚡", Desc = "Fast close-quarters arena" },
+}
+
 -- Set true to pretend you own every game pass while testing in Studio.
 Config.StudioGrantAllPasses = false
 
@@ -223,7 +408,7 @@ return Config
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="4">
+      <Item class="ModuleScript" referent="5">
         <Properties>
           <string name="Name">GunBuilder</string>
           <string name="Source"><![CDATA[-- Builds a gun model out of parts from the weapon's Look table.
@@ -298,6 +483,27 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 		table.insert(pieces, part(model, "SightRear", Vector3.new(0.2, 0.1, 0.06), origin * CFrame.new(0, 0.33, L / 2 - 0.2), Color3.fromRGB(20, 20, 20)))
 	end
 
+	-- special silhouettes
+	if look.Tube then
+		table.insert(pieces, part(model, "Tube", Vector3.new(L + 0.6, 0.8, 0.8), origin * CFrame.new(0, 0.2, -0.1) * alongZ, bodyColor, bodyMat, Enum.PartType.Cylinder))
+		table.insert(pieces, part(model, "TubeRing", Vector3.new(0.3, 0.9, 0.9), origin * CFrame.new(0, 0.2, -L / 2 - 0.2) * alongZ, look.Accent, accentMat, Enum.PartType.Cylinder))
+		table.insert(pieces, part(model, "Warhead", Vector3.new(0.7, 0.55, 0.55), origin * CFrame.new(0, 0.2, -L / 2 - 0.65) * alongZ, Color3.fromRGB(90, 100, 70), Enum.Material.Metal, Enum.PartType.Cylinder))
+	end
+	if look.Rotary then
+		for i = 1, 6 do
+			local a = i / 6 * math.pi * 2
+			table.insert(pieces, part(model, "Barrel" .. i, Vector3.new(B + 0.6, 0.12, 0.12), origin * CFrame.new(math.cos(a) * 0.17, 0.08 + math.sin(a) * 0.17, -L / 2 - B / 2 + 0.1) * alongZ, Color3.fromRGB(30, 30, 34), Enum.Material.Metal, Enum.PartType.Cylinder))
+		end
+		table.insert(pieces, part(model, "Housing", Vector3.new(0.5, 0.55, 0.55), origin * CFrame.new(0, 0.08, -L / 2 - B + 0.3) * alongZ, look.Accent, accentMat, Enum.PartType.Cylinder))
+		table.insert(pieces, part(model, "AmmoBox", Vector3.new(0.5, 0.6, 0.9), origin * CFrame.new(0.3, -0.35, 0.1), Color3.fromRGB(70, 80, 50), Enum.Material.Metal))
+	end
+	if look.Double then
+		table.insert(pieces, part(model, "Barrel2", Vector3.new(B + 0.1, 0.18, 0.18), origin * CFrame.new(0, 0.26, -L / 2 - B / 2 + 0.05) * alongZ, Color3.fromRGB(25, 25, 28), Enum.Material.Metal, Enum.PartType.Cylinder))
+	end
+	if look.Drum then
+		table.insert(pieces, part(model, "Drum", Vector3.new(0.45, 0.8, 0.8), origin * CFrame.new(0, -0.5, -L * 0.12), look.Accent, accentMat, Enum.PartType.Cylinder))
+	end
+
 	for _, p in pieces do
 		local w = Instance.new("WeldConstraint")
 		w.Part0 = handle
@@ -307,7 +513,7 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 
 	local muzzle = Instance.new("Attachment")
 	muzzle.Name = "Muzzle"
-	muzzle.Position = Vector3.new(0, 0.08, -L / 2 - B)
+	muzzle.Position = look.Tube and Vector3.new(0, 0.2, -L / 2 - 0.4) or Vector3.new(0, 0.08, -L / 2 - B)
 	muzzle.Parent = handle
 
 	local sight = Instance.new("Attachment")
@@ -341,7 +547,7 @@ return GunBuilder
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="5">
+      <Item class="ModuleScript" referent="6">
         <Properties>
           <string name="Name">Monetization</string>
           <string name="Source"><![CDATA[-- ROBUX STORE
@@ -457,7 +663,7 @@ return Monetization
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="6">
+      <Item class="ModuleScript" referent="7">
         <Properties>
           <string name="Name">Remotes</string>
           <string name="Source"><![CDATA[-- Creates (server) or finds (client) every RemoteEvent / RemoteFunction.
@@ -468,7 +674,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EVENTS = {
 	-- client -> server
 	"Deploy", "Fire", "Reload", "Knife", "Grenade", "Slam", "JumpPad",
-	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken",
+	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken", "Vote", "SaveSettings",
 	-- server -> client
 	"Effect", "HitConfirm", "Damaged", "KillFeed", "Notify", "KillInfo",
 	"DataSync", "Killstreak", "MatchResults",
@@ -513,7 +719,7 @@ return setmetatable({}, {
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="7">
+      <Item class="ModuleScript" referent="8">
         <Properties>
           <string name="Name">Sounds</string>
           <string name="Source"><![CDATA[-- Sound ids. These use sounds that ship with Roblox so the game works out of
@@ -537,7 +743,7 @@ return {
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="8">
+      <Item class="ModuleScript" referent="9">
         <Properties>
           <string name="Name">Util</string>
           <string name="Source"><![CDATA[local Util = {}
@@ -596,7 +802,7 @@ return Util
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="9">
+      <Item class="ModuleScript" referent="10">
         <Properties>
           <string name="Name">Weapons</string>
           <string name="Source"><![CDATA[-- Weapon definitions. Every gun in the game is data-driven from this table.
@@ -669,6 +875,99 @@ Weapons.Defs = {
 		Look = { Body = Color3.fromRGB(20, 20, 30), Accent = Color3.fromRGB(170, 90, 255), Length = 3.4, Barrel = 1.4, Scope = true, Neon = true },
 	},
 
+	Vanguard = {
+		Name = "VANGUARD CARBINE", Class = "Assault Rifle", Slot = "Primary",
+		Damage = 22, HeadMult = 1.6, FireRate = 11.5, Auto = true,
+		Mag = 30, Reserve = 150, Reload = 1.8,
+		Spread = 2.0, AdsSpread = 0.45, Range = 500, FalloffStart = 100,
+		Recoil = 0.75, ZoomFov = 56, Speed = 1.05,
+		Price = 1200, Level = 4,
+		Look = { Body = Color3.fromRGB(58, 62, 52), Accent = Color3.fromRGB(120, 200, 90), Length = 2.3, Barrel = 0.7, Scope = false },
+	},
+	Tempest = {
+		Name = "TEMPEST PDW", Class = "SMG", Slot = "Primary",
+		Damage = 15, HeadMult = 1.4, FireRate = 18, Auto = true,
+		Mag = 40, Reserve = 200, Reload = 1.9,
+		Spread = 3.2, AdsSpread = 1.1, Range = 250, FalloffStart = 50,
+		Recoil = 0.5, ZoomFov = 60, Speed = 1.12,
+		Price = 2200, Level = 8,
+		Look = { Body = Color3.fromRGB(210, 210, 215), Accent = Color3.fromRGB(255, 80, 80), Length = 1.8, Barrel = 0.4, Scope = false },
+	},
+	Ranger = {
+		Name = "RANGER DMR", Class = "DMR", Slot = "Primary",
+		Damage = 48, HeadMult = 2.0, FireRate = 4, Auto = false,
+		Mag = 15, Reserve = 75, Reload = 2.3,
+		Spread = 1.4, AdsSpread = 0.05, Range = 1000, FalloffStart = 300,
+		Recoil = 2.2, ZoomFov = 36, Speed = 0.95,
+		Price = 4500, Level = 12,
+		Look = { Body = Color3.fromRGB(110, 96, 70), Accent = Color3.fromRGB(40, 40, 40), Length = 3.2, Barrel = 1.2, Scope = true },
+	},
+	Warden = {
+		Name = "WARDEN BATTLE RIFLE", Class = "Battle Rifle", Slot = "Primary",
+		Damage = 34, HeadMult = 1.6, FireRate = 7, Auto = true,
+		Mag = 20, Reserve = 100, Reload = 2.4,
+		Spread = 2.4, AdsSpread = 0.5, Range = 700, FalloffStart = 180,
+		Recoil = 1.6, ZoomFov = 52, Speed = 0.95,
+		Price = 5000, Level = 15,
+		Look = { Body = Color3.fromRGB(35, 38, 42), Accent = Color3.fromRGB(255, 140, 0), Length = 3.0, Barrel = 1.0, Scope = true },
+	},
+	Razor = {
+		Name = "RAZOR AUTO-SHOTGUN", Class = "Shotgun", Slot = "Primary",
+		Damage = 11, HeadMult = 1.3, FireRate = 4, Auto = true, Pellets = 7,
+		Mag = 12, Reserve = 48, Reload = 3.0,
+		Spread = 5.5, AdsSpread = 4, Range = 120, FalloffStart = 20,
+		Recoil = 2.5, ZoomFov = 62, Speed = 1.0,
+		Price = 6500, Level = 20,
+		Look = { Body = Color3.fromRGB(28, 28, 32), Accent = Color3.fromRGB(0, 204, 255), Length = 2.6, Barrel = 0.9, Scope = false, Drum = true },
+	},
+	Duke = {
+		Name = "DUKE DOUBLE-BARREL", Class = "Shotgun", Slot = "Primary",
+		Damage = 13, HeadMult = 1.3, FireRate = 3.5, Auto = false, Pellets = 12,
+		Mag = 2, Reserve = 30, Reload = 2.2,
+		Spread = 7, AdsSpread = 5, Range = 110, FalloffStart = 20,
+		Recoil = 6, ZoomFov = 64, Speed = 1.05,
+		Price = 3500, Level = 11,
+		Look = { Body = Color3.fromRGB(110, 70, 40), Accent = Color3.fromRGB(190, 190, 190), Length = 2.9, Barrel = 1.3, Scope = false, Double = true },
+	},
+	Reaper = {
+		Name = "REAPER MINIGUN", Class = "Minigun", Slot = "Primary",
+		Damage = 19, HeadMult = 1.3, FireRate = 22, Auto = true, SpinUp = 0.7,
+		Mag = 200, Reserve = 400, Reload = 6,
+		Spread = 4, AdsSpread = 2.6, Range = 500, FalloffStart = 120,
+		Recoil = 0.45, ZoomFov = 62, Speed = 0.72,
+		Price = 15000, Level = 35,
+		Look = { Body = Color3.fromRGB(45, 45, 50), Accent = Color3.fromRGB(255, 60, 40), Length = 3.4, Barrel = 1.4, Scope = false, Rotary = true },
+	},
+	Titan = {
+		Name = "TITAN .50 SNIPER", Class = "Sniper", Slot = "Primary",
+		Damage = 140, HeadMult = 2.0, FireRate = 0.6, Auto = false, Penetrate = 2,
+		Mag = 4, Reserve = 24, Reload = 3.6,
+		Spread = 9, AdsSpread = 0, Range = 2000, FalloffStart = 2000,
+		Recoil = 8, ZoomFov = 14, Speed = 0.85, Scoped = true,
+		Price = 12000, Level = 30,
+		Look = { Body = Color3.fromRGB(50, 50, 40), Accent = Color3.fromRGB(255, 198, 26), Length = 4.2, Barrel = 2.0, Scope = true },
+	},
+	Havoc = {
+		Name = "HAVOC RPG", Class = "Launcher", Slot = "Primary",
+		Damage = 150, HeadMult = 1, FireRate = 0.8, Auto = false,
+		Projectile = { Speed = 170, Gravity = 0, Radius = 16, Direct = 60, Size = 0.7 },
+		Mag = 1, Reserve = 6, Reload = 2.8,
+		Spread = 1.5, AdsSpread = 0.2, Range = 900, FalloffStart = 900,
+		Recoil = 5, ZoomFov = 50, Speed = 0.85,
+		Price = 10000, Level = 28,
+		Look = { Body = Color3.fromRGB(70, 85, 60), Accent = Color3.fromRGB(255, 120, 40), Length = 3.6, Barrel = 0.3, Scope = false, Tube = true },
+	},
+	Thumper = {
+		Name = "THUMPER GRENADE LAUNCHER", Class = "Launcher", Slot = "Primary",
+		Damage = 110, HeadMult = 1, FireRate = 1.6, Auto = false,
+		Projectile = { Speed = 115, Gravity = 70, Radius = 14, Direct = 30, Size = 0.6 },
+		Mag = 6, Reserve = 18, Reload = 3.2,
+		Spread = 1.5, AdsSpread = 0.4, Range = 600, FalloffStart = 600,
+		Recoil = 3, ZoomFov = 55, Speed = 0.92,
+		Price = 9000, Level = 26,
+		Look = { Body = Color3.fromRGB(60, 62, 66), Accent = Color3.fromRGB(110, 200, 70), Length = 2.4, Barrel = 0.6, Scope = false, Drum = true },
+	},
+
 	-- SECONDARIES ------------------------------------------------------
 	Sidekick = {
 		Name = "SIDEKICK PISTOL", Class = "Pistol", Slot = "Secondary",
@@ -697,9 +996,31 @@ Weapons.Defs = {
 		Price = 4000, Level = 14,
 		Look = { Body = Color3.fromRGB(160, 160, 170), Accent = Color3.fromRGB(255, 198, 26), Length = 1.4, Barrel = 0.5, Scope = false },
 	},
+	Judge = {
+		Name = "JUDGE REVOLVER-SHOTGUN", Class = "Revolver", Slot = "Secondary",
+		Damage = 12, HeadMult = 1.4, FireRate = 2, Auto = false, Pellets = 6,
+		Mag = 5, Reserve = 30, Reload = 2.4,
+		Spread = 5, AdsSpread = 3.5, Range = 90, FalloffStart = 15,
+		Recoil = 4, ZoomFov = 64, Speed = 1.08,
+		Price = 2500, Level = 9,
+		Look = { Body = Color3.fromRGB(60, 60, 66), Accent = Color3.fromRGB(200, 160, 90), Length = 1.5, Barrel = 0.5, Scope = false },
+	},
+	Arc = {
+		Name = "ARC ENERGY PISTOL", Class = "Energy Pistol", Slot = "Secondary",
+		Damage = 30, HeadMult = 1.8, FireRate = 5, Auto = false,
+		Mag = 16, Reserve = 96, Reload = 1.5,
+		Spread = 1.2, AdsSpread = 0.2, Range = 450, FalloffStart = 120,
+		Recoil = 1.2, ZoomFov = 60, Speed = 1.1,
+		Price = 3500, Level = 16,
+		Look = { Body = Color3.fromRGB(230, 230, 240), Accent = Color3.fromRGB(0, 204, 255), Length = 1.3, Barrel = 0.3, Scope = false, Neon = true },
+	},
 }
 
-Weapons.Order = { "Striker", "Viper", "Brute", "Hornet", "Inferno", "Longbow", "Railgun", "Sidekick", "Stinger", "HandCannon" }
+Weapons.Order = {
+	"Striker", "Vanguard", "Viper", "Tempest", "Brute", "Duke", "Hornet", "Ranger", "Warden", "Inferno",
+	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "Railgun",
+	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc",
+}
 
 function Weapons.Get(id: string)
 	return Weapons.Defs[id]
@@ -720,15 +1041,15 @@ return Weapons
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="10">
+  <Item class="ServerScriptService" referent="11">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="11">
+    <Item class="Folder" referent="12">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="ModuleScript" referent="12">
+      <Item class="ModuleScript" referent="13">
         <Properties>
           <string name="Name">AchievementService</string>
           <string name="Source"><![CDATA[-- Tracks stats and unlocks achievements (with a toast + cash reward).
@@ -838,7 +1159,7 @@ return AchievementService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="13">
+      <Item class="ModuleScript" referent="14">
         <Properties>
           <string name="Name">BotService</string>
           <string name="Source"><![CDATA[-- AI bots that fill empty servers so there's always someone to fight.
@@ -1154,7 +1475,7 @@ return BotService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="14">
+      <Item class="ModuleScript" referent="15">
         <Properties>
           <string name="Name">CombatService</string>
           <string name="Source"><![CDATA[-- Server-authoritative combat: hitscan validation, damage, kills, medals,
@@ -1183,6 +1504,7 @@ Combat.ByPlayer = {} -- [Player] = entity
 Combat.Hooks = {
 	Round = nil, -- RoundService (IsCounting, TakeFirstBlood, OnKill, OnDeath)
 	Killstreaks = nil, -- KillstreakService (OnStreak)
+	Vehicles = nil, -- VehicleService (CarFromPart, DamageCar, AreaDamage)
 }
 
 -- HELPERS --------------------------------------------------------------------
@@ -1511,6 +1833,10 @@ function Combat.HandleDeath(killer, victim, info)
 		medal("METEOR STRIKE", 100, "SlamKills")
 	elseif info.Kind == "Airstrike" then
 		AchievementService.Add(kp, "AirstrikeKills", 1)
+	elseif info.Kind == "Roadkill" then
+		medal("ROADKILL", 100)
+	elseif info.Kind == "Vehicle" then
+		medal("CAR BOMB", 75)
 	elseif info.Kind == nil then
 		if distance >= 150 then
 			medal("LONG SHOT", 75, "LongShots")
@@ -1539,6 +1865,12 @@ function Combat.HandleDeath(killer, victim, info)
 		medal("CLUTCH", 75, "ClutchKills")
 	end
 
+	if info.Explosive then
+		AchievementService.Add(kp, "ExplosiveKills", 1)
+		if info.Projectile then
+			medal(info.Direct and "DIRECT HIT" or "BOOM", info.Direct and 75 or 25)
+		end
+	end
 	AchievementService.Add(kp, "Kills", 1)
 	AchievementService.SetMax(kp, "BestStreak", killer.Streak)
 
@@ -1605,6 +1937,9 @@ end
 -- Area damage (grenades, slams, airstrikes). Returns number of kills.
 function Combat.AreaDamage(attacker, position: Vector3, radius: number, maxDamage: number, info, effect: string?)
 	Remotes.Effect:FireAllClients(effect or "Explosion", position, radius)
+	if Combat.Hooks.Vehicles and info.Explosive then
+		Combat.Hooks.Vehicles.AreaDamage(attacker, position, radius, maxDamage)
+	end
 	local kills = 0
 	local victims = {}
 	for _, victim in Combat.Entities do
@@ -1661,9 +1996,17 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 	local effectsFolder = workspace:FindFirstChild("Effects")
 
 	local totals = {}
+	local carTotals = {}
+	local vehicles = Combat.Hooks.Vehicles
 	local ends = {}
+	-- passengers shooting out of a car shouldn't hit their own car
+	local ownCar = nil
+	local seatPart = entity.Humanoid and entity.Humanoid.SeatPart
+	if seatPart and vehicles then
+		ownCar = vehicles.CarFromPart(seatPart)
+	end
 	for i, dir in dirs do
-		local exclude = { entity.Character, effectsFolder }
+		local exclude = { entity.Character, effectsFolder, ownCar }
 		local start = origin
 		local remaining = def.Range
 		local pierce = def.Penetrate or 0
@@ -1678,6 +2021,12 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 			end
 			local _, model = Util.HumanoidFromPart(result.Instance)
 			local victim = model and Combat.Entities[model]
+			local car = (not model and vehicles) and vehicles.CarFromPart(result.Instance) or nil
+			if car then
+				carTotals[car] = (carTotals[car] or 0) + def.Damage * dmgMult * 0.7
+				endPos = result.Position
+				break
+			end
 			if victim and Combat.IsAlive(victim) then
 				local hitPart = result.Instance
 				local headshot = hitPart.Name == "Head" or (hitPart.Parent ~= nil and hitPart.Parent:IsA("Accessory"))
@@ -1730,6 +2079,11 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 			kills += 1
 		end
 	end
+	if vehicles then
+		for car, dmg in carTotals do
+			vehicles.DamageCar(car, entity, dmg)
+		end
+	end
 	if kills >= 2 then
 		AchievementService.Add(entity.Player, "Collaterals", 1)
 		if counting() then
@@ -1738,6 +2092,81 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 		notify(entity, "Medal", { Medals = { { Text = "COLLATERAL", Bonus = 100 } } })
 	end
 	Remotes.Effect:FireAllClients("Shot", entity.Character, weaponId, ends)
+end
+
+
+-- PROJECTILES (rockets, grenade launcher) --------------------------------------
+-- Simulated on the server with stepped raycasts; the visual part is moved each frame.
+function Combat.FireProjectile(entity, weaponId: string, origin: Vector3, dir: Vector3)
+	local def = Weapons.Get(weaponId)
+	local spec = def.Projectile
+	local effects = workspace:FindFirstChild("Effects") or workspace
+	local rocket = Instance.new("Part")
+	rocket.Name = "Projectile"
+	rocket.Anchored = true
+	rocket.CanCollide = false
+	rocket.CanQuery = false
+	rocket.CanTouch = false
+	rocket.Size = Vector3.new(spec.Size, spec.Size, spec.Size * 3)
+	rocket.Material = Enum.Material.Neon
+	rocket.Color = def.Look.Accent
+	rocket.CFrame = CFrame.lookAt(origin + dir * 3, origin + dir * 4)
+	local light = Instance.new("PointLight")
+	light.Color = def.Look.Accent
+	light.Range = 14
+	light.Brightness = 3
+	light.Parent = rocket
+	local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
+	a0.Position = Vector3.new(0, 0.2, spec.Size * 1.5)
+	a1.Position = Vector3.new(0, -0.2, spec.Size * 1.5)
+	a0.Parent, a1.Parent = rocket, rocket
+	local trail = Instance.new("Trail")
+	trail.Attachment0, trail.Attachment1 = a0, a1
+	trail.Lifetime = 0.4
+	trail.LightEmission = 1
+	trail.Color = ColorSequence.new(Color3.fromRGB(255, 200, 120), Color3.fromRGB(120, 120, 120))
+	trail.Transparency = NumberSequence.new(0, 1)
+	trail.WidthScale = NumberSequence.new(1, 3)
+	trail.Parent = rocket
+	rocket.Parent = effects
+	Remotes.Effect:FireAllClients("Launch", entity.Character, weaponId)
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { entity.Character, effects }
+	local pos = origin + dir * 2
+	local vel = dir * spec.Speed
+	local life = 0
+	local conn
+	conn = RunService.Heartbeat:Connect(function(dt)
+		life += dt
+		local nextVel = vel - Vector3.new(0, spec.Gravity * dt, 0)
+		local step = (vel + nextVel) / 2 * dt
+		local result = workspace:Raycast(pos, step, params)
+		vel = nextVel
+		if result or life > 5 then
+			conn:Disconnect()
+			local hitPos = result and result.Position or pos
+			rocket:Destroy()
+			local direct = nil
+			if result then
+				local _, model = Util.HumanoidFromPart(result.Instance)
+				direct = model and Combat.Entities[model]
+			end
+			if direct and Combat.IsAlive(direct) then
+				Combat.Damage(entity, direct, spec.Direct, {
+					Weapon = weaponId, WeaponName = def.Name, Class = def.Class, Explosive = true, Projectile = true, Direct = true,
+					Position = hitPos, Distance = (hitPos - origin).Magnitude,
+				})
+			end
+			Combat.AreaDamage(entity, hitPos, spec.Radius, def.Damage, {
+				Weapon = weaponId, WeaponName = def.Name, Class = def.Class, Explosive = true, Projectile = true,
+			})
+			return
+		end
+		pos += step
+		rocket.CFrame = CFrame.lookAt(pos, pos + vel)
+	end)
 end
 
 Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flags)
@@ -1795,6 +2224,10 @@ Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flag
 	local head = entity.Character:FindFirstChild("Head")
 	if not validVector(origin) or not head or (origin - head.Position).Magnitude > 12 then
 		origin = head and head.Position or entity.Root.Position
+	end
+	if def.Projectile then
+		Combat.FireProjectile(entity, weaponId, origin, clean[1])
+		return
 	end
 	Combat.Shoot(entity, weaponId, origin, clean, typeof(flags) == "table" and flags or {})
 end)
@@ -2007,7 +2440,7 @@ return Combat
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="15">
+      <Item class="ModuleScript" referent="16">
         <Properties>
           <string name="Name">DataService</string>
           <string name="Source"><![CDATA[-- Persistent player data (cash, XP, owned guns, stats, achievements...).
@@ -2045,6 +2478,7 @@ local DEFAULT = {
 	BoostUntil = 0,
 	Tokens = { Airstrike = 0, Nuke = 0 },
 	Receipts = {},
+	Settings = { FOV = 72, Shake = 1, AdsSens = 0.7, Crosshair = "White" },
 }
 
 local function key(player: Player)
@@ -2079,6 +2513,7 @@ function DataService.Sync(player: Player)
 		Achievements = data.Achievements,
 		Daily = data.Daily,
 		DailyAvailable = DataService.DailyAvailable(player),
+		Settings = data.Settings,
 	})
 end
 
@@ -2256,7 +2691,7 @@ return DataService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="16">
+      <Item class="ModuleScript" referent="17">
         <Properties>
           <string name="Name">KillstreakService</string>
           <string name="Source"><![CDATA[-- Killstreak rewards: UAV, Overdrive, Airstrike and the match-ending Tactical Nuke.
@@ -2433,7 +2868,7 @@ return KillstreakService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Script" referent="17">
+      <Item class="Script" referent="18">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -2454,6 +2889,7 @@ local KillstreakService = require(script.Parent.KillstreakService)
 local MapService = require(script.Parent.MapService)
 local RoundService = require(script.Parent.RoundService)
 local BotService = require(script.Parent.BotService)
+local VehicleService = require(script.Parent.VehicleService)
 
 Players.CharacterAutoLoads = false
 Players.RespawnTime = Config.RespawnTime
@@ -2461,7 +2897,10 @@ Players.RespawnTime = Config.RespawnTime
 -- WIRING ---------------------------------------------------------------------
 Combat.Hooks.Round = RoundService
 Combat.Hooks.Killstreaks = KillstreakService
+Combat.Hooks.Vehicles = VehicleService
 KillstreakService.Round = RoundService
+RoundService.Map = MapService
+MapService.OnMapLoaded = VehicleService.OnMapLoaded
 AchievementService.Init()
 MapService.Init()
 
@@ -2648,6 +3087,27 @@ Remotes.ClaimDaily.OnServerEvent:Connect(function(player)
 	end
 end)
 
+local CROSSHAIRS = { White = true, Green = true, Cyan = true, Red = true, Yellow = true }
+Remotes.SaveSettings.OnServerEvent:Connect(function(player, settings)
+	local data = DataService.Get(player)
+	if not data or typeof(settings) ~= "table" then
+		return
+	end
+	local s = data.Settings
+	if typeof(settings.FOV) == "number" then
+		s.FOV = math.clamp(math.floor(settings.FOV), 60, 100)
+	end
+	if typeof(settings.Shake) == "number" then
+		s.Shake = math.clamp(settings.Shake, 0, 1)
+	end
+	if typeof(settings.AdsSens) == "number" then
+		s.AdsSens = math.clamp(settings.AdsSens, 0.2, 1.5)
+	end
+	if typeof(settings.Crosshair) == "string" and CROSSHAIRS[settings.Crosshair] then
+		s.Crosshair = settings.Crosshair
+	end
+end)
+
 -- GO ---------------------------------------------------------------------------
 RoundService.Start()
 BotService.Start()
@@ -2655,223 +3115,212 @@ print("[" .. Config.GameName .. "] server ready")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="18">
+      <Item class="ModuleScript" referent="19">
         <Properties>
           <string name="Name">MapService</string>
-          <string name="Source"><![CDATA[-- Builds the arena (if you haven't made your own) and picks safe spawn points.
--- To use your own map: put a Model/Folder named "Map" in Workspace with a
--- child folder "Spawns" containing parts. Parts with attribute JumpPad (number)
--- launch players, parts with attribute HealthPack (true) heal & refill ammo.
+          <string name="Source"><![CDATA[-- Loads maps (with per-map lighting), runs map voting, and picks safe spawns.
+-- Map modules live in Server/Maps. To use a hand-built map instead, put a
+-- Model named "Map" in Workspace with a "Spawns" folder (it is used as-is).
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
+local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
 
+local MapsFolder = script.Parent.Maps
 local MapService = {}
 MapService.Spawns = {} :: { CFrame }
-
-local DARK = Color3.fromRGB(40, 44, 54)
-local MID = Color3.fromRGB(72, 78, 94)
-local LIGHT = Color3.fromRGB(110, 118, 136)
-local CRATE = Color3.fromRGB(176, 128, 66)
-
-local function block(parent, name, size: Vector3, cf: CFrame, color: Color3, material)
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Anchored = true
-	p.Size = size
-	p.CFrame = cf
-	p.Color = color
-	p.Material = material or Enum.Material.SmoothPlastic
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = parent
-	return p
+MapService.Current = nil
+MapService.OnMapLoaded = nil :: ((Instance) -> ())?
+MapService.Order = { "Downtown", "Harbor", "Timberline", "Arena" }
+MapService.Defs = {}
+for _, id in MapService.Order do
+	MapService.Defs[id] = require(MapsFolder:WaitForChild(id))
 end
 
-local function neon(parent, size, cf, color)
-	local p = block(parent, "Trim", size, cf, color, Enum.Material.Neon)
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CastShadow = false
-	return p
+local function ensure(class: string, parent: Instance)
+	local inst = parent:FindFirstChildOfClass(class) or Instance.new(class)
+	inst.Parent = parent
+	return inst
 end
 
--- A tilted slab from a low point to a high point (top surface touches both).
-local function ramp(parent, low: Vector3, high: Vector3, width: number, color)
-	local length = (high - low).Magnitude
-	local cf = CFrame.lookAt((low + high) / 2, high) * CFrame.new(0, -0.5, 0)
-	local p = block(parent, "Ramp", Vector3.new(width, 1, length), cf, color, Enum.Material.DiamondPlate)
-	neon(parent, Vector3.new(0.3, 0.3, length), cf * CFrame.new(width / 2, 0.5, 0), Config.Colors.Accent)
-	neon(parent, Vector3.new(0.3, 0.3, length), cf * CFrame.new(-width / 2, 0.5, 0), Config.Colors.Accent)
-	return p
-end
-
-local function build()
-	local map = Instance.new("Model")
-	map.Name = "Map"
-	local geo = Instance.new("Folder")
-	geo.Name = "Geometry"
-	geo.Parent = map
-	local spawns = Instance.new("Folder")
-	spawns.Name = "Spawns"
-	spawns.Parent = map
-
-	local HALF = 125
-	block(geo, "Floor", Vector3.new(HALF * 2 + 10, 2, HALF * 2 + 10), CFrame.new(0, -1, 0), DARK, Enum.Material.Concrete)
-	for i = -HALF + 25, HALF - 25, 25 do
-		neon(geo, Vector3.new(0.25, 0.05, HALF * 2), CFrame.new(i, 0.03, 0), Config.Colors.Accent2).Transparency = 0.75
-		neon(geo, Vector3.new(HALF * 2, 0.05, 0.25), CFrame.new(0, 0.03, i), Config.Colors.Accent2).Transparency = 0.75
-	end
-
-	-- outer walls
-	for _, side in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-		local x, z = side[1], side[2]
-		local size = x ~= 0 and Vector3.new(4, 40, HALF * 2 + 8) or Vector3.new(HALF * 2 + 8, 40, 4)
-		local cf = CFrame.new(x * (HALF + 2), 20, z * (HALF + 2))
-		block(geo, "Wall", size, cf, MID, Enum.Material.Metal)
-		neon(geo, Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 6 - 20, 0), Config.Colors.Accent2)
-		neon(geo, Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 20, 0), Config.Colors.Accent)
-	end
-
-	-- center core with 4 ramps
-	block(geo, "Core", Vector3.new(20, 10, 20), CFrame.new(0, 5, 0), MID, Enum.Material.Metal)
-	neon(geo, Vector3.new(20.4, 0.4, 20.4), CFrame.new(0, 10, 0), Config.Colors.Accent)
-	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
-		ramp(geo, dir * 34, dir * 10 + Vector3.new(0, 10, 0), 8, LIGHT)
-		local side = Vector3.new(dir.Z, 0, dir.X)
-		block(geo, "CoreCover", Vector3.new(1, 3.5, 1) + side:Abs() * 5, CFrame.new(dir * 9.5 + side * 7 + Vector3.new(0, 11.75, 0)), LIGHT)
-		block(geo, "CoreCover", Vector3.new(1, 3.5, 1) + side:Abs() * 5, CFrame.new(dir * 9.5 - side * 7 + Vector3.new(0, 11.75, 0)), LIGHT)
-	end
-	local beacon = neon(geo, Vector3.new(2, 2, 2), CFrame.new(0, 13, 0), Config.Colors.Accent)
-	local light = Instance.new("PointLight")
-	light.Range = 40
-	light.Brightness = 2
-	light.Color = Config.Colors.Accent
-	light.Parent = beacon
-
-	-- mirrored quadrant content
-	local crates = {
-		{ 22, 40, Vector3.new(6, 6, 6) }, { 40, 22, Vector3.new(6, 6, 6) },
-		{ 30, 30, Vector3.new(4, 12, 4) },
-		{ 60, 45, Vector3.new(12, 6, 3) }, { 45, 60, Vector3.new(3, 6, 12) },
-		{ 100, 40, Vector3.new(6, 6, 6) }, { 40, 100, Vector3.new(6, 6, 6) },
-		{ 75, 55, Vector3.new(6, 4, 6) }, { 55, 75, Vector3.new(6, 4, 6) },
-		{ 108, 15, Vector3.new(10, 5, 3) }, { 15, 108, Vector3.new(3, 5, 10) },
-	}
-	for _, sx in { 1, -1 } do
-		for _, sz in { 1, -1 } do
-			local trim = (sx * sz > 0) and Config.Colors.Accent or Config.Colors.Accent2
-			for i, c in crates do
-				local size = c[3]
-				local cf = CFrame.new(c[1] * sx, size.Y / 2, c[2] * sz)
-				local isCrate = size.X == size.Z
-				block(geo, "Cover", size, cf, isCrate and CRATE or MID, isCrate and Enum.Material.WoodPlanks or Enum.Material.Metal)
-				if not isCrate or i % 2 == 0 then
-					neon(geo, Vector3.new(size.X + 0.1, 0.25, size.Z + 0.1), cf * CFrame.new(0, size.Y / 2, 0), trim)
-				end
-			end
-
-			-- raised corner base
-			local base = Vector3.new(88 * sx, 0, 88 * sz)
-			block(geo, "Base", Vector3.new(36, 8, 36), CFrame.new(base + Vector3.new(0, 4, 0)), MID, Enum.Material.Metal)
-			neon(geo, Vector3.new(36.4, 0.4, 36.4), CFrame.new(base + Vector3.new(0, 8, 0)), trim)
-			ramp(geo, Vector3.new(54 * sx, 0, 88 * sz), Vector3.new(70 * sx, 8, 88 * sz), 8, LIGHT)
-			ramp(geo, Vector3.new(88 * sx, 0, 54 * sz), Vector3.new(88 * sx, 8, 70 * sz), 8, LIGHT)
-			block(geo, "BaseCover", Vector3.new(10, 4, 1.5), CFrame.new(base + Vector3.new(-8 * sx, 10, -15 * sz)), LIGHT)
-			block(geo, "BaseCover", Vector3.new(1.5, 4, 10), CFrame.new(base + Vector3.new(-15 * sx, 10, -8 * sz)), LIGHT)
-
-			-- health pack
-			local hp = block(geo, "HealthPack", Vector3.new(2.5, 2.5, 2.5), CFrame.new(52 * sx, 1.5, 52 * sz), Config.Colors.Green, Enum.Material.Neon)
-			hp.CanCollide = false
-			hp:SetAttribute("HealthPack", true)
-			local hl = Instance.new("PointLight")
-			hl.Color = Config.Colors.Green
-			hl.Range = 12
-			hl.Parent = hp
-		end
-	end
-
-	-- jump pads in each lane
-	for _, pos in { Vector3.new(70, 0, 0), Vector3.new(-70, 0, 0), Vector3.new(0, 0, 70), Vector3.new(0, 0, -70) } do
-		local pad = block(geo, "JumpPad", Vector3.new(0.6, 8, 8), CFrame.new(pos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)), Config.Colors.Purple, Enum.Material.Neon)
-		pad.Shape = Enum.PartType.Cylinder
-		pad:SetAttribute("JumpPad", 115)
-		local pl = Instance.new("PointLight")
-		pl.Color = Config.Colors.Purple
-		pl.Range = 16
-		pl.Brightness = 3
-		pl.Parent = pad
-	end
-
-	-- spawn points around the edge (facing the middle)
-	for _, along in { -60, -20, 20, 60 } do
-		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-			local pos
-			if edge[1] ~= 0 then
-				pos = Vector3.new(edge[1] * 115, 3, along)
-			else
-				pos = Vector3.new(along, 3, edge[2] * 115)
-			end
-			local s = Instance.new("Part")
-			s.Name = "Spawn"
-			s.Anchored = true
-			s.CanCollide = false
-			s.CanQuery = false
-			s.Transparency = 1
-			s.Size = Vector3.new(2, 1, 2)
-			s.CFrame = CFrame.lookAt(pos, Vector3.new(0, 3, 0))
-			s.Parent = spawns
-		end
-	end
-
-	map.Parent = workspace
-	return map
-end
-
-local function setupLighting()
-	Lighting.ClockTime = 15.5
-	Lighting.Brightness = 2.5
-	Lighting.Ambient = Color3.fromRGB(70, 70, 85)
-	Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 140)
+local function applyLighting(L)
+	Lighting.ClockTime = L.ClockTime or 14
+	Lighting.Brightness = L.Brightness or 2.5
+	Lighting.Ambient = L.Ambient or Color3.fromRGB(70, 70, 80)
+	Lighting.OutdoorAmbient = L.OutdoorAmbient or Color3.fromRGB(120, 120, 130)
 	Lighting.GlobalShadows = true
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.6
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
-	local function ensure(class, props)
-		local inst = Lighting:FindFirstChildOfClass(class) or Instance.new(class)
-		for k, v in props do
-			inst[k] = v
-		end
-		inst.Parent = Lighting
-	end
-	ensure("Atmosphere", { Density = 0.3, Haze = 1.2, Color = Color3.fromRGB(200, 210, 255), Decay = Color3.fromRGB(110, 90, 160) })
-	ensure("BloomEffect", { Intensity = 0.8, Size = 30, Threshold = 1.6 })
-	ensure("ColorCorrectionEffect", { Saturation = 0.15, Contrast = 0.1, Brightness = 0.02 })
-	ensure("SunRaysEffect", { Intensity = 0.05, Spread = 0.6 })
+	local atmo = ensure("Atmosphere", Lighting)
+	local a = L.Atmosphere or {}
+	atmo.Density = a.Density or 0.3
+	atmo.Haze = a.Haze or 1
+	atmo.Color = a.Color or Color3.fromRGB(200, 210, 230)
+	atmo.Decay = a.Decay or Color3.fromRGB(100, 100, 130)
+	atmo.Glare = 0.2
+	local bloom = ensure("BloomEffect", Lighting)
+	bloom.Intensity = 0.7
+	bloom.Size = 28
+	bloom.Threshold = 1.5
+	local cc = ensure("ColorCorrectionEffect", Lighting)
+	cc.Saturation = L.Saturation or 0.15
+	cc.Contrast = 0.12
+	cc.Brightness = 0.02
+	cc.TintColor = L.Tint or Color3.new(1, 1, 1)
+	local rays = ensure("SunRaysEffect", Lighting)
+	rays.Intensity = 0.06
+	rays.Spread = 0.7
+	local dof = ensure("DepthOfFieldEffect", Lighting)
+	dof.FarIntensity = 0.12
+	dof.FocusDistance = 120
+	dof.InFocusRadius = 120
+	dof.NearIntensity = 0
+	pcall(function()
+		local clouds = ensure("Clouds", workspace.Terrain)
+		clouds.Cover = 0.55
+		clouds.Density = 0.6
+	end)
+	pcall(function()
+		workspace.Terrain.Decoration = true -- animated grass blades
+	end)
+	workspace.Terrain.WaterColor = Color3.fromRGB(30, 110, 140)
+	workspace.Terrain.WaterTransparency = 0.6
+	workspace.Terrain.WaterWaveSize = 0.15
+	workspace.Terrain.WaterReflectance = 0.6
 end
 
-function MapService.Init()
-	setupLighting()
-	local effects = workspace:FindFirstChild("Effects") or Instance.new("Folder")
-	effects.Name = "Effects"
-	effects.Parent = workspace
+-- Snap spawn markers to whatever surface is under them.
+local function groundSpawn(marker: BasePart): CFrame
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { workspace:FindFirstChild("Effects"), workspace:FindFirstChild("Bots") }
+	local origin = marker.Position + Vector3.new(0, 40, 0)
+	local result = workspace:Raycast(origin, Vector3.new(0, -120, 0), params)
+	local y = result and result.Position.Y + 3.5 or marker.Position.Y + 3
+	return CFrame.new(marker.Position.X, y, marker.Position.Z) * marker.CFrame.Rotation
+end
 
-	local map = workspace:FindFirstChild("Map") or build()
-	local spawnFolder = map:FindFirstChild("Spawns")
-	if spawnFolder then
-		for _, s in spawnFolder:GetChildren() do
-			if s:IsA("BasePart") then
-				table.insert(MapService.Spawns, s.CFrame + Vector3.new(0, 3, 0))
-			end
+function MapService.Load(id: string)
+	local def = MapService.Defs[id]
+	if not def then
+		warn("[MapService] unknown map " .. tostring(id))
+		return
+	end
+	local old = workspace:FindFirstChild("Map")
+	if old then
+		old:Destroy()
+	end
+	local effects = workspace:FindFirstChild("Effects")
+	if effects then
+		effects:ClearAllChildren()
+	else
+		effects = Instance.new("Folder")
+		effects.Name = "Effects"
+		effects.Parent = workspace
+	end
+	workspace.Terrain:Clear()
+
+	local kit = def.Build()
+	local map = kit.Model
+	map.Parent = workspace
+	MapService.Current = def
+	applyLighting(def.Lighting or {})
+
+	MapService.Spawns = {}
+	for _, s in map.Spawns:GetChildren() do
+		if s:IsA("BasePart") then
+			table.insert(MapService.Spawns, groundSpawn(s))
 		end
 	end
 	if #MapService.Spawns == 0 then
-		table.insert(MapService.Spawns, CFrame.new(0, 20, 0))
+		table.insert(MapService.Spawns, CFrame.new(0, 30, 0))
 	end
 	Combat.SetupPickups(map)
+	ReplicatedStorage:SetAttribute("MapId", def.Id)
+	ReplicatedStorage:SetAttribute("MapName", def.Name)
+	if MapService.OnMapLoaded then
+		MapService.OnMapLoaded(map)
+	end
+	Remotes.Notify:FireAllClients("Announce", { Text = def.Name, Sub = def.Desc, Color = Color3.fromRGB(255, 198, 26), Icon = def.Icon })
+end
+
+-- VOTING -----------------------------------------------------------------------
+local votes = {} :: { [Player]: string }
+local options = {} :: { string }
+
+local function publishVotes()
+	for _, id in MapService.Order do
+		ReplicatedStorage:SetAttribute("Votes_" .. id, 0)
+	end
+	for _, id in votes do
+		ReplicatedStorage:SetAttribute("Votes_" .. id, (ReplicatedStorage:GetAttribute("Votes_" .. id) or 0) + 1)
+	end
+end
+
+function MapService.StartVote()
+	votes = {}
+	options = {}
+	local pool = table.clone(MapService.Order)
+	for i = #pool, 2, -1 do
+		local j = math.random(1, i)
+		pool[i], pool[j] = pool[j], pool[i]
+	end
+	for i = 1, math.min(3, #pool) do
+		table.insert(options, pool[i])
+	end
+	ReplicatedStorage:SetAttribute("VoteOptions", table.concat(options, ","))
+	publishVotes()
+end
+
+function MapService.EndVote(): string
+	local counts = {}
+	for _, id in votes do
+		counts[id] = (counts[id] or 0) + 1
+	end
+	local best, bestCount = options[1] or MapService.Order[1], -1
+	for _, id in options do
+		local c = (counts[id] or 0) + math.random() * 0.5 -- random tie-break
+		if c > bestCount then
+			best, bestCount = id, c
+		end
+	end
+	ReplicatedStorage:SetAttribute("VoteOptions", "")
+	return best
+end
+
+Remotes.Vote.OnServerEvent:Connect(function(player, id)
+	if typeof(id) == "string" and table.find(options, id) then
+		votes[player] = id
+		publishVotes()
+	end
+end)
+Players.PlayerRemoving:Connect(function(player)
+	votes[player] = nil
+end)
+
+function MapService.Init()
+	local existing = workspace:FindFirstChild("Map")
+	if existing and existing:FindFirstChild("Spawns") then
+		-- hand-made map in the place file
+		for _, s in existing.Spawns:GetChildren() do
+			if s:IsA("BasePart") then
+				table.insert(MapService.Spawns, groundSpawn(s))
+			end
+		end
+		Combat.SetupPickups(existing)
+		applyLighting({})
+		if MapService.OnMapLoaded then
+			MapService.OnMapLoaded(existing)
+		end
+		return
+	end
+	MapService.Load(MapService.Order[1])
 end
 
 -- Spawn point farthest from living enemies (with a bit of randomness).
@@ -2896,7 +3345,1423 @@ return MapService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="19">
+      <Item class="Folder" referent="20">
+        <Properties>
+          <string name="Name">Maps</string>
+        </Properties>
+        <Item class="ModuleScript" referent="21">
+          <Properties>
+            <string name="Name">Arena</string>
+            <string name="Source"><![CDATA[-- NEON ARENA: the original symmetrical arena (fast, close-quarters).
+local MapKit = require(script.Parent.MapKit)
+local M = Enum.Material
+local rgb = Color3.fromRGB
+
+local Map = {
+	Id = "Arena",
+	Name = "NEON ARENA",
+	Desc = "Compact neon arena with jump pads. Pure gunplay.",
+	Icon = "⚡",
+	Lighting = {
+		ClockTime = 15.5, Brightness = 2.5,
+		Ambient = rgb(70, 70, 85), OutdoorAmbient = rgb(120, 120, 140),
+		Atmosphere = { Density = 0.3, Haze = 1.2, Color = rgb(200, 210, 255), Decay = rgb(110, 90, 160) },
+		Tint = rgb(255, 255, 255), Saturation = 0.15,
+	},
+}
+
+local ACCENT = rgb(255, 198, 26)
+local ACCENT2 = rgb(0, 204, 255)
+local DARK = rgb(40, 44, 54)
+local MID = rgb(72, 78, 94)
+local LIGHT = rgb(110, 118, 136)
+local CRATE = rgb(176, 128, 66)
+
+function Map.Build()
+	local kit = MapKit.new(3)
+	local HALF = 125
+	kit:Part(Vector3.new(HALF * 2 + 10, 2, HALF * 2 + 10), CFrame.new(0, -1, 0), DARK, M.Concrete)
+	for i = -HALF + 25, HALF - 25, 25 do
+		kit:Neon(Vector3.new(0.25, 0.05, HALF * 2), CFrame.new(i, 0.03, 0), ACCENT2).Transparency = 0.75
+		kit:Neon(Vector3.new(HALF * 2, 0.05, 0.25), CFrame.new(0, 0.03, i), ACCENT2).Transparency = 0.75
+	end
+	for _, side in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+		local x, z = side[1], side[2]
+		local size = x ~= 0 and Vector3.new(4, 40, HALF * 2 + 8) or Vector3.new(HALF * 2 + 8, 40, 4)
+		local cf = CFrame.new(x * (HALF + 2), 20, z * (HALF + 2))
+		kit:Part(size, cf, MID, M.Metal)
+		kit:Neon(Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, -14, 0), ACCENT2)
+		kit:Neon(Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 20, 0), ACCENT)
+	end
+
+	kit:Part(Vector3.new(20, 10, 20), CFrame.new(0, 5, 0), MID, M.Metal)
+	kit:Neon(Vector3.new(20.4, 0.4, 20.4), CFrame.new(0, 10, 0), ACCENT)
+	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
+		kit:Ramp(dir * 34, dir * 10 + Vector3.new(0, 10, 0), 8, LIGHT, M.DiamondPlate)
+		local side = Vector3.new(dir.Z, 0, dir.X)
+		for _, s in { 1, -1 } do
+			kit:Part(Vector3.new(1, 3.5, 1) + side:Abs() * 5, CFrame.new(dir * 9.5 + side * 7 * s + Vector3.new(0, 11.75, 0)), LIGHT, M.Metal)
+		end
+	end
+	local beacon = kit:Neon(Vector3.new(2, 2, 2), CFrame.new(0, 13, 0), ACCENT)
+	kit:Light(beacon, "PointLight", ACCENT, 40, 2)
+
+	local crates = {
+		{ 22, 40, Vector3.new(6, 6, 6) }, { 40, 22, Vector3.new(6, 6, 6) }, { 30, 30, Vector3.new(4, 12, 4) },
+		{ 60, 45, Vector3.new(12, 6, 3) }, { 45, 60, Vector3.new(3, 6, 12) }, { 100, 40, Vector3.new(6, 6, 6) },
+		{ 40, 100, Vector3.new(6, 6, 6) }, { 75, 55, Vector3.new(6, 4, 6) }, { 55, 75, Vector3.new(6, 4, 6) },
+		{ 108, 15, Vector3.new(10, 5, 3) }, { 15, 108, Vector3.new(3, 5, 10) },
+	}
+	for _, sx in { 1, -1 } do
+		for _, sz in { 1, -1 } do
+			local trim = (sx * sz > 0) and ACCENT or ACCENT2
+			for i, c in crates do
+				local size = c[3]
+				local cf = CFrame.new(c[1] * sx, size.Y / 2, c[2] * sz)
+				local isCrate = size.X == size.Z
+				kit:Part(size, cf, isCrate and CRATE or MID, isCrate and M.WoodPlanks or M.Metal)
+				if not isCrate or i % 2 == 0 then
+					kit:Neon(Vector3.new(size.X + 0.1, 0.25, size.Z + 0.1), cf * CFrame.new(0, size.Y / 2, 0), trim)
+				end
+			end
+			local base = Vector3.new(88 * sx, 0, 88 * sz)
+			kit:Part(Vector3.new(36, 8, 36), CFrame.new(base + Vector3.new(0, 4, 0)), MID, M.Metal)
+			kit:Neon(Vector3.new(36.4, 0.4, 36.4), CFrame.new(base + Vector3.new(0, 8, 0)), trim)
+			kit:Ramp(Vector3.new(54 * sx, 0, 88 * sz), Vector3.new(70 * sx, 8, 88 * sz), 8, LIGHT, M.DiamondPlate)
+			kit:Ramp(Vector3.new(88 * sx, 0, 54 * sz), Vector3.new(88 * sx, 8, 70 * sz), 8, LIGHT, M.DiamondPlate)
+			kit:Part(Vector3.new(10, 4, 1.5), CFrame.new(base + Vector3.new(-8 * sx, 10, -15 * sz)), LIGHT, M.Metal)
+			kit:Part(Vector3.new(1.5, 4, 10), CFrame.new(base + Vector3.new(-15 * sx, 10, -8 * sz)), LIGHT, M.Metal)
+			kit:HealthPack(Vector3.new(52 * sx, 0, 52 * sz))
+		end
+	end
+	for _, pos in { Vector3.new(70, 0, 0), Vector3.new(-70, 0, 0), Vector3.new(0, 0, 70), Vector3.new(0, 0, -70) } do
+		kit:JumpPad(pos, 115)
+	end
+	for _, along in { -60, -20, 20, 60 } do
+		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			local pos = edge[1] ~= 0 and Vector3.new(edge[1] * 115, 3, along) or Vector3.new(along, 3, edge[2] * 115)
+			kit:Spawn(pos)
+		end
+	end
+	return kit
+end
+
+return Map
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="22">
+          <Properties>
+            <string name="Name">Downtown</string>
+            <string name="Source"><![CDATA[-- DOWNTOWN: city blocks, roads, enterable buildings, a park with a pond, cars.
+local MapKit = require(script.Parent.MapKit)
+local M = Enum.Material
+local P = MapKit.Palette
+local rgb = Color3.fromRGB
+
+local Map = {
+	Id = "Downtown",
+	Name = "DOWNTOWN",
+	Desc = "City streets, rooftops and a park. Grab a car!",
+	Icon = "🏙️",
+	Lighting = {
+		ClockTime = 17.8, Brightness = 2.2,
+		Ambient = rgb(90, 80, 90), OutdoorAmbient = rgb(140, 120, 120),
+		Atmosphere = { Density = 0.32, Haze = 1.6, Color = rgb(255, 200, 170), Decay = rgb(120, 90, 110) },
+		Tint = rgb(255, 238, 225), Saturation = 0.12,
+	},
+}
+
+local HALF = 160
+local ROADS = { -100, 0, 100 }
+local ROAD_W = 24
+
+function Map.Build()
+	local kit = MapKit.new(7)
+	local rng = kit.Rng
+
+	-- ground (the asphalt IS the road surface; blocks are raised sidewalks)
+	kit:Part(Vector3.new(HALF * 2 + 40, 2, HALF * 2 + 40), CFrame.new(0, -1, 0), P.Asphalt, M.Asphalt)
+	for _, c in ROADS do
+		kit:Road("X", Vector3.new(0, 0, c), HALF * 2, ROAD_W, ROADS, true)
+		kit:Road("Z", Vector3.new(c, 0, 0), HALF * 2, ROAD_W, ROADS, true)
+	end
+	for _, x in ROADS do
+		for _, z in ROADS do
+			kit:Crosswalk(Vector3.new(x, 0, z - ROAD_W / 2 - 3), "Z", ROAD_W)
+			kit:Crosswalk(Vector3.new(x, 0, z + ROAD_W / 2 + 3), "Z", ROAD_W)
+			kit:Crosswalk(Vector3.new(x - ROAD_W / 2 - 3, 0, z), "X", ROAD_W)
+			kit:Crosswalk(Vector3.new(x + ROAD_W / 2 + 3, 0, z), "X", ROAD_W)
+			kit:TrafficLight(Vector3.new(x + 14, 0.8, z + 14), Vector3.new(-1, 0, 0))
+			kit:TrafficLight(Vector3.new(x - 14, 0.8, z - 14), Vector3.new(1, 0, 0))
+		end
+	end
+
+	-- city blocks between roads: inner (±50) and edge strips (±136)
+	local spans = { { -88, -12 }, { 12, 88 }, { -160, -112 }, { 112, 160 } }
+	for _, sx in spans do
+		for _, sz in spans do
+			local cx, cz = (sx[1] + sx[2]) / 2, (sz[1] + sz[2]) / 2
+			kit:Sidewalk(Vector3.new(cx, 0, cz), sx[2] - sx[1], sz[2] - sz[1])
+			local edge = math.abs(cx) > 100 or math.abs(cz) > 100
+			-- street lights along the curb
+			if not edge then
+				for d = sx[1] + 8, sx[2] - 8, 30 do
+					kit:StreetLight(Vector3.new(d, 0.8, sz[1] + 1.5), Vector3.new(0, 0, -1))
+					kit:StreetLight(Vector3.new(d, 0.8, sz[2] - 1.5), Vector3.new(0, 0, 1))
+				end
+			end
+		end
+	end
+
+	-- SKYLINE: towers on the edge strips (form the map boundary)
+	for _, sx in spans do
+		for _, sz in spans do
+			local cx, cz = (sx[1] + sx[2]) / 2, (sz[1] + sz[2]) / 2
+			if math.abs(cx) > 100 or math.abs(cz) > 100 then
+				local w, d = sx[2] - sx[1] - 8, sz[2] - sz[1] - 8
+				local cols = w > 50 and 2 or 1
+				local rows = d > 50 and 2 or 1
+				for i = 1, cols do
+					for j = 1, rows do
+						local tx = sx[1] + 4 + (i - 0.5) * w / cols
+						local tz = sz[1] + 4 + (j - 0.5) * d / rows
+						local h = rng:NextNumber(36, 86)
+						local tint = ({ rgb(120, 124, 130), rgb(150, 140, 120), rgb(90, 96, 110), rgb(170, 160, 150) })[rng:NextInteger(1, 4)]
+						kit:Tower(CFrame.new(tx, 0.8, tz), w / cols - 4, d / rows - 4, h, tint, M.Concrete)
+					end
+				end
+			end
+		end
+	end
+	-- road ends blocked with barriers + a bus
+	for _, c in ROADS do
+		for _, s in { -1, 1 } do
+			kit:Barrier(CFrame.new(c - 6, 0, s * 150) * CFrame.Angles(0, 0, 0))
+			kit:Barrier(CFrame.new(c + 6, 0, s * 150))
+			kit:Barrier(CFrame.new(s * 150, 0, c - 6) * CFrame.Angles(0, math.rad(90), 0))
+			kit:Barrier(CFrame.new(s * 150, 0, c + 6) * CFrame.Angles(0, math.rad(90), 0))
+		end
+	end
+
+	-- BLOCK A (+,+): CENTRAL PARK with grass, pond, trees
+	kit:Fill(M.Grass, CFrame.new(50, 0, 50), Vector3.new(72, 1.6, 72))
+	kit:Fill(M.Mud, CFrame.new(62, -1.2, 62), Vector3.new(26, 2, 20))
+	kit:Water(CFrame.new(62, -0.2, 62), Vector3.new(24, 1.6, 18))
+	for _, path in { { Vector3.new(50, 0.9, 50), Vector3.new(72, 0.2, 5) }, { Vector3.new(50, 0.9, 50), Vector3.new(5, 0.2, 72) } } do
+		kit:Part(path[2], CFrame.new(path[1]), P.Sidewalk, M.Pavement)
+	end
+	-- fountain
+	kit:Cylinder(1.6, 16, CFrame.new(50, 1.6, 50) * CFrame.Angles(0, 0, math.rad(90)), P.Concrete, M.Marble)
+	local pool = kit:Cylinder(0.3, 14, CFrame.new(50, 2.45, 50) * CFrame.Angles(0, 0, math.rad(90)), rgb(60, 140, 200), M.Glass)
+	pool.Transparency = 0.3
+	kit:Pillar(Vector3.new(50, 2.4, 50), 5, 1.6, P.Concrete, M.Marble)
+	kit:Ball(3, Vector3.new(50, 8, 50), P.Concrete, M.Marble)
+	for _, t in { { 24, 24 }, { 24, 76 }, { 34, 64 }, { 40, 30 }, { 76, 26 }, { 82, 40 }, { 30, 44 }, { 66, 36 }, { 44, 80 }, { 80, 80 }, { 20, 58 } } do
+		kit:Tree(Vector3.new(t[1], 0.8, t[2]), rng:NextNumber(0.9, 1.3), "Oak")
+	end
+	for _, b in { { 40, 56 }, { 60, 44 }, { 44, 40 } } do
+		kit:Bench(CFrame.new(b[1], 0.8, b[2]))
+		kit:Bush(Vector3.new(b[1] + 6, 0.8, b[2] + 4), 0.8)
+	end
+
+	-- BLOCK B (-,+): apartments + alley
+	kit:Building({ Name = "Apartments", Origin = CFrame.new(-66, 0.8, 32), W = 36, D = 28, Floors = 3, Color = P.Brick, Material = M.Brick, Doors = { Front = true, Back = true }, Awning = rgb(30, 90, 140) })
+	kit:Building({ Name = "Hotel", Origin = CFrame.new(-66, 0.8, 70), W = 36, D = 24, Floors = 2, Color = P.Plaster, Material = M.SmoothPlastic, Trim = P.BrickDark, Doors = { Front = true, Back = true }, Awning = rgb(150, 30, 40) })
+	kit:Building({ Name = "Diner", Origin = CFrame.new(-26, 0.8, 54) * CFrame.Angles(0, math.rad(90), 0), W = 26, D = 20, Floors = 1, Color = rgb(200, 70, 60), Material = M.SmoothPlastic, Trim = P.White, Doors = { Front = true, Back = true }, Awning = P.White })
+	kit:Dumpster(CFrame.new(-40, 0.8, 18))
+	kit:Dumpster(CFrame.new(-42, 0.8, 84) * CFrame.Angles(0, math.rad(90), 0))
+	for i = 1, 4 do
+		kit:Crate(Vector3.new(-30 + i * 2, 0.8, 80 - i * 3), 3.5, i)
+	end
+
+	-- BLOCK C (-,-): parking lot + gas station
+	kit:Part(Vector3.new(70, 0.1, 70), CFrame.new(-50, 0.85, -50), P.Asphalt, M.Asphalt)
+	for i = 0, 6 do
+		kit:Deco(Vector3.new(0.4, 0.05, 12), CFrame.new(-82 + i * 10, 0.93, -26), P.White, M.SmoothPlastic)
+		kit:Deco(Vector3.new(0.4, 0.05, 12), CFrame.new(-82 + i * 10, 0.93, -74), P.White, M.SmoothPlastic)
+	end
+	-- gas station canopy
+	for _, x in { -64, -36 } do
+		for _, z in { -58, -42 } do
+			kit:Pillar(Vector3.new(x, 0.8, z), 12, 1.4, P.White, M.SmoothPlastic)
+		end
+	end
+	kit:Part(Vector3.new(34, 1.6, 22), CFrame.new(-50, 13.6, -50), P.White, M.SmoothPlastic)
+	kit:Neon(Vector3.new(34.2, 0.6, 22.2), CFrame.new(-50, 12.9, -50), rgb(220, 40, 40))
+	for _, x in { -56, -44 } do
+		kit:Part(Vector3.new(2, 5, 3), CFrame.new(x, 3.3, -50), rgb(220, 40, 40), M.SmoothPlastic)
+	end
+	kit:Building({ Name = "Store", Origin = CFrame.new(-50, 0.8, -78) * CFrame.Angles(0, math.rad(180), 0), W = 30, D = 14, Floors = 1, Color = rgb(230, 230, 220), Material = M.SmoothPlastic, Trim = rgb(220, 40, 40), Doors = { Front = true }, Awning = rgb(220, 40, 40) })
+
+	-- BLOCK D (+,-): office tower (4 floors) + plaza
+	kit:Building({ Name = "Office", Origin = CFrame.new(58, 0.8, -58), W = 40, D = 40, Floors = 4, Color = rgb(170, 180, 190), Material = M.Concrete, Trim = rgb(60, 70, 90), Doors = { Front = true, Left = true }, Awning = rgb(60, 70, 90) })
+	for i = 1, 3 do
+		kit:Barrier(CFrame.new(20 + i * 9, 0.8, -20) * CFrame.Angles(0, rng:NextNumber(-0.2, 0.2), 0))
+	end
+	kit:Tree(Vector3.new(22, 0.8, -40), 1, "Oak")
+	kit:Tree(Vector3.new(24, 0.8, -84), 1, "Oak")
+
+	-- street cover: wrecked / parked cars + barriers in the roads
+	local parked = {
+		{ -100, 40, 0, "Sedan" }, { -96, -60, 180, "Truck" }, { 4, 60, 0, "Sedan" }, { -4, -70, 180, "Sports" },
+		{ 100, -30, 0, "Sedan" }, { 60, 4, 90, "Truck" }, { -60, -4, 270, "Sedan" }, { 40, 104, 90, "Sedan" },
+	}
+	for _, c in parked do
+		local spot = kit:VehicleSpot(CFrame.new(c[1], 0, c[2]) * CFrame.Angles(0, math.rad(c[3]), 0), c[4])
+		spot:SetAttribute("Parked", true)
+	end
+	for _, b in { { 0, 30, 15 }, { -30, 0, 80 }, { 100, 60, -10 }, { 30, -100, 95 }, { -100, -30, 5 } } do
+		kit:Barrier(CFrame.new(b[1], 0, b[2]) * CFrame.Angles(0, math.rad(b[3]), 0))
+	end
+	-- drivable cars
+	for _, c in { { -94, 70, 0, "Sports" }, { 6, -40, 180, "Sedan" }, { 94, 40, 0, "Jeep" }, { -40, 96, 90, "Sedan" }, { 40, -96, 270, "Truck" } } do
+		kit:VehicleSpot(CFrame.new(c[1], 0, c[2]) * CFrame.Angles(0, math.rad(c[3]), 0), c[4])
+	end
+
+	-- pickups + spawns
+	for _, p in { Vector3.new(20, 0.8, 20), Vector3.new(-20, 0.8, -20), Vector3.new(-20, 0.8, 20), Vector3.new(20, 0.8, -20) } do
+		kit:HealthPack(p)
+	end
+	for _, c in ROADS do
+		kit:Spawn(Vector3.new(c, 3, 140), Vector3.new(c, 3, 0))
+		kit:Spawn(Vector3.new(c, 3, -140), Vector3.new(c, 3, 0))
+		kit:Spawn(Vector3.new(140, 3, c), Vector3.new(0, 3, c))
+		kit:Spawn(Vector3.new(-140, 3, c), Vector3.new(0, 3, c))
+	end
+	for _, s in { { 50, 14 }, { -50, 14 }, { 50, -14 }, { -50, -14 }, { 86, 50 }, { -86, -50 } } do
+		kit:Spawn(Vector3.new(s[1], 3.8, s[2]))
+	end
+	kit:Boundary(HALF - 2, HALF - 2, 160)
+	return kit
+end
+
+return Map
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="23">
+          <Properties>
+            <string name="Name">Harbor</string>
+            <string name="Source"><![CDATA[-- HARBOR: container maze, cranes, warehouses and a cargo ship you can board.
+local MapKit = require(script.Parent.MapKit)
+local M = Enum.Material
+local P = MapKit.Palette
+local rgb = Color3.fromRGB
+
+local Map = {
+	Id = "Harbor",
+	Name = "HARBOR",
+	Desc = "Shipping docks at sunset. Fight through the container maze.",
+	Icon = "⚓",
+	Lighting = {
+		ClockTime = 17.4, Brightness = 2.4,
+		Ambient = rgb(100, 80, 80), OutdoorAmbient = rgb(150, 120, 110),
+		Atmosphere = { Density = 0.3, Haze = 2, Color = rgb(255, 190, 150), Decay = rgb(150, 90, 100) },
+		Tint = rgb(255, 230, 210), Saturation = 0.15,
+	},
+}
+
+local HALF = 180
+
+function Map.Build()
+	local kit = MapKit.new(33)
+	local rng = kit.Rng
+
+	-- land + sea
+	kit:Part(Vector3.new(HALF * 2 + 20, 4, 230), CFrame.new(0, -2, -75), P.ConcreteDark, M.Concrete)
+	kit:Part(Vector3.new(HALF * 2 + 20, 0.3, 1.5), CFrame.new(0, 0.15, 39.2), P.Yellow, M.SmoothPlastic)
+	kit:Part(Vector3.new(HALF * 2 + 20, 6, 2), CFrame.new(0, -3, 40.5), P.ConcreteDark, M.Concrete)
+	kit:Fill(M.Sand, CFrame.new(0, -14, 140), Vector3.new(HALF * 2 + 80, 6, 220))
+	kit:Water(CFrame.new(0, -6, 140), Vector3.new(HALF * 2 + 80, 10, 220))
+	for x = -HALF + 10, HALF - 10, 20 do
+		kit:Pillar(Vector3.new(x, 0, 37.5), 1.5, 1.4, rgb(40, 40, 44), M.Metal)
+	end
+	kit:Road("X", Vector3.new(0, 0, 20), HALF * 2, 20, {})
+
+	-- CONTAINER YARD (west) with a lane through the middle for the crane
+	local cols = { -165, -153, -141, -117, -105, -93, -69, -57, -45 }
+	local rows = { -140, -116, -92, -56, -32, -8 }
+	for _, x in cols do
+		for _, z in rows do
+			if rng:NextNumber() > 0.14 then
+				local stack = rng:NextInteger(1, 3)
+				for level = 0, stack - 1 do
+					kit:Container(CFrame.new(x, level * 8.5, z), nil, level == 0 and rng:NextNumber() < 0.25)
+				end
+			end
+		end
+	end
+	kit:Crane(CFrame.new(-105, 0, -74), 92, 42)
+	-- quay crane over the ship
+	kit:Crane(CFrame.new(50, 0, 30) * CFrame.Angles(0, math.rad(90), 0), 34, 50)
+
+	-- WAREHOUSES (east)
+	kit:Building({
+		Name = "Warehouse", Origin = CFrame.new(85, 0, -112), W = 60, D = 44, Floors = 1, FloorH = 18,
+		Color = rgb(90, 110, 130), Material = M.CorrodedMetal, Trim = rgb(50, 60, 70), Floor = rgb(110, 110, 110),
+		Doors = { Front = true, Back = true, Left = true, Right = true }, Awning = rgb(240, 180, 30),
+	})
+	kit:Building({
+		Name = "PortOffice", Origin = CFrame.new(85, 0, -42), W = 50, D = 28, Floors = 2, FloorH = 12,
+		Color = rgb(220, 214, 200), Material = M.Concrete, Trim = rgb(40, 90, 140),
+		Doors = { Front = true, Back = true }, Awning = rgb(40, 90, 140),
+	})
+	-- fuel tanks
+	for _, z in { -140, -95 } do
+		kit:Pillar(Vector3.new(152, 0, z), 26, 26, rgb(225, 225, 220), M.Metal)
+		kit:Cylinder(0.8, 26.5, CFrame.new(152, 18, z) * CFrame.Angles(0, 0, math.rad(90)), rgb(200, 60, 50), M.Metal)
+	end
+	kit:Fence(Vector3.new(130, 0, -165), Vector3.new(130, 0, -70), 6, P.MetalDark)
+
+	-- CARGO SHIP + gangway
+	kit:Ship(CFrame.new(0, 0, 77) * CFrame.Angles(0, math.rad(90), 0), 130, -20)
+	kit:Ramp(Vector3.new(-20, 0, 36), Vector3.new(-20, 12.6, 62.5), 6, P.MetalDark, M.DiamondPlate)
+
+	-- PIERS + boats
+	for _, x in { -145, 145 } do
+		kit:Pier(Vector3.new(x, 0, 41), Vector3.new(x, 0, 130), 10, 0.6)
+		for _, side in { -1, 1 } do
+			local bx, bz = x + side * 12, 95 + side * 10
+			kit:Part(Vector3.new(8, 4, 20), CFrame.new(bx, -1.5, bz), side > 0 and P.White or rgb(40, 80, 140), M.SmoothPlastic)
+			kit:Wedge(Vector3.new(8, 4, 6), CFrame.new(bx, -1.5, bz - 13), side > 0 and P.White or rgb(40, 80, 140), M.SmoothPlastic)
+			kit:Part(Vector3.new(6, 4, 7), CFrame.new(bx, 2.5, bz + 3), P.White, M.SmoothPlastic)
+			kit:Glass(Vector3.new(6.2, 1.5, 7.2), CFrame.new(bx, 3.2, bz + 3))
+		end
+	end
+
+	-- LIGHTHOUSE island
+	kit:FillBall(M.Rock, Vector3.new(135, -16, 165), 26)
+	kit:Pillar(Vector3.new(135, 6, 165), 36, 8, P.White, M.SmoothPlastic)
+	for y = 12, 36, 10 do
+		kit:Cylinder(3, 8.2, CFrame.new(135, y, 165) * CFrame.Angles(0, 0, math.rad(90)), P.Red, M.SmoothPlastic)
+	end
+	local lamp = kit:Neon(Vector3.new(5, 5, 5), CFrame.new(135, 44.5, 165), rgb(255, 240, 180))
+	kit:Light(lamp, "PointLight", rgb(255, 230, 170), 60, 3)
+
+	-- dockside dressing
+	for x = -170, 170, 34 do
+		kit:Tree(Vector3.new(x, 0, 30), rng:NextNumber(0.9, 1.2), "Palm")
+		kit:StreetLight(Vector3.new(x + 17, 0, 30), Vector3.new(0, 0, -1))
+	end
+	for i = 1, 14 do
+		local x, z = rng:NextNumber(-25, 125), rng:NextNumber(-165, 5)
+		if not (x > 50 and x < 120 and z > -140 and z < -24) then
+			if i % 2 == 0 then
+				kit:Crate(Vector3.new(x, 0, z), 4, rng:NextNumber(0, 1))
+				kit:Crate(Vector3.new(x + 4.2, 0, z), 4, rng:NextNumber(0, 1))
+			else
+				for b = 0, 2 do
+					kit:Pillar(Vector3.new(x + b * 2.3, 0, z), 3.6, 2.2, ({ rgb(30, 80, 160), rgb(200, 60, 40), rgb(60, 140, 70) })[b + 1], M.Metal)
+				end
+			end
+		end
+	end
+	for _, b in { { -20, -60, 0 }, { 10, -100, 90 }, { -10, -140, 30 }, { 30, -10, 60 } } do
+		kit:Barrier(CFrame.new(b[1], 0, b[2]) * CFrame.Angles(0, math.rad(b[3]), 0))
+	end
+
+	-- pickups, vehicles, spawns
+	for _, p in { Vector3.new(-80, 0, -74), Vector3.new(30, 0, -74), Vector3.new(0, 0, 10), Vector3.new(160, 0, -40) } do
+		kit:HealthPack(p)
+	end
+	kit:VehicleSpot(CFrame.new(-100, 0.5, 20) * CFrame.Angles(0, math.rad(-90), 0), "Truck")
+	kit:VehicleSpot(CFrame.new(70, 0.5, 16) * CFrame.Angles(0, math.rad(90), 0), "Sedan")
+	kit:VehicleSpot(CFrame.new(150, 0.5, -10), "Jeep")
+	kit:VehicleSpot(CFrame.new(-20, 0.5, -165) * CFrame.Angles(0, math.rad(90), 0), "Sports")
+	local parked = kit:VehicleSpot(CFrame.new(20, 0.5, -120), "Truck")
+	parked:SetAttribute("Parked", true)
+	for x = -150, 150, 50 do
+		kit:Spawn(Vector3.new(x, 3, -168), Vector3.new(x, 3, 0))
+	end
+	for _, z in { -120, -60, 0 } do
+		kit:Spawn(Vector3.new(-174, 3, z))
+		kit:Spawn(Vector3.new(172, 3, z + 10))
+	end
+	kit:Spawn(Vector3.new(30, 16, 77), Vector3.new(-40, 16, 77))
+	kit:Spawn(Vector3.new(-50, 16, 70), Vector3.new(40, 16, 70))
+	kit:Boundary(HALF, HALF, 200)
+	return kit
+end
+
+return Map
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="24">
+          <Properties>
+            <string name="Name">MapKit</string>
+            <string name="Source"><![CDATA[-- MapKit: procedural building blocks for maps.
+-- Everything is made of plain parts + Terrain, so maps need zero uploaded assets.
+-- A map module calls kit:Building{...}, kit:Tree(...), kit:Road(...), etc.
+local MapKit = {}
+MapKit.__index = MapKit
+
+local M = Enum.Material
+local rgb = Color3.fromRGB
+
+MapKit.Palette = {
+	Asphalt = rgb(48, 50, 56),
+	Concrete = rgb(150, 150, 146),
+	ConcreteDark = rgb(105, 106, 108),
+	Sidewalk = rgb(170, 168, 160),
+	Brick = rgb(150, 80, 60),
+	BrickDark = rgb(110, 60, 48),
+	Plaster = rgb(214, 204, 186),
+	Wood = rgb(124, 86, 54),
+	WoodDark = rgb(84, 58, 38),
+	WoodLight = rgb(170, 128, 84),
+	Metal = rgb(92, 98, 108),
+	MetalDark = rgb(52, 56, 64),
+	Leaf = rgb(62, 124, 58),
+	LeafDark = rgb(40, 92, 48),
+	Pine = rgb(34, 86, 56),
+	Trunk = rgb(96, 68, 44),
+	Rock = rgb(118, 116, 112),
+	Glass = rgb(150, 200, 230),
+	Yellow = rgb(245, 200, 40),
+	White = rgb(236, 236, 236),
+	Red = rgb(200, 50, 50),
+	Neon = rgb(0, 204, 255),
+	NeonWarm = rgb(255, 198, 26),
+}
+local P = MapKit.Palette
+
+function MapKit.new(seed: number?)
+	local self = setmetatable({}, MapKit)
+	local model = Instance.new("Model")
+	model.Name = "Map"
+	self.Model = model
+	local function folder(name)
+		local f = Instance.new("Folder")
+		f.Name = name
+		f.Parent = model
+		return f
+	end
+	self.Geo = folder("Geometry")
+	self.Props = folder("Props")
+	self.Spawns = folder("Spawns")
+	self.VehicleSpots = folder("VehicleSpots")
+	self.Terrain = workspace.Terrain
+	self.Rng = Random.new(seed or 1)
+	return self
+end
+
+-- PRIMITIVES ---------------------------------------------------------------------
+function MapKit:Part(size: Vector3, cf: CFrame, color: Color3, material, parent, class)
+	local p = Instance.new(class or "Part")
+	p.Anchored = true
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or M.SmoothPlastic
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent or self.Geo
+	return p
+end
+
+-- Decorative part: no collisions, bullets pass through.
+function MapKit:Deco(size, cf, color, material, parent)
+	local p = self:Part(size, cf, color, material, parent or self.Props)
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	return p
+end
+
+function MapKit:Neon(size, cf, color, parent)
+	local p = self:Deco(size, cf, color, M.Neon, parent)
+	p.CastShadow = false
+	return p
+end
+
+function MapKit:Wedge(size, cf, color, material, parent)
+	return self:Part(size, cf, color, material, parent, "WedgePart")
+end
+
+-- Cylinder whose axis runs along the CFrame's X axis.
+function MapKit:Cylinder(length: number, diameter: number, cf: CFrame, color, material, parent)
+	local p = self:Part(Vector3.new(length, diameter, diameter), cf, color, material, parent)
+	p.Shape = Enum.PartType.Cylinder
+	return p
+end
+
+-- Vertical cylinder standing on `base` (bottom center).
+function MapKit:Pillar(base: Vector3, height: number, diameter: number, color, material, parent)
+	return self:Cylinder(height, diameter, CFrame.new(base + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)), color, material, parent)
+end
+
+function MapKit:Ball(diameter: number, pos: Vector3, color, material, parent)
+	local p = self:Part(Vector3.new(diameter, diameter, diameter), CFrame.new(pos), color, material, parent)
+	p.Shape = Enum.PartType.Ball
+	return p
+end
+
+-- See-through glass that stops players but lets bullets through.
+function MapKit:Glass(size, cf, parent)
+	local p = self:Part(size, cf, P.Glass, M.Glass, parent)
+	p.Transparency = 0.6
+	p.Reflectance = 0.15
+	p.CanQuery = false
+	p.CastShadow = false
+	return p
+end
+
+-- Tilted slab from a low point to a high point; the top surface touches both points.
+function MapKit:Ramp(low: Vector3, high: Vector3, width: number, color, material, parent)
+	local length = (high - low).Magnitude
+	local cf = CFrame.lookAt((low + high) / 2, high) * CFrame.new(0, -0.5, 0)
+	return self:Part(Vector3.new(width, 1, length), cf, color or P.Concrete, material or M.Concrete, parent)
+end
+
+function MapKit:Light(part: BasePart, kind: string?, color: Color3?, range: number?, brightness: number?, face)
+	local l = Instance.new(kind or "PointLight")
+	l.Color = color or Color3.new(1, 0.95, 0.85)
+	l.Range = range or 16
+	l.Brightness = brightness or 1.5
+	if face and l:IsA("SpotLight") then
+		l.Face = face
+		l.Angle = 100
+	end
+	l.Shadows = false
+	l.Parent = part
+	return l
+end
+
+-- GAMEPLAY MARKERS ---------------------------------------------------------------
+function MapKit:Spawn(pos: Vector3, lookAt: Vector3?)
+	local s = Instance.new("Part")
+	s.Name = "Spawn"
+	s.Anchored = true
+	s.CanCollide = false
+	s.CanQuery = false
+	s.CanTouch = false
+	s.Transparency = 1
+	s.Size = Vector3.new(2, 1, 2)
+	local target = lookAt or Vector3.new(0, pos.Y, 0)
+	if (Vector3.new(target.X, pos.Y, target.Z) - pos).Magnitude < 0.1 then
+		target = pos + Vector3.new(0, 0, -1)
+	end
+	s.CFrame = CFrame.lookAt(pos, Vector3.new(target.X, pos.Y, target.Z))
+	s.Parent = self.Spawns
+	return s
+end
+
+function MapKit:VehicleSpot(cf: CFrame, style: string?, color: Color3?)
+	local s = Instance.new("Part")
+	s.Name = "VehicleSpot"
+	s.Anchored = true
+	s.CanCollide = false
+	s.CanQuery = false
+	s.CanTouch = false
+	s.Transparency = 1
+	s.Size = Vector3.new(1, 1, 1)
+	s.CFrame = cf
+	s:SetAttribute("Style", style or "Sedan")
+	if color then
+		s:SetAttribute("Color", color)
+	end
+	s.Parent = self.VehicleSpots
+	return s
+end
+
+function MapKit:HealthPack(pos: Vector3)
+	local hp = self:Part(Vector3.new(2.5, 2.5, 2.5), CFrame.new(pos + Vector3.new(0, 1.5, 0)), rgb(70, 230, 120), M.Neon, self.Props)
+	hp.Name = "HealthPack"
+	hp.CanCollide = false
+	hp:SetAttribute("HealthPack", true)
+	self:Light(hp, "PointLight", rgb(70, 230, 120), 12, 1.5)
+	self:Part(Vector3.new(4, 0.4, 4), CFrame.new(pos + Vector3.new(0, 0.2, 0)), P.MetalDark, M.DiamondPlate, self.Geo)
+	return hp
+end
+
+function MapKit:JumpPad(pos: Vector3, power: number?)
+	local pad = self:Cylinder(0.6, 8, CFrame.new(pos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(170, 90, 255), M.Neon, self.Geo)
+	pad.Name = "JumpPad"
+	pad:SetAttribute("JumpPad", power or 115)
+	self:Light(pad, "PointLight", rgb(170, 90, 255), 16, 3)
+	return pad
+end
+
+-- Invisible walls around the playable area.
+function MapKit:Boundary(halfX: number, halfZ: number, height: number?)
+	local h = height or 120
+	for _, s in { { halfX, 0, 2, halfZ * 2 }, { -halfX, 0, 2, halfZ * 2 }, { 0, halfZ, halfX * 2, 2 }, { 0, -halfZ, halfX * 2, 2 } } do
+		local w = self:Part(Vector3.new(s[3], h, s[4]), CFrame.new(s[1], h / 2 - 10, s[2]), Color3.new(), M.SmoothPlastic, self.Geo)
+		w.Name = "Boundary"
+		w.Transparency = 1
+		w.CanQuery = false
+		w.CastShadow = false
+	end
+end
+
+-- TERRAIN -------------------------------------------------------------------------
+function MapKit:Fill(material, cf: CFrame, size: Vector3)
+	self.Terrain:FillBlock(cf, size, material)
+end
+
+function MapKit:FillBall(material, center: Vector3, radius: number)
+	self.Terrain:FillBall(center, radius, material)
+end
+
+function MapKit:Water(cf: CFrame, size: Vector3)
+	self.Terrain:FillBlock(cf, size, M.Water)
+end
+
+-- WALLS & BUILDINGS -----------------------------------------------------------------
+-- Builds a wall running along local +X or +Z from `start`, with openings
+-- { At = distance along wall (center), Width, Bottom, Top, Glass = bool }.
+function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: number, height: number, thick: number, openings, color, material, parent)
+	local function place(a0, a1, y0, y1, glass)
+		local len, h = a1 - a0, y1 - y0
+		if len < 0.1 or h < 0.1 then
+			return
+		end
+		local mid = (a0 + a1) / 2
+		local t = glass and 0.3 or thick
+		local pos, size
+		if axis == "X" then
+			pos = start + Vector3.new(mid, (y0 + y1) / 2, 0)
+			size = Vector3.new(len, h, t)
+		else
+			pos = start + Vector3.new(0, (y0 + y1) / 2, mid)
+			size = Vector3.new(t, h, len)
+		end
+		if glass then
+			self:Glass(size, origin * CFrame.new(pos), parent)
+		else
+			self:Part(size, origin * CFrame.new(pos), color, material, parent)
+		end
+	end
+	table.sort(openings, function(a, b)
+		return a.At < b.At
+	end)
+	local cursor = 0
+	for _, o in openings do
+		local l, r = o.At - o.Width / 2, o.At + o.Width / 2
+		place(cursor, l, 0, height)
+		place(l, r, 0, o.Bottom)
+		place(l, r, o.Top, height)
+		if o.Glass then
+			place(l, r, o.Bottom, o.Top, true)
+		end
+		cursor = r
+	end
+	place(cursor, length, 0, height)
+end
+
+-- Horizontal slab (top surface at local y) with an optional rectangular hole.
+function MapKit:Slab(origin: CFrame, y: number, w: number, d: number, thick: number, hole, color, material, parent)
+	local function rect(x0, x1, z0, z1)
+		if x1 - x0 > 0.1 and z1 - z0 > 0.1 then
+			self:Part(Vector3.new(x1 - x0, thick, z1 - z0), origin * CFrame.new((x0 + x1) / 2, y - thick / 2, (z0 + z1) / 2), color, material, parent)
+		end
+	end
+	local hw, hd = w / 2, d / 2
+	if not hole then
+		rect(-hw, hw, -hd, hd)
+		return
+	end
+	rect(-hw, hw, -hd, hole.Z0) -- front strip
+	rect(-hw, hw, hole.Z1, hd) -- back strip
+	rect(-hw, hole.X0, hole.Z0, hole.Z1)
+	rect(hole.X1, hw, hole.Z0, hole.Z1)
+end
+
+local function windowOpenings(length: number, floorH: number, spacing: number, door)
+	local list = {}
+	local count = math.max(0, math.floor((length - 4) / spacing))
+	local startAt = (length - (count - 1) * spacing) / 2
+	for i = 0, count - 1 do
+		local at = startAt + i * spacing
+		if not door or math.abs(at - door) > 6 then
+			table.insert(list, { At = at, Width = 4, Bottom = 3, Top = floorH - 2.5, Glass = true })
+		end
+	end
+	if door then
+		table.insert(list, { At = door, Width = 6, Bottom = 0, Top = 8.5, Glass = false })
+	end
+	return list
+end
+
+--[[ Enterable multi-storey building.
+spec = {
+	Origin = CFrame (ground center, rotation allowed), W, D, Floors, FloorH (12),
+	Color, Trim, Material, Floor (interior floor color),
+	Doors = { Front = true, Back = true, Left = false, Right = false },
+	Roof = "Flat" | "Gable", RoofAccess = true, Props = true,
+}
+Front is the local -Z face. ]]
+function MapKit:Building(spec)
+	local o = spec.Origin
+	local W, D = spec.W, spec.D
+	local floors = spec.Floors or 2
+	local H = spec.FloorH or 12
+	local t = 1
+	local color = spec.Color or P.Brick
+	local mat = spec.Material or M.Brick
+	local trim = spec.Trim or P.Concrete
+	local floorColor = spec.Floor or rgb(120, 112, 100)
+	local doors = spec.Doors or { Front = true }
+	local model = Instance.new("Model")
+	model.Name = spec.Name or "Building"
+	model.Parent = self.Geo
+
+	-- stairwell strip along the left wall
+	local sx0, sx1 = -W / 2 + t, -W / 2 + t + 5
+	local run = math.min(H * 1.7, D - 10)
+	local sz0 = -D / 2 + 4
+	local sz1 = sz0 + run
+	local hole = { X0 = sx0, X1 = sx1, Z0 = sz0 - 0.5, Z1 = sz1 }
+
+	for f = 0, floors - 1 do
+		local y = f * H
+		-- floor
+		if f == 0 then
+			self:Part(Vector3.new(W, 0.4, D), o * CFrame.new(0, 0.2, 0), floorColor, M.Concrete, model)
+		else
+			self:Slab(o, y, W, D, 1, hole, floorColor, M.Concrete, model)
+		end
+		local base = y + (f == 0 and 0.4 or 0)
+		local wallH = H - (f == 0 and 0.4 or 0)
+		local function door(side, len)
+			return (f == 0 and doors[side]) and len / 2 or nil
+		end
+		self:Wall(o, Vector3.new(-W / 2, base, -D / 2 + t / 2), "X", W, wallH, t, windowOpenings(W, wallH, 8, door("Front", W)), color, mat, model)
+		self:Wall(o, Vector3.new(-W / 2, base, D / 2 - t / 2), "X", W, wallH, t, windowOpenings(W, wallH, 8, door("Back", W)), color, mat, model)
+		self:Wall(o, Vector3.new(-W / 2 + t / 2, base, -D / 2 + t), "Z", D - 2 * t, wallH, t, windowOpenings(D - 2 * t, wallH, 8, door("Left", D - 2 * t)), color, mat, model)
+		self:Wall(o, Vector3.new(W / 2 - t / 2, base, -D / 2 + t), "Z", D - 2 * t, wallH, t, windowOpenings(D - 2 * t, wallH, 8, door("Right", D - 2 * t)), color, mat, model)
+		-- ledge trim between floors
+		if f > 0 then
+			for _, s in { { 0, -D / 2 - 0.2, W + 0.8, 0.8 }, { 0, D / 2 + 0.2, W + 0.8, 0.8 }, { -W / 2 - 0.2, 0, 0.8, D }, { W / 2 + 0.2, 0, 0.8, D } } do
+				self:Part(Vector3.new(s[3], 0.7, s[4]), o * CFrame.new(s[1], y, s[2]), trim, M.Concrete, model)
+			end
+		end
+		-- stairs up to the next floor (or the roof)
+		if f < floors - 1 or spec.RoofAccess ~= false then
+			local cx = (sx0 + sx1) / 2
+			local low = (o * CFrame.new(cx, y + (f == 0 and 0.4 or 0), sz0)).Position
+			local high = (o * CFrame.new(cx, y + H, sz1)).Position
+			self:Ramp(low, high, 5, rgb(90, 90, 96), M.DiamondPlate, model)
+		end
+		-- interior cover
+		if spec.Props ~= false then
+			local rng = self.Rng
+			for _ = 1, math.floor(W * D / 300) do
+				local px = rng:NextNumber(-W / 2 + 9, W / 2 - 4)
+				local pz = rng:NextNumber(-D / 2 + 4, D / 2 - 4)
+				if rng:NextNumber() < 0.5 then
+					-- desk
+					self:Part(Vector3.new(6, 0.4, 3), o * CFrame.new(px, base + 3, pz), P.WoodLight, M.Wood, model)
+					self:Part(Vector3.new(5.6, 2.8, 0.3), o * CFrame.new(px, base + 1.4, pz + 1.3), P.WoodDark, M.Wood, model)
+				else
+					self:Part(Vector3.new(3.5, 3.5, 3.5), o * CFrame.new(px, base + 1.75, pz) * CFrame.Angles(0, rng:NextNumber(0, 1.5), 0), rgb(170, 128, 70), M.WoodPlanks, model)
+				end
+			end
+		end
+	end
+
+	-- roof
+	local top = floors * H
+	if spec.Roof == "Gable" then
+		local rh = math.min(W, D) * 0.35
+		self:Part(Vector3.new(W + 1, 0.6, D + 1), o * CFrame.new(0, top + 0.3, 0), trim, M.Wood, model)
+		self:Wedge(Vector3.new(W + 2, rh, D / 2 + 1), o * CFrame.new(0, top + 0.6 + rh / 2, -D / 4 - 0.25), spec.RoofColor or P.WoodDark, M.WoodPlanks, model)
+		self:Wedge(Vector3.new(W + 2, rh, D / 2 + 1), o * CFrame.new(0, top + 0.6 + rh / 2, D / 4 + 0.25) * CFrame.Angles(0, math.rad(180), 0), spec.RoofColor or P.WoodDark, M.WoodPlanks, model)
+	else
+		self:Slab(o, top, W, D, 1, spec.RoofAccess ~= false and hole or nil, P.ConcreteDark, M.Concrete, model)
+		for _, s in { { 0, -D / 2 + 0.4, W, 0.8 }, { 0, D / 2 - 0.4, W, 0.8 }, { -W / 2 + 0.4, 0, 0.8, D }, { W / 2 - 0.4, 0, 0.8, D } } do
+			self:Part(Vector3.new(s[3], 3, s[4]), o * CFrame.new(s[1], top + 1.5, s[2]), trim, M.Concrete, model)
+		end
+		-- rooftop clutter (cover for roof fights)
+		local rng = self.Rng
+		for _ = 1, 2 do
+			local px, pz = rng:NextNumber(-W / 2 + 10, W / 2 - 5), rng:NextNumber(-D / 2 + 5, D / 2 - 5)
+			self:Part(Vector3.new(5, 3.5, 4), o * CFrame.new(px, top + 1.75, pz), rgb(180, 182, 186), M.Metal, model)
+			self:Deco(Vector3.new(3, 0.3, 2.5), o * CFrame.new(px, top + 3.6, pz), P.MetalDark, M.Metal, model)
+		end
+		if W > 24 then
+			local tank = self:Cylinder(7, 6, o * CFrame.new(W / 2 - 6, top + 6.5, D / 2 - 6) * CFrame.Angles(0, 0, math.rad(90)), P.Wood, M.WoodPlanks, model)
+			tank.Name = "WaterTank"
+			for _, dx in { -2, 2 } do
+				for _, dz in { -2, 2 } do
+					self:Part(Vector3.new(0.5, 3, 0.5), o * CFrame.new(W / 2 - 6 + dx, top + 1.5, D / 2 - 6 + dz), P.MetalDark, M.Metal, model)
+				end
+			end
+		end
+	end
+	-- awning over the front door
+	if doors.Front then
+		self:Part(Vector3.new(10, 0.4, 4), o * CFrame.new(0, 9.5, -D / 2 - 2), spec.Awning or P.Red, M.Fabric, model)
+	end
+	return model
+end
+
+-- Solid skyscraper (not enterable) used for skylines / map edges.
+function MapKit:Tower(origin: CFrame, W: number, D: number, height: number, color, material, glassColor)
+	local model = Instance.new("Model")
+	model.Name = "Tower"
+	model.Parent = self.Geo
+	self:Part(Vector3.new(W, height, D), origin * CFrame.new(0, height / 2, 0), color or P.ConcreteDark, material or M.Concrete, model)
+	local band = glassColor or rgb(70, 110, 140)
+	for y = 6, height - 4, 10 do
+		local g = self:Deco(Vector3.new(W + 0.3, 5, D + 0.3), origin * CFrame.new(0, y, 0), band, M.Glass, model)
+		g.Reflectance = 0.25
+	end
+	self:Part(Vector3.new(W - 4, 4, D - 4), origin * CFrame.new(0, height + 2, 0), P.MetalDark, M.Metal, model)
+	if height > 60 then
+		local antenna = self:Deco(Vector3.new(0.6, 18, 0.6), origin * CFrame.new(W / 4, height + 13, D / 4), P.Metal, M.Metal, model)
+		local blink = self:Neon(Vector3.new(1, 1, 1), origin * CFrame.new(W / 4, height + 22.5, D / 4), P.Red, model)
+		self:Light(blink, "PointLight", P.Red, 20, 2)
+		antenna.Name = "Antenna"
+	end
+	return model
+end
+
+-- ROADS -----------------------------------------------------------------------------
+-- Road along X ("X") or Z ("Z") centered at `center`. Lane markings skip `skip` intersections.
+function MapKit:Road(axis: string, center: Vector3, length: number, width: number, skip, noSurface: boolean?)
+	local along = axis == "X" and Vector3.xAxis or Vector3.zAxis
+	local across = axis == "X" and Vector3.zAxis or Vector3.xAxis
+	local size = axis == "X" and Vector3.new(length, 0.3, width) or Vector3.new(width, 0.3, length)
+	local markY = noSurface and 0.03 or 0.32
+	if not noSurface then
+		self:Part(size, CFrame.new(center + Vector3.new(0, 0.15, 0)), P.Asphalt, M.Asphalt, self.Geo)
+	end
+	local function inIntersection(d)
+		for _, s in skip or {} do
+			if math.abs(d - s) < width / 2 + 3 then
+				return true
+			end
+		end
+		return false
+	end
+	local start = (axis == "X" and center.X or center.Z) - length / 2
+	local base = center - along * (axis == "X" and center.X or center.Z)
+	for d = start + 3, start + length - 3, 12 do
+		if not inIntersection(d + 3) then
+			local pos = base + along * (d + 3) + Vector3.new(0, markY, 0)
+			local s = axis == "X" and Vector3.new(6, 0.05, 0.4) or Vector3.new(0.4, 0.05, 6)
+			self:Deco(s, CFrame.new(pos), P.Yellow, M.SmoothPlastic, self.Props)
+		end
+	end
+	-- white edge lines (split around intersections)
+	local segStart = start
+	local cuts = {}
+	for _, s in skip or {} do
+		table.insert(cuts, s)
+	end
+	table.sort(cuts)
+	table.insert(cuts, start + length + width)
+	for _, cut in cuts do
+		local segEnd = math.min(cut - width / 2 - 2, start + length)
+		if segEnd - segStart > 2 then
+			for _, side in { -1, 1 } do
+				local mid = (segStart + segEnd) / 2
+				local pos = base + along * mid + across * side * (width / 2 - 1.2) + Vector3.new(0, markY, 0)
+				local s = axis == "X" and Vector3.new(segEnd - segStart, 0.05, 0.35) or Vector3.new(0.35, 0.05, segEnd - segStart)
+				self:Deco(s, CFrame.new(pos), P.White, M.SmoothPlastic, self.Props)
+			end
+		end
+		segStart = cut + width / 2 + 2
+	end
+end
+
+-- Zebra crossing across a road at `pos`; stripes run along `axis` of travel.
+function MapKit:Crosswalk(pos: Vector3, axis: string, width: number)
+	for i = -width / 2 + 2, width / 2 - 2, 2.5 do
+		local p = axis == "X" and Vector3.new(0, 0, i) or Vector3.new(i, 0, 0)
+		local s = axis == "X" and Vector3.new(6, 0.05, 1.2) or Vector3.new(1.2, 0.05, 6)
+		self:Deco(s, CFrame.new(pos + p + Vector3.new(0, 0.03, 0)), P.White, M.SmoothPlastic, self.Props)
+	end
+end
+
+-- Raised sidewalk block (curb) covering a city block.
+function MapKit:Sidewalk(center: Vector3, sx: number, sz: number)
+	self:Part(Vector3.new(sx, 0.8, sz), CFrame.new(center + Vector3.new(0, 0.4, 0)), P.Sidewalk, M.Concrete, self.Geo)
+	self:Part(Vector3.new(sx + 0.6, 0.6, sz + 0.6), CFrame.new(center + Vector3.new(0, 0.3, 0)), P.ConcreteDark, M.Concrete, self.Geo)
+end
+
+-- PROPS -----------------------------------------------------------------------------
+function MapKit:StreetLight(pos: Vector3, facing: Vector3)
+	local model = Instance.new("Model")
+	model.Name = "StreetLight"
+	model.Parent = self.Props
+	self:Pillar(pos, 16, 0.6, P.MetalDark, M.Metal, model)
+	local dir = Vector3.new(facing.X, 0, facing.Z).Unit
+	local armMid = pos + Vector3.new(0, 16, 0) + dir * 2.5
+	self:Part(Vector3.new(0.4, 0.4, 5), CFrame.lookAt(armMid, armMid + dir), P.MetalDark, M.Metal, model)
+	local lamp = self:Neon(Vector3.new(1.4, 0.4, 2.4), CFrame.lookAt(armMid + dir * 2.4 - Vector3.new(0, 0.4, 0), armMid + dir * 4), rgb(255, 236, 190), model)
+	self:Light(lamp, "SpotLight", rgb(255, 230, 180), 40, 2, Enum.NormalId.Bottom)
+end
+
+function MapKit:TrafficLight(pos: Vector3, facing: Vector3)
+	local model = Instance.new("Model")
+	model.Name = "TrafficLight"
+	model.Parent = self.Props
+	self:Pillar(pos, 13, 0.5, P.MetalDark, M.Metal, model)
+	local dir = Vector3.new(facing.X, 0, facing.Z).Unit
+	local box = pos + Vector3.new(0, 11.5, 0) + dir * 0.6
+	self:Part(Vector3.new(1.2, 3.6, 1.2), CFrame.lookAt(box, box + dir), rgb(30, 30, 30), M.Metal, model)
+	for i, c in { rgb(255, 50, 50), rgb(255, 190, 0), rgb(40, 230, 90) } do
+		self:Neon(Vector3.new(0.7, 0.7, 0.2), CFrame.lookAt(box + dir * 0.65 + Vector3.new(0, 1.15 - (i - 1) * 1.15, 0), box + dir * 2), i == 3 and c or c:Lerp(Color3.new(), 0.7), model)
+	end
+end
+
+function MapKit:Tree(pos: Vector3, scale: number?, kind: string?)
+	local s = scale or 1
+	local rng = self.Rng
+	local model = Instance.new("Model")
+	model.Name = "Tree"
+	model.Parent = self.Props
+	kind = kind or "Oak"
+	if kind == "Pine" then
+		local h = 9 * s
+		self:Pillar(pos - Vector3.new(0, 1, 0), h + 1, 1.3 * s, P.Trunk, M.Wood, model)
+		local layers = { 9, 7.2, 5.4, 3.4 }
+		for i, d in layers do
+			local disc = self:Cylinder(2.6 * s, d * s, CFrame.new(pos + Vector3.new(0, 3.5 * s + i * 2.6 * s, 0)) * CFrame.Angles(0, rng:NextNumber(0, 3), math.rad(90)), i % 2 == 0 and P.Pine or P.LeafDark, M.LeafyGrass, model)
+			disc.CanCollide = false
+			disc.CanQuery = false
+		end
+	elseif kind == "Palm" then
+		local lean = rng:NextNumber(-0.25, 0.25)
+		local top = pos
+		for i = 1, 4 do
+			local seg = top + Vector3.new(lean * 2, 3 * s, 0)
+			self:Part(Vector3.new(1.1 * s, 3.2 * s, 1.1 * s), CFrame.lookAt((top + seg) / 2, seg) * CFrame.Angles(math.rad(90), 0, 0), P.WoodLight, M.Wood, model)
+			top = seg
+			lean *= 1.3
+			if i == 4 then
+				break
+			end
+		end
+		for i = 1, 6 do
+			local a = i / 6 * math.pi * 2
+			local leafDir = Vector3.new(math.cos(a), -0.35, math.sin(a))
+			local leaf = self:Deco(Vector3.new(1.8 * s, 0.25, 6 * s), CFrame.lookAt(top + leafDir * 3 * s, top + leafDir * 6 * s), P.Leaf, M.LeafyGrass, model)
+			leaf.Parent = model
+		end
+	else
+		local trunkH = 6 * s
+		self:Pillar(pos - Vector3.new(0, 1, 0), trunkH + 1, 1.4 * s, P.Trunk, M.Wood, model)
+		for _ = 1, 3 do
+			local off = Vector3.new(rng:NextNumber(-2, 2), rng:NextNumber(0, 2.5), rng:NextNumber(-2, 2)) * s
+			local leaf = self:Ball(rng:NextNumber(6, 8.5) * s, pos + Vector3.new(0, trunkH + 2 * s, 0) + off, rng:NextNumber() < 0.5 and P.Leaf or P.LeafDark, M.LeafyGrass, model)
+			leaf.CanCollide = false
+			leaf.CanQuery = false
+		end
+	end
+	return model
+end
+
+function MapKit:Bush(pos: Vector3, scale: number?)
+	local s = scale or 1
+	for i = 1, 2 do
+		local b = self:Ball((3 + i) * s, pos + Vector3.new(i * 0.8 * s, s, 0), P.LeafDark, M.LeafyGrass, self.Props)
+		b.CanCollide = false
+	end
+end
+
+function MapKit:Rock(pos: Vector3, scale: number?)
+	local s = scale or 1
+	local rng = self.Rng
+	for _ = 1, 2 do
+		self:Part(Vector3.new(rng:NextNumber(3, 6), rng:NextNumber(2.5, 4.5), rng:NextNumber(3, 6)) * s, CFrame.new(pos + Vector3.new(rng:NextNumber(-1, 1), 0.8 * s, rng:NextNumber(-1, 1))) * CFrame.Angles(rng:NextNumber(-0.4, 0.4), rng:NextNumber(0, 3), rng:NextNumber(-0.4, 0.4)), P.Rock, M.Slate, self.Geo)
+	end
+end
+
+function MapKit:Bench(cf: CFrame)
+	self:Part(Vector3.new(6, 0.4, 1.8), cf * CFrame.new(0, 1.8, 0), P.WoodLight, M.Wood, self.Props)
+	self:Part(Vector3.new(6, 1.6, 0.3), cf * CFrame.new(0, 2.8, 0.85), P.WoodLight, M.Wood, self.Props)
+	for _, x in { -2.6, 2.6 } do
+		self:Part(Vector3.new(0.3, 1.8, 1.6), cf * CFrame.new(x, 0.9, 0), P.MetalDark, M.Metal, self.Props)
+	end
+end
+
+function MapKit:Dumpster(cf: CFrame)
+	self:Part(Vector3.new(7, 4.5, 4), cf * CFrame.new(0, 2.25, 0), rgb(40, 100, 60), M.Metal, self.Geo)
+	self:Part(Vector3.new(7.2, 0.3, 4.2), cf * CFrame.new(0, 4.6, 0) * CFrame.Angles(math.rad(-8), 0, 0), rgb(30, 30, 30), M.Plastic, self.Geo)
+end
+
+-- Concrete jersey barrier (great low cover)
+function MapKit:Barrier(cf: CFrame)
+	self:Part(Vector3.new(8, 1, 2.4), cf * CFrame.new(0, 0.5, 0), P.Concrete, M.Concrete, self.Geo)
+	self:Part(Vector3.new(8, 2.6, 1.2), cf * CFrame.new(0, 2.3, 0), P.Concrete, M.Concrete, self.Geo)
+	self:Deco(Vector3.new(8.05, 0.4, 1.25), cf * CFrame.new(0, 2.8, 0), rgb(220, 70, 40), M.SmoothPlastic)
+end
+
+function MapKit:Crate(pos: Vector3, size: number?, rot: number?)
+	local s = size or 4
+	return self:Part(Vector3.new(s, s, s), CFrame.new(pos + Vector3.new(0, s / 2, 0)) * CFrame.Angles(0, rot or 0, 0), rgb(176, 128, 66), M.WoodPlanks, self.Geo)
+end
+
+local CONTAINER_COLORS = { rgb(180, 60, 40), rgb(40, 90, 160), rgb(220, 150, 30), rgb(50, 130, 80), rgb(130, 130, 136), rgb(150, 50, 110) }
+function MapKit:Container(cf: CFrame, color: Color3?, open: boolean?)
+	local c = color or CONTAINER_COLORS[self.Rng:NextInteger(1, #CONTAINER_COLORS)]
+	local model = Instance.new("Model")
+	model.Name = "Container"
+	model.Parent = self.Geo
+	local W, H, L = 8, 8.5, 20
+	if open then
+		self:Part(Vector3.new(W, 0.4, L), cf * CFrame.new(0, 0.2, 0), c, M.CorrodedMetal, model)
+		self:Part(Vector3.new(W, 0.4, L), cf * CFrame.new(0, H - 0.2, 0), c, M.CorrodedMetal, model)
+		self:Part(Vector3.new(0.3, H, L), cf * CFrame.new(-W / 2 + 0.15, H / 2, 0), c, M.CorrodedMetal, model)
+		self:Part(Vector3.new(0.3, H, L), cf * CFrame.new(W / 2 - 0.15, H / 2, 0), c, M.CorrodedMetal, model)
+		self:Part(Vector3.new(W, H, 0.3), cf * CFrame.new(0, H / 2, L / 2 - 0.15), c, M.CorrodedMetal, model)
+	else
+		self:Part(Vector3.new(W, H, L), cf * CFrame.new(0, H / 2, 0), c, M.CorrodedMetal, model)
+	end
+	for _, z in { -L / 2 + 0.2, L / 2 - 0.2 } do
+		self:Deco(Vector3.new(W + 0.1, H + 0.1, 0.4), cf * CFrame.new(0, H / 2, z), c:Lerp(Color3.new(), 0.3), M.Metal, model)
+	end
+	return model
+end
+
+function MapKit:Fence(a: Vector3, b: Vector3, height: number?, color: Color3?)
+	local h = height or 4
+	local dir = b - a
+	local len = dir.Magnitude
+	local cf = CFrame.lookAt((a + b) / 2, b)
+	for d = 0, len, 6 do
+		self:Part(Vector3.new(0.4, h, 0.4), CFrame.new(a + dir.Unit * d + Vector3.new(0, h / 2, 0)), color or P.WoodDark, M.Wood, self.Geo)
+	end
+	for _, y in { h * 0.4, h * 0.85 } do
+		self:Part(Vector3.new(0.25, 0.4, len), cf * CFrame.new(0, y, 0), color or P.Wood, M.Wood, self.Geo)
+	end
+end
+
+function MapKit:Tent(cf: CFrame, color: Color3?)
+	local c = color or rgb(60, 110, 70)
+	self:Wedge(Vector3.new(6, 4, 3), cf * CFrame.new(0, 2, -1.5), c, M.Fabric, self.Props)
+	self:Wedge(Vector3.new(6, 4, 3), cf * CFrame.new(0, 2, 1.5) * CFrame.Angles(0, math.rad(180), 0), c, M.Fabric, self.Props)
+end
+
+function MapKit:Campfire(pos: Vector3)
+	for i = 1, 4 do
+		local a = i / 4 * math.pi
+		self:Deco(Vector3.new(0.5, 0.5, 3), CFrame.new(pos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, a, 0), P.WoodDark, M.Wood)
+	end
+	local core = self:Neon(Vector3.new(1, 0.6, 1), CFrame.new(pos + Vector3.new(0, 0.5, 0)), rgb(255, 120, 30))
+	local fire = Instance.new("Fire")
+	fire.Size = 4
+	fire.Heat = 6
+	fire.Parent = core
+	self:Light(core, "PointLight", rgb(255, 140, 60), 22, 2.5)
+	for i = 1, 8 do
+		local a = i / 8 * math.pi * 2
+		self:Part(Vector3.new(1, 0.8, 1), CFrame.new(pos + Vector3.new(math.cos(a) * 2, 0.4, math.sin(a) * 2)), P.Rock, M.Slate, self.Geo)
+	end
+end
+
+-- Wooden watchtower with a climbable truss ladder.
+function MapKit:Watchtower(pos: Vector3, height: number?)
+	local h = height or 22
+	local model = Instance.new("Model")
+	model.Name = "Watchtower"
+	model.Parent = self.Geo
+	for _, dx in { -4, 4 } do
+		for _, dz in { -4, 4 } do
+			self:Part(Vector3.new(1, h, 1), CFrame.new(pos + Vector3.new(dx, h / 2, dz)), P.WoodDark, M.Wood, model)
+		end
+	end
+	self:Part(Vector3.new(11, 0.8, 11), CFrame.new(pos + Vector3.new(0, h, 0)), P.Wood, M.WoodPlanks, model)
+	for _, s in { { 0, -5.3, 11, 0.4 }, { 0, 5.3, 11, 0.4 }, { -5.3, 0, 0.4, 11 }, { 5.3, 0, 0.4, 11 } } do
+		self:Part(Vector3.new(s[3], 3, s[4]), CFrame.new(pos + Vector3.new(s[1], h + 1.9, s[2])), P.Wood, M.WoodPlanks, model)
+	end
+	self:Wedge(Vector3.new(12, 3, 6), CFrame.new(pos + Vector3.new(0, h + 8.5, -3)), P.WoodDark, M.WoodPlanks, model)
+	self:Wedge(Vector3.new(12, 3, 6), CFrame.new(pos + Vector3.new(0, h + 8.5, 3)) * CFrame.Angles(0, math.rad(180), 0), P.WoodDark, M.WoodPlanks, model)
+	for _, dx in { -4, 4 } do
+		for _, dz in { -4, 4 } do
+			self:Part(Vector3.new(0.5, 7, 0.5), CFrame.new(pos + Vector3.new(dx, h + 3.5, dz)), P.WoodDark, M.Wood, model)
+		end
+	end
+	local ladder = self:Part(Vector3.new(2, h, 2), CFrame.new(pos + Vector3.new(0, h / 2, -5.6)), P.MetalDark, M.Metal, model, "TrussPart")
+	ladder.Name = "Ladder"
+	-- the ladder pokes through the railing; leave a gap there
+	return model
+end
+
+-- Gantry crane straddling a container yard.
+function MapKit:Crane(cf: CFrame, span: number, height: number)
+	local model = Instance.new("Model")
+	model.Name = "Crane"
+	model.Parent = self.Geo
+	local yellow = rgb(240, 180, 30)
+	for _, x in { -span / 2, span / 2 } do
+		for _, z in { -8, 8 } do
+			self:Part(Vector3.new(2, height, 2), cf * CFrame.new(x, height / 2, z), yellow, M.Metal, model)
+		end
+		self:Part(Vector3.new(2.4, 2, 18), cf * CFrame.new(x, 1, 0), P.MetalDark, M.Metal, model)
+	end
+	for _, z in { -8, 8 } do
+		self:Part(Vector3.new(span + 2, 2.5, 2), cf * CFrame.new(0, height, z), yellow, M.Metal, model)
+	end
+	self:Part(Vector3.new(8, 5, 18), cf * CFrame.new(span * 0.15, height + 3.5, 0), yellow, M.Metal, model)
+	self:Deco(Vector3.new(0.3, height * 0.45, 0.3), cf * CFrame.new(span * 0.15, height * 0.75, 0), P.MetalDark, M.Metal, model)
+	self:Part(Vector3.new(8, 1, 20), cf * CFrame.new(span * 0.15, height * 0.52, 0), P.MetalDark, M.Metal, model)
+	return model
+end
+
+-- Cargo ship you can board via a gangway.
+function MapKit:Ship(cf: CFrame, length: number, gangwayAt: number?)
+	local model = Instance.new("Model")
+	model.Name = "Ship"
+	model.Parent = self.Geo
+	local W = 30
+	local hullH = 16
+	local hull = rgb(150, 36, 36)
+	local deckY = 12
+	self:Part(Vector3.new(W, hullH, length), cf * CFrame.new(0, deckY - hullH / 2, 0), hull, M.Metal, model)
+	self:Part(Vector3.new(W + 0.2, 1.2, length + 0.2), cf * CFrame.new(0, deckY - hullH + 3, 0), rgb(30, 30, 34), M.Metal, model)
+	self:Wedge(Vector3.new(W, hullH, 20), cf * CFrame.new(0, deckY - hullH / 2, -length / 2 - 10), hull, M.Metal, model)
+	self:Part(Vector3.new(W - 1, 0.6, length + 6), cf * CFrame.new(0, deckY + 0.3, -3), rgb(80, 90, 80), M.DiamondPlate, model)
+	-- railings (with a gap for the gangway on the +X side)
+	for _, x in { -W / 2 + 0.3, W / 2 - 0.3 } do
+		local segments = { { -length / 2, length / 2 } }
+		if gangwayAt and x > 0 then
+			segments = { { -length / 2, gangwayAt - 4 }, { gangwayAt + 4, length / 2 } }
+		end
+		for _, seg in segments do
+			self:Part(Vector3.new(0.4, 3, seg[2] - seg[1]), cf * CFrame.new(x, deckY + 2, (seg[1] + seg[2]) / 2), P.White, M.Metal, model)
+		end
+	end
+	-- bridge tower at the stern
+	local tower = cf * CFrame.new(0, deckY, length / 2 - 10)
+	self:Building({ Origin = tower, W = 22, D = 14, Floors = 2, FloorH = 10, Color = P.White, Material = M.Metal, Trim = rgb(40, 40, 46), Doors = { Front = true }, Props = false, Awning = rgb(40, 40, 46) })
+	-- containers on deck
+	for i = 0, math.floor((length - 40) / 22) - 1 do
+		for _, x in { -5, 5 } do
+			self:Container(cf * CFrame.new(x, deckY + 0.6, -length / 2 + 14 + i * 22), nil, i % 2 == 1 and x > 0)
+		end
+	end
+	return model
+end
+
+-- Wooden dock/pier on posts, deck top at `deckY`.
+function MapKit:Pier(a: Vector3, b: Vector3, width: number, deckY: number)
+	local dir = b - a
+	local cf = CFrame.lookAt((a + b) / 2, b)
+	local len = dir.Magnitude
+	self:Part(Vector3.new(width, 0.8, len), CFrame.new(cf.Position.X, deckY - 0.4, cf.Position.Z) * cf.Rotation, P.WoodLight, M.WoodPlanks, self.Geo)
+	for d = 0, len, 10 do
+		for _, side in { -1, 1 } do
+			local p = a + dir.Unit * d + cf.RightVector * side * (width / 2 - 0.5)
+			self:Pillar(Vector3.new(p.X, deckY - 14, p.Z), 14, 1.2, P.WoodDark, M.Wood)
+		end
+	end
+end
+
+return MapKit
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="25">
+          <Properties>
+            <string name="Name">Timberline</string>
+            <string name="Source"><![CDATA[-- TIMBERLINE: forest valley with a river, bridges, cabins, watchtowers and jeeps.
+local MapKit = require(script.Parent.MapKit)
+local M = Enum.Material
+local P = MapKit.Palette
+local rgb = Color3.fromRGB
+
+local Map = {
+	Id = "Timberline",
+	Name = "TIMBERLINE",
+	Desc = "Forest valley split by a river. Snipe from the towers.",
+	Icon = "🌲",
+	Lighting = {
+		ClockTime = 13.5, Brightness = 2.8,
+		Ambient = rgb(80, 90, 80), OutdoorAmbient = rgb(130, 140, 130),
+		Atmosphere = { Density = 0.35, Haze = 1.4, Color = rgb(200, 225, 210), Decay = rgb(90, 120, 110) },
+		Tint = rgb(240, 255, 240), Saturation = 0.2,
+	},
+}
+
+local HALF = 200
+
+local function riverX(z: number): number
+	return 38 * math.sin(z / 70)
+end
+
+function Map.Build()
+	local kit = MapKit.new(21)
+	local rng = kit.Rng
+
+	-- ground + hills
+	kit:Fill(M.Grass, CFrame.new(0, -8, 0), Vector3.new(HALF * 2 + 60, 16, HALF * 2 + 60))
+	local avoid = {} -- circles {x, z, r} kept flat & free of trees
+
+	local structures = {
+		{ "Cabin", -100, -60 }, { "Cabin", -125, 75 }, { "Cabin", 105, -95 }, { "Cabin", 130, 65 },
+		{ "Tower", -60, 140 }, { "Tower", 75, -150 }, { "Tower", 155, -10 },
+		{ "Camp", -45, -140 }, { "Lumber", 115, 140 },
+	}
+	for _, s in structures do
+		table.insert(avoid, { s[2], s[3], s[1] == "Lumber" and 34 or 24 })
+	end
+
+	local function blocked(x: number, z: number, pad: number): boolean
+		if math.abs(x - riverX(z)) < 24 + pad then
+			return true
+		end
+		if math.abs(z) < 12 + pad then
+			return true -- road
+		end
+		for _, a in avoid do
+			if (Vector3.new(x - a[1], 0, z - a[2])).Magnitude < a[3] + pad then
+				return true
+			end
+		end
+		return false
+	end
+
+	for _ = 1, 14 do
+		local x, z = rng:NextNumber(-170, 170), rng:NextNumber(-170, 170)
+		local r = rng:NextNumber(22, 38)
+		if not blocked(x, z, r * 0.6) then
+			kit:FillBall(M.Grass, Vector3.new(x, -r * 0.78, z), r)
+			table.insert(avoid, { x, z, r * 0.7 })
+		end
+	end
+	-- mountains around the edge form a natural wall
+	for i = 0, 35 do
+		local a = i / 36 * math.pi * 2
+		local r = rng:NextNumber(45, 60)
+		local d = HALF + 25
+		kit:FillBall(i % 3 == 0 and M.Rock or M.Grass, Vector3.new(math.cos(a) * d, -10, math.sin(a) * d), r)
+	end
+
+	-- river
+	for z = -HALF - 30, HALF + 30, 8 do
+		local x = riverX(z)
+		kit:Fill(M.Sand, CFrame.new(x, -1.5, z), Vector3.new(40, 3, 10))
+		kit:Fill(M.Mud, CFrame.new(x, -8, z), Vector3.new(30, 2, 10))
+		kit:Fill(M.Air, CFrame.new(x, -3.5, z), Vector3.new(30, 7, 10))
+		kit:Water(CFrame.new(x, -4, z), Vector3.new(28, 6, 10))
+	end
+
+	-- dirt road east-west with a bridge
+	kit:Fill(M.Ground, CFrame.new(0, -1, 0), Vector3.new(HALF * 2 + 40, 2.4, 16))
+	local bx = riverX(0)
+	kit:Part(Vector3.new(44, 1, 16), CFrame.new(bx, 1.2, 0), P.WoodLight, M.WoodPlanks)
+	kit:Ramp(Vector3.new(bx - 34, 0, 0), Vector3.new(bx - 22, 1.7, 0), 16, P.WoodLight, M.WoodPlanks)
+	kit:Ramp(Vector3.new(bx + 34, 0, 0), Vector3.new(bx + 22, 1.7, 0), 16, P.WoodLight, M.WoodPlanks)
+	for _, side in { -1, 1 } do
+		kit:Part(Vector3.new(44, 3, 0.6), CFrame.new(bx, 3.2, side * 7.7), P.WoodDark, M.Wood)
+		for x = -20, 20, 10 do
+			kit:Pillar(Vector3.new(bx + x, -8, side * 7.5), 9.2, 1.4, P.WoodDark, M.Wood)
+		end
+	end
+	-- footbridges
+	for _, z in { -110, 110 } do
+		local x = riverX(z)
+		kit:Part(Vector3.new(40, 0.8, 6), CFrame.new(x, 1, z), P.Wood, M.WoodPlanks)
+		for _, side in { -1, 1 } do
+			kit:Part(Vector3.new(40, 2.5, 0.4), CFrame.new(x, 2.6, z + side * 2.9), P.WoodDark, M.Wood)
+		end
+	end
+
+	-- cabins, watchtowers, camp, lumber yard
+	for _, s in structures do
+		local kind, x, z = s[1], s[2], s[3]
+		if kind == "Cabin" then
+			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(30, 1.2, 26))
+			kit:Building({
+				Name = "Cabin", Origin = CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rng:NextInteger(0, 3) * 90), 0),
+				W = 24, D = 18, Floors = 1, FloorH = 11, Color = P.Wood, Material = M.WoodPlanks, Trim = P.WoodDark,
+				Floor = P.WoodLight, Roof = "Gable", RoofColor = rgb(70, 50, 40), RoofAccess = false,
+				Doors = { Front = true, Back = true }, Awning = P.WoodDark,
+			})
+			kit:HealthPack(Vector3.new(x + 15, 0, z))
+			for i = 1, 3 do
+				kit:Cylinder(4, 1.4, CFrame.new(x - 15, 0.7 + (i - 1) * 1.2, z - 4 + i * 1.5) * CFrame.Angles(0, math.rad(90), 0), P.Trunk, M.Wood)
+			end
+		elseif kind == "Tower" then
+			kit:Watchtower(Vector3.new(x, 0, z), 24)
+		elseif kind == "Camp" then
+			kit:Campfire(Vector3.new(x, 0, z))
+			for i = 1, 3 do
+				local a = i / 3 * math.pi * 2
+				kit:Tent(CFrame.new(x + math.cos(a) * 12, 0, z + math.sin(a) * 12) * CFrame.Angles(0, -a, 0), ({ rgb(60, 110, 70), rgb(180, 90, 40), rgb(50, 80, 140) })[i])
+				kit:Cylinder(5, 1.2, CFrame.new(x + math.cos(a + 1) * 5, 0.6, z + math.sin(a + 1) * 5) * CFrame.Angles(0, -a, 0), P.Trunk, M.Wood)
+			end
+		elseif kind == "Lumber" then
+			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(60, 1.2, 50))
+			-- open sawmill shed
+			for _, px in { -14, 0, 14 } do
+				for _, pz in { -9, 9 } do
+					kit:Part(Vector3.new(1.2, 12, 1.2), CFrame.new(x + px, 6, z + pz), P.WoodDark, M.Wood)
+				end
+			end
+			kit:Wedge(Vector3.new(32, 4, 10), CFrame.new(x, 14, z - 5), rgb(110, 110, 116), M.CorrodedMetal)
+			kit:Wedge(Vector3.new(32, 4, 10), CFrame.new(x, 14, z + 5) * CFrame.Angles(0, math.rad(180), 0), rgb(110, 110, 116), M.CorrodedMetal)
+			kit:Part(Vector3.new(20, 3, 3), CFrame.new(x, 1.5, z), P.MetalDark, M.Metal)
+			-- log piles (good cover)
+			for _, pile in { { -20, 18 }, { 18, 18 }, { -22, -18 } } do
+				for row = 0, 2 do
+					for i = 0, 3 - row do
+						kit:Cylinder(14, 2, CFrame.new(x + pile[1], 1 + row * 1.8, z + pile[2] - 3 + i * 2 + row) * CFrame.Angles(0, 0, 0), P.Trunk, M.Wood)
+					end
+				end
+			end
+		end
+	end
+
+	-- forest
+	local placed = 0
+	for _ = 1, 600 do
+		if placed >= 170 then
+			break
+		end
+		local x, z = rng:NextNumber(-HALF + 10, HALF - 10), rng:NextNumber(-HALF + 10, HALF - 10)
+		if not blocked(x, z, 4) then
+			local pine = rng:NextNumber() < 0.6
+			kit:Tree(Vector3.new(x, 0, z), rng:NextNumber(0.9, 1.6), pine and "Pine" or "Oak")
+			placed += 1
+		end
+	end
+	for _ = 1, 45 do
+		local x, z = rng:NextNumber(-180, 180), rng:NextNumber(-180, 180)
+		if not blocked(x, z, 1) then
+			if rng:NextNumber() < 0.5 then
+				kit:Bush(Vector3.new(x, 0, z), rng:NextNumber(0.8, 1.3))
+			else
+				kit:Rock(Vector3.new(x, 0, z), rng:NextNumber(0.8, 1.6))
+			end
+		end
+	end
+	-- reeds & rocks along the river
+	for z = -180, 180, 24 do
+		kit:Rock(Vector3.new(riverX(z) + (z % 48 == 0 and 17 or -17), -0.5, z), 0.9)
+	end
+
+	-- vehicles
+	kit:VehicleSpot(CFrame.new(-150, 1, 5) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(80, 100, 60))
+	kit:VehicleSpot(CFrame.new(150, 1, -5) * CFrame.Angles(0, math.rad(90), 0), "Jeep", rgb(140, 120, 80))
+	kit:VehicleSpot(CFrame.new(120, 1, 120) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
+	kit:VehicleSpot(CFrame.new(-80, 1, -8) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(60, 80, 100))
+
+	-- spawns in a ring (east & west banks)
+	for i = 0, 15 do
+		local a = i / 16 * math.pi * 2
+		local x, z = math.cos(a) * 140, math.sin(a) * 140
+		if math.abs(x - riverX(z)) < 30 then
+			x += 40
+		end
+		kit:Spawn(Vector3.new(x, 6, z))
+	end
+	kit:Boundary(HALF, HALF, 200)
+	return kit
+end
+
+return Map
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="ModuleScript" referent="26">
         <Properties>
           <string name="Name">MonetizationService</string>
           <string name="Source"><![CDATA[-- Game passes + developer products (Robux store).
@@ -3015,7 +4880,7 @@ return MonetizationService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="20">
+      <Item class="ModuleScript" referent="27">
         <Properties>
           <string name="Name">RoundService</string>
           <string name="Source"><![CDATA[-- Match loop: WARMUP -> LIVE MATCH -> RESULTS -> repeat.
@@ -3040,6 +4905,7 @@ RoundService.GetHolders = function()
 end
 RoundService.OnEntityDied = function(_entity) end
 RoundService.RespawnAll = function() end
+RoundService.Map = nil -- MapService (injected)
 
 local function setState(state: string, duration: number)
 	RoundService.State = state
@@ -3102,6 +4968,10 @@ function RoundService.EndMatch(winnerEntity)
 	end
 	RoundService.ForcedWinner = winnerEntity
 	setState("Results", Config.ResultsLength)
+	if RoundService.Map then
+		RoundService.Map.StartVote()
+	end
+	local mapId = ReplicatedStorage:GetAttribute("MapId") or "Arena"
 
 	local list = ranking()
 	if winnerEntity then
@@ -3126,6 +4996,7 @@ function RoundService.EndMatch(winnerEntity)
 			DataService.AddXP(player, Config.MatchPlayXP)
 			if place == 1 then
 				AchievementService.Add(player, "Wins", 1)
+				AchievementService.Add(player, "Wins_" .. mapId, 1)
 				DataService.AddCash(player, Config.WinCash, true, "VICTORY")
 				DataService.AddXP(player, Config.WinXP)
 			end
@@ -3193,9 +5064,15 @@ function RoundService.Start()
 				RoundService.EndMatch(nil)
 			end
 
-			-- RESULTS
+			-- RESULTS (players vote for the next map)
 			while timeLeft() > 0 do
 				task.wait(0.25)
+			end
+			if RoundService.Map then
+				local nextMap = RoundService.Map.EndVote()
+				if nextMap ~= ReplicatedStorage:GetAttribute("MapId") then
+					RoundService.Map.Load(nextMap)
+				end
 			end
 			RoundService.RespawnAll()
 		end
@@ -3206,17 +5083,283 @@ return RoundService
 ]]></string>
         </Properties>
       </Item>
+      <Item class="ModuleScript" referent="28">
+        <Properties>
+          <string name="Name">VehicleService</string>
+          <string name="Source"><![CDATA[-- Cars: spawning per map, network ownership for the driver, roadkills,
+-- shooting/blowing up cars, and respawning wrecks.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local CarBuilder = require(Shared.CarBuilder)
+local Remotes = require(Shared.Remotes)
+local Combat = require(script.Parent.CombatService)
+local AchievementService = require(script.Parent.AchievementService)
+
+local VehicleService = {}
+VehicleService.Cars = {} -- [Model] = record
+
+local folder = Instance.new("Folder")
+folder.Name = "Vehicles"
+folder.Parent = workspace
+
+local RESPAWN = 25
+local generation = 0
+
+local function occupants(car: Model)
+	local list = {}
+	for _, seat in car:GetChildren() do
+		if (seat:IsA("Seat") or seat:IsA("VehicleSeat")) and seat.Occupant then
+			local entity = Combat.Entities[seat.Occupant.Parent]
+			if entity then
+				table.insert(list, entity)
+			end
+		end
+	end
+	return list
+end
+
+local function driverEntity(car: Model)
+	local seat = car:FindFirstChild("DriverSeat")
+	local occ = seat and seat.Occupant
+	return occ and Combat.Entities[occ.Parent] or nil
+end
+
+local spawnCar
+
+local function explode(car: Model, attacker)
+	local record = VehicleService.Cars[car]
+	if not record or record.Dead then
+		return
+	end
+	record.Dead = true
+	local chassis = car.PrimaryPart
+	local pos = chassis and chassis.Position or car:GetPivot().Position
+	for _, entity in occupants(car) do
+		Combat.Damage(attacker, entity, 9999, { Weapon = "Car", WeaponName = "CAR EXPLOSION", Kind = "Vehicle", Explosive = true, Position = pos })
+	end
+	Combat.AreaDamage(attacker, pos, 20, 110, { Weapon = "Car", WeaponName = "CAR EXPLOSION", Kind = "Vehicle", Explosive = true })
+	if attacker and attacker.Player then
+		AchievementService.Add(attacker.Player, "CarsDestroyed", 1)
+		Remotes.Notify:FireClient(attacker.Player, "Medal", { Medals = { { Text = "VEHICLE DESTROYED", Bonus = 100 } } })
+	end
+	-- burnt wreck
+	for _, p in car:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Anchored = true
+			if p.Transparency < 1 then
+				p.Color = p.Color:Lerp(Color3.fromRGB(25, 22, 20), 0.85)
+				p.Material = Enum.Material.CorrodedMetal
+			end
+		elseif p:IsA("Light") then
+			p.Enabled = false
+		elseif p:IsA("ProximityPrompt") then
+			p.Enabled = false
+		end
+	end
+	if chassis then
+		local fire = Instance.new("Fire")
+		fire.Size = 9
+		fire.Heat = 12
+		fire.Parent = chassis
+		local smoke = Instance.new("Smoke")
+		smoke.Size = 6
+		smoke.Opacity = 0.4
+		smoke.RiseVelocity = 8
+		smoke.Parent = chassis
+	end
+	local gen = generation
+	task.delay(10, function()
+		car:Destroy()
+	end)
+	task.delay(RESPAWN, function()
+		if gen == generation and record.Spot.Parent then
+			spawnCar(record.Spot)
+		end
+	end)
+end
+
+function VehicleService.DamageCar(car: Model, attacker, amount: number)
+	local record = VehicleService.Cars[car]
+	if not record or record.Dead then
+		return
+	end
+	-- don't let drivers wreck their own ride
+	if attacker and table.find(occupants(car), attacker) then
+		return
+	end
+	local hp = (car:GetAttribute("Health") or 0) - amount
+	car:SetAttribute("Health", hp)
+	if attacker and attacker.Player then
+		Remotes.HitConfirm:FireClient(attacker.Player, { Damage = amount, Headshot = false, Killed = hp <= 0, Position = car:GetPivot().Position + Vector3.new(0, 3, 0), Vehicle = true })
+	end
+	if hp <= 0 then
+		explode(car, attacker)
+	end
+end
+
+function VehicleService.CarFromPart(part: Instance?)
+	local model = part and part:FindFirstAncestorOfClass("Model")
+	while model and model.Parent ~= folder do
+		model = model:FindFirstAncestorOfClass("Model")
+	end
+	return model
+end
+
+function VehicleService.AreaDamage(attacker, position: Vector3, radius: number, maxDamage: number)
+	for car, record in VehicleService.Cars do
+		if not record.Dead and car.PrimaryPart then
+			local d = (car.PrimaryPart.Position - position).Magnitude
+			if d <= radius + 4 then
+				VehicleService.DamageCar(car, attacker, maxDamage * 2 * (1 - math.min(1, d / (radius + 4)) * 0.6))
+			end
+		end
+	end
+end
+
+local function setupDriving(car: Model)
+	local seat = car:FindFirstChild("DriverSeat") :: VehicleSeat
+	local chassis = car.PrimaryPart
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Drive"
+	prompt.ObjectText = car.Name
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = seat
+	prompt.Triggered:Connect(function(player)
+		local char = player.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum and hum.Health > 0 and not seat.Occupant then
+			seat:Sit(hum)
+		end
+	end)
+	seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+		local hum = seat.Occupant
+		local player = hum and Players:GetPlayerFromCharacter(hum.Parent)
+		prompt.Enabled = hum == nil
+		if player then
+			pcall(chassis.SetNetworkOwner, chassis, player)
+			car:SetAttribute("Driver", player.Name)
+			AchievementService.Add(player, "Drives", 1)
+		else
+			pcall(chassis.SetNetworkOwner, chassis, nil)
+			car:SetAttribute("Driver", nil)
+		end
+	end)
+
+	-- roadkill
+	local lastHit = {}
+	local function onTouched(hit: BasePart)
+		local record = VehicleService.Cars[car]
+		if not record or record.Dead then
+			return
+		end
+		local speed = chassis.AssemblyLinearVelocity.Magnitude
+		if speed < 28 then
+			return
+		end
+		local model = hit:FindFirstAncestorOfClass("Model")
+		local victim = model and Combat.Entities[model]
+		if not victim or not Combat.IsAlive(victim) then
+			return
+		end
+		if victim.Humanoid.SeatPart and victim.Humanoid.SeatPart:IsDescendantOf(car) then
+			return
+		end
+		if os.clock() - (lastHit[victim] or 0) < 1 then
+			return
+		end
+		lastHit[victim] = os.clock()
+		local driver = driverEntity(car)
+		local killed = Combat.Damage(driver, victim, 60 + speed * 1.6, { Weapon = "Car", WeaponName = "ROADKILL", Kind = "Roadkill", Position = victim.Root.Position, Distance = 0 })
+		if killed and driver and driver.Player then
+			AchievementService.Add(driver.Player, "Roadkills", 1)
+		end
+	end
+	for _, name in { "Body", "Chassis", "BumperF", "BumperR" } do
+		local p = car:FindFirstChild(name)
+		if p then
+			p.Touched:Connect(onTouched)
+		end
+	end
+end
+
+spawnCar = function(spot: BasePart)
+	local parked = spot:GetAttribute("Parked") == true
+	local car = CarBuilder.Build(spot:GetAttribute("Style") or "Sedan", spot:GetAttribute("Color"), parked)
+	car:PivotTo(spot.CFrame + Vector3.new(0, 0.3, 0))
+	if parked then
+		car:SetAttribute("Parked", true)
+		local seat = car:FindFirstChild("DriverSeat")
+		if seat then
+			seat.Disabled = true
+		end
+		local p = car:FindFirstChild("PassengerSeat")
+		if p then
+			p.Disabled = true
+		end
+	end
+	car.Parent = folder
+	VehicleService.Cars[car] = { Spot = spot, Dead = false }
+	car.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			VehicleService.Cars[car] = nil
+		end
+	end)
+	if not parked then
+		setupDriving(car)
+	end
+	return car
+end
+
+function VehicleService.OnMapLoaded(map: Instance)
+	generation += 1
+	folder:ClearAllChildren()
+	VehicleService.Cars = {}
+	local spots = map:FindFirstChild("VehicleSpots")
+	if spots then
+		for _, spot in spots:GetChildren() do
+			spawnCar(spot)
+		end
+	end
+end
+
+-- Parked/unoccupied cars slow down instead of sliding forever
+local acc = 0
+RunService.Heartbeat:Connect(function(dt)
+	acc += dt
+	if acc < 0.1 then
+		return
+	end
+	acc = 0
+	for car, record in VehicleService.Cars do
+		local chassis = car.PrimaryPart
+		if chassis and not record.Dead and not chassis.Anchored and not car:GetAttribute("Driver") then
+			local v = chassis.AssemblyLinearVelocity
+			chassis.AssemblyLinearVelocity = Vector3.new(v.X * 0.7, v.Y, v.Z * 0.7)
+			chassis.AssemblyAngularVelocity *= 0.7
+		end
+	end
+end)
+
+return VehicleService
+]]></string>
+        </Properties>
+      </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="21">
+  <Item class="StarterPlayer" referent="29">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterCharacterScripts" referent="22">
+    <Item class="StarterCharacterScripts" referent="30">
       <Properties>
         <string name="Name">StarterCharacterScripts</string>
       </Properties>
-      <Item class="Script" referent="23">
+      <Item class="Script" referent="31">
         <Properties>
           <string name="Name">Health</string>
           <token name="RunContext">0</token>
@@ -3226,15 +5369,15 @@ return RoundService
         </Properties>
       </Item>
     </Item>
-    <Item class="StarterPlayerScripts" referent="24">
+    <Item class="StarterPlayerScripts" referent="32">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="25">
+      <Item class="Folder" referent="33">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="LocalScript" referent="26">
+        <Item class="LocalScript" referent="34">
           <Properties>
             <string name="Name">ClientMain</string>
             <string name="Source"><![CDATA[-- Client entry point: builds the UI, starts the controllers and routes
@@ -3256,6 +5399,7 @@ local HUD = require(script.Parent.HUD)
 local Menus = require(script.Parent.Menus)
 local Movement = require(script.Parent.MovementController)
 local Weapons = require(script.Parent.WeaponController)
+local Vehicle = require(script.Parent.VehicleController)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -3292,6 +5436,10 @@ HUD.OpenMenu = function(name)
 end
 Movement.Init()
 Weapons.Init()
+Vehicle.Init()
+ClientState.Changed.Event:Connect(function()
+	Effects.ShakeScale = ClientState.Settings.Shake or 1
+end)
 
 Menus.OnDeploy = function()
 	ClientState.Deployed = true
@@ -3315,6 +5463,7 @@ local function onCharacter(char: Model)
 	camera.CameraType = Enum.CameraType.Custom
 	camera.CameraSubject = humanoid
 	player.CameraMode = Enum.CameraMode.LockFirstPerson
+	player.CameraMinZoomDistance = 0.5
 	humanoid.Died:Connect(function()
 		ClientState.Dead = true
 		player.CameraMode = Enum.CameraMode.Classic
@@ -3356,6 +5505,8 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		Menus.Toggle("Store")
 	elseif k == Enum.KeyCode.J then
 		Menus.Toggle("Achievements")
+	elseif k == Enum.KeyCode.P then
+		Menus.Toggle("Settings")
 	elseif k == Enum.KeyCode.Tab then
 		Menus.ShowScoreboard(true)
 	elseif k == Enum.KeyCode.ButtonSelect then
@@ -3428,6 +5579,8 @@ end)
 Remotes.Effect.OnClientEvent:Connect(function(kind, a, b, c)
 	if kind == "Shot" then
 		Effects.RemoteShot(a, b, c)
+	elseif kind == "Launch" then
+		Effects.Launch(a, b)
 	elseif kind == "Explosion" then
 		Effects.Explosion(a, b)
 	elseif kind == "Slam" then
@@ -3467,7 +5620,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="35">
           <Properties>
             <string name="Name">ClientState</string>
             <string name="Source"><![CDATA[-- Shared client-side state that every controller / UI module can read.
@@ -3482,7 +5635,14 @@ local State = {
 	MenuOpen = false, -- any full-screen menu is open (blocks shooting)
 	Deployed = false, -- pressed PLAY
 	Dead = false,
+	Driving = false,
+	Settings = { FOV = 72, Shake = 1, AdsSens = 0.7, Crosshair = "White" },
 	Changed = Instance.new("BindableEvent"),
+}
+
+State.CrosshairColors = {
+	White = Color3.new(1, 1, 1), Green = Color3.fromRGB(70, 255, 120), Cyan = Color3.fromRGB(0, 230, 255),
+	Red = Color3.fromRGB(255, 70, 80), Yellow = Color3.fromRGB(255, 220, 40),
 }
 
 function State.HasPass(key: string): boolean
@@ -3495,6 +5655,11 @@ end
 
 Remotes.DataSync.OnClientEvent:Connect(function(data)
 	State.Data = data
+	if data.Settings then
+		for k, v in data.Settings do
+			State.Settings[k] = v
+		end
+	end
 	State.Changed:Fire()
 end)
 
@@ -3508,7 +5673,7 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="28">
+        <Item class="ModuleScript" referent="36">
           <Properties>
             <string name="Name">Effects</string>
             <string name="Source"><![CDATA[-- Client-side visual effects: tracers, muzzle flashes, explosions, shake, UAV.
@@ -3524,6 +5689,8 @@ local Config = require(Shared.Config)
 
 local player = Players.LocalPlayer
 local Effects = {}
+local uavUntil = 0
+Effects.LastFired = setmetatable({}, { __mode = "k" }) -- [character] = os.clock() of their last shot (minimap)
 
 local function folder()
 	return workspace:FindFirstChild("Effects") or workspace
@@ -3593,8 +5760,9 @@ end
 
 -- CAMERA SHAKE -----------------------------------------------------------------
 local shake = 0
+Effects.ShakeScale = 1 -- from settings (0 = off)
 function Effects.Shake(amount: number)
-	shake = math.max(shake, amount)
+	shake = math.max(shake, amount * Effects.ShakeScale)
 end
 
 function Effects.StepShake(dt: number): CFrame
@@ -3644,6 +5812,7 @@ function Effects.RemoteShot(character: Model?, weaponId: string, ends)
 	if not character or character == player.Character then
 		return
 	end
+	Effects.LastFired[character] = os.clock()
 	local def = Weapons.Get(weaponId)
 	local tool = character:FindFirstChildOfClass("Tool")
 	local handle = tool and tool:FindFirstChild("Handle")
@@ -3667,8 +5836,69 @@ function Effects.RemoteShot(character: Model?, weaponId: string, ends)
 	Effects.Sound3D(def and def.Class == "Sniper" and "ShotHeavy" or "Shot", from, 0.9 + math.random() * 0.2)
 end
 
+-- Target reaction: briefly flash the character you hit (white, gold for headshots).
+function Effects.HitFlash(position: Vector3?, headshot: boolean?)
+	if not position then
+		return
+	end
+	local best, bestDist = nil, 6
+	local candidates = {}
+	for _, p in Players:GetPlayers() do
+		if p ~= player and p.Character then
+			table.insert(candidates, p.Character)
+		end
+	end
+	local bots = workspace:FindFirstChild("Bots")
+	if bots then
+		for _, b in bots:GetChildren() do
+			table.insert(candidates, b)
+		end
+	end
+	for _, char in candidates do
+		local root = char:FindFirstChild("HumanoidRootPart")
+		if root then
+			local d = (root.Position - position).Magnitude
+			if d < bestDist then
+				best, bestDist = char, d
+			end
+		end
+	end
+	if not best then
+		return
+	end
+	local h = Instance.new("Highlight")
+	h.FillColor = headshot and Config.Colors.Gold or Color3.new(1, 1, 1)
+	h.FillTransparency = 0.35
+	h.OutlineTransparency = 1
+	h.DepthMode = Enum.HighlightDepthMode.Occluded
+	h.Adornee = best
+	h.Parent = folder()
+	TweenService:Create(h, TweenInfo.new(0.15), { FillTransparency = 1 }):Play()
+	Debris:AddItem(h, 0.2)
+end
+
+-- Rocket / grenade-launcher launch from someone else
+function Effects.Launch(character: Model?, weaponId: string)
+	if not character or character == player.Character then
+		return
+	end
+	Effects.LastFired[character] = os.clock()
+	local def = Weapons.Get(weaponId)
+	local tool = character:FindFirstChildOfClass("Tool")
+	local handle = tool and tool:FindFirstChild("Handle")
+	local muzzle = handle and handle:FindFirstChild("Muzzle")
+	local pos = muzzle and muzzle.WorldPosition or (character:FindFirstChild("Head") and character.Head.Position)
+	if pos then
+		Effects.Flash(pos, def and def.Look.Accent)
+		Effects.Sound3D("ShotHeavy", pos, 0.7)
+	end
+end
+
+function Effects.UAVActive(): boolean
+	return os.clock() < uavUntil
+end
+
 -- UAV: highlight every enemy through walls.
-local uavUntil = 0
 local highlights = {}
 local function clearHighlights()
 	for _, h in highlights do
@@ -3714,7 +5944,7 @@ return Effects
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="37">
           <Properties>
             <string name="Name">HUD</string>
             <string name="Source"><![CDATA[-- In-game HUD in the style of the big shooters:
@@ -3786,7 +6016,7 @@ end
 
 -- PROFILE (top-left) -------------------------------------------------------------
 local function buildProfile()
-	local f = new("Frame", { Name = "Profile", Size = UDim2.fromOffset(260, 80), Position = UDim2.fromOffset(16, 12), BackgroundTransparency = 1, Parent = gui })
+	local f = new("Frame", { Name = "Profile", Size = UDim2.fromOffset(260, 80), Position = UDim2.fromOffset(16, 192), BackgroundTransparency = 1, Parent = gui })
 	local badge = UIKit.Panel({ Size = UDim2.fromOffset(46, 46), BackgroundColor3 = T.Accent, BackgroundTransparency = 0, Parent = f })
 	Label({ Text = "LVL", Size = UDim2.new(1, 0, 0, 12), Position = UDim2.fromOffset(0, 5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Black, TextColor3 = Color3.new(0, 0, 0), Parent = badge })
 	refs.Level = Label({ Text = "1", Size = UDim2.new(1, 0, 0, 24), Position = UDim2.fromOffset(0, 16), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 22, Font = T.Black, TextColor3 = Color3.new(0, 0, 0), Parent = badge })
@@ -3805,12 +6035,13 @@ end
 
 -- SIDE MENU (left) ---------------------------------------------------------------
 local function buildSideMenu()
-	local f = new("Frame", { Name = "Side", Size = UDim2.fromOffset(150, 200), Position = UDim2.new(0, 16, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Parent = gui }, { UIKit.List(6) })
+	local f = new("Frame", { Name = "Side", Size = UDim2.fromOffset(150, 240), Position = UDim2.new(0, 16, 0.62, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Parent = gui }, { UIKit.List(6) })
 	local items = {
 		{ "Armory", "🔫 ARMORY", "B", T.Panel2 },
 		{ "Store", "💎 STORE", "N", T.Robux },
 		{ "Achievements", "🏆 TROPHIES", "J", T.Panel2 },
 		{ "Scoreboard", "📋 SCORES", "TAB", T.Panel2 },
+		{ "Settings", "⚙️ SETTINGS", "P", T.Panel2 },
 	}
 	for i, item in items do
 		local b = UIKit.Button({ Text = "", Size = UDim2.fromOffset(150, 34), Color = item[4], LayoutOrder = i, Parent = f }, function()
@@ -4003,6 +6234,13 @@ function HUD.SetCrosshair(px: number, visible: boolean)
 		return
 	end
 	refs.Cross.Visible = visible
+	local color = ClientState.CrosshairColors[ClientState.Settings.Crosshair] or Color3.new(1, 1, 1)
+	if refs.CrossColor ~= color then
+		refs.CrossColor = color
+		for _, b in refs.CrossBars do
+			b[1].BackgroundColor3 = color
+		end
+	end
 	local gap = math.clamp(px, 4, 120) + 4
 	for _, b in refs.CrossBars do
 		b[1].Position = UDim2.new(0.5, b[2] * gap, 0.5, b[3] * gap)
@@ -4225,8 +6463,11 @@ end
 
 -- DAMAGE / DEATH ---------------------------------------------------------------------
 local hurtFlash = 0
-function HUD.Damaged(_from: Vector3?, amount: number)
+function HUD.Damaged(from: Vector3?, amount: number)
 	hurtFlash = math.min(1, hurtFlash + amount / 40)
+	if HUD.Extras then
+		HUD.Extras.DamageFrom(from)
+	end
 end
 
 local function buildDeath()
@@ -4312,6 +6553,7 @@ local function update(dt: number)
 	local left = math.max(0, (ReplicatedStorage:GetAttribute("MatchEnd") or 0) - now)
 
 	refs.Timer.Text = Util.Time(left)
+	refs.Mode.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. " · FFA · FIRST TO " .. Config.KillsToWin
 	refs.Timer.TextColor3 = (state == "Active" and left < 30) and T.Red or T.Text
 	if state == "Intermission" then
 		refs.Banner.Text = "WARMUP  ·  MATCH STARTS IN " .. math.ceil(left)
@@ -4433,6 +6675,7 @@ local function update(dt: number)
 end
 
 -- PUBLIC ----------------------------------------------------------------------------
+HUD.Extras = nil
 function HUD.SetVisible(visible: boolean)
 	if gui then
 		gui.Enabled = visible
@@ -4451,6 +6694,9 @@ function HUD.Init(playerGui: PlayerGui)
 	buildAbilities()
 	buildCrosshair()
 	buildDeath()
+	HUD.Gui = gui
+	HUD.Extras = require(script.Parent.HUDExtras)
+	HUD.Extras.Init(gui)
 	RunService.RenderStepped:Connect(update)
 end
 
@@ -4458,7 +6704,263 @@ return HUD
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="38">
+          <Properties>
+            <string name="Name">HUDExtras</string>
+            <string name="Source"><![CDATA[-- Extra HUD widgets: minimap radar, damage direction arrows, aimed-target info,
+-- vehicle speedometer and the minigun spin meter.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local UIKit = require(script.Parent.UIKit)
+local ClientState = require(script.Parent.ClientState)
+local Effects = require(script.Parent.Effects)
+local Vehicle = require(script.Parent.VehicleController)
+local Weapons = require(script.Parent.WeaponController)
+
+local player = Players.LocalPlayer
+local T = UIKit.Theme
+local new, Label = UIKit.new, UIKit.Label
+
+local Extras = {}
+local refs = {}
+local RADAR_RANGE = 160
+local RADAR_SIZE = 170
+
+local function enemies()
+	local list = {}
+	for _, p in Players:GetPlayers() do
+		if p ~= player and p.Character then
+			table.insert(list, p.Character)
+		end
+	end
+	local bots = workspace:FindFirstChild("Bots")
+	if bots then
+		for _, b in bots:GetChildren() do
+			table.insert(list, b)
+		end
+	end
+	return list
+end
+
+-- MINIMAP --------------------------------------------------------------------------
+local function buildRadar(gui)
+	local frame = UIKit.Panel({ Name = "Radar", Size = UDim2.fromOffset(RADAR_SIZE, RADAR_SIZE), Position = UDim2.fromOffset(16, 12), BackgroundColor3 = Color3.fromRGB(8, 12, 16), BackgroundTransparency = 0.3, Parent = gui })
+	frame.ClipsDescendants = true
+	UIKit.Stroke(Color3.new(1, 1, 1), 1.5, 0.75).Parent = frame
+	for i = 1, 3 do
+		local ring = new("Frame", { Size = UDim2.fromScale(i / 3, i / 3), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Parent = frame })
+		new("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = ring })
+		new("UIStroke", { Color = T.Accent2, Transparency = 0.8, Parent = ring })
+	end
+	new("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromScale(0, 0.5), BackgroundColor3 = T.Accent2, BackgroundTransparency = 0.85, BorderSizePixel = 0, Parent = frame })
+	new("Frame", { Size = UDim2.new(0, 1, 1, 0), Position = UDim2.fromScale(0.5, 0), BackgroundColor3 = T.Accent2, BackgroundTransparency = 0.85, BorderSizePixel = 0, Parent = frame })
+	-- view cone + you
+	local me = Label({ Text = "▲", Size = UDim2.fromOffset(16, 16), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 14, Font = T.Black, TextColor3 = T.Accent, ZIndex = 5, Parent = frame })
+	refs.RadarMe = me
+	refs.North = Label({ Text = "N", Size = UDim2.fromOffset(14, 14), AnchorPoint = Vector2.new(0.5, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 11, Font = T.Black, TextColor3 = T.Sub, ZIndex = 5, Parent = frame })
+	refs.MapName = Label({ Text = "", Size = UDim2.new(1, -8, 0, 14), Position = UDim2.new(0, 4, 1, -16), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Black, TextColor3 = T.Sub, ZIndex = 5, Parent = frame })
+	refs.Radar = frame
+	refs.Dots = {}
+end
+
+local function dot(i: number)
+	local d = refs.Dots[i]
+	if not d then
+		d = new("Frame", { Size = UDim2.fromOffset(7, 7), AnchorPoint = Vector2.new(0.5, 0.5), BorderSizePixel = 0, ZIndex = 4, Parent = refs.Radar })
+		new("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = d })
+		refs.Dots[i] = d
+	end
+	d.Visible = true
+	return d
+end
+
+local function updateRadar()
+	local cam = workspace.CurrentCamera
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local origin = root and root.Position or cam.CFrame.Position
+	local look = cam.CFrame.LookVector
+	local yaw = math.atan2(-look.X, -look.Z)
+	local cosY, sinY = math.cos(yaw), math.sin(yaw)
+	local function toRadar(pos: Vector3)
+		local dx, dz = pos.X - origin.X, pos.Z - origin.Z
+		-- rotate so camera forward is "up"
+		local rx = dx * cosY - dz * sinY
+		local rz = dx * sinY + dz * cosY
+		local s = (RADAR_SIZE / 2) / RADAR_RANGE
+		return rx * s, rz * s, math.sqrt(dx * dx + dz * dz)
+	end
+	local n = 0
+	local now = os.clock()
+	local uav = Effects.UAVActive()
+	for _, enemy in enemies() do
+		local r = enemy:FindFirstChild("HumanoidRootPart")
+		local hum = enemy:FindFirstChildOfClass("Humanoid")
+		if r and hum and hum.Health > 0 and (uav or now - (Effects.LastFired[enemy] or -10) < 2.5) then
+			local x, y, dist = toRadar(r.Position)
+			if dist < RADAR_RANGE then
+				n += 1
+				local d = dot(n)
+				d.BackgroundColor3 = T.Red
+				d.Size = UDim2.fromOffset(8, 8)
+				d.Position = UDim2.new(0.5, x, 0.5, y)
+			end
+		end
+	end
+	-- health packs + vehicles
+	local map = workspace:FindFirstChild("Map")
+	local props = map and map:FindFirstChild("Props")
+	if props then
+		for _, p in props:GetChildren() do
+			if p:IsA("BasePart") and p:GetAttribute("HealthPack") then
+				local x, y, dist = toRadar(p.Position)
+				if dist < RADAR_RANGE then
+					n += 1
+					local d = dot(n)
+					d.BackgroundColor3 = T.Green
+					d.Size = UDim2.fromOffset(6, 6)
+					d.Position = UDim2.new(0.5, x, 0.5, y)
+				end
+			end
+		end
+	end
+	local vehicles = workspace:FindFirstChild("Vehicles")
+	if vehicles then
+		for _, car in vehicles:GetChildren() do
+			if car.PrimaryPart and not car:GetAttribute("Parked") then
+				local x, y, dist = toRadar(car.PrimaryPart.Position)
+				if dist < RADAR_RANGE then
+					n += 1
+					local d = dot(n)
+					d.BackgroundColor3 = Color3.new(1, 1, 1)
+					d.Size = UDim2.fromOffset(6, 9)
+					d.Position = UDim2.new(0.5, x, 0.5, y)
+				end
+			end
+		end
+	end
+	for i = n + 1, #refs.Dots do
+		refs.Dots[i].Visible = false
+	end
+	-- north marker on the rim
+	local nx, ny = sinY, -cosY
+	refs.North.Position = UDim2.new(0.5, nx * (RADAR_SIZE / 2 - 10), 0.5, ny * (RADAR_SIZE / 2 - 10))
+	refs.MapName.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. (uav and "  ·  📡 UAV" or "")
+end
+
+-- DAMAGE ARROWS ------------------------------------------------------------------------
+function Extras.DamageFrom(from: Vector3?)
+	if not from or not refs.Arrows then
+		return
+	end
+	local cam = workspace.CurrentCamera
+	local dir = from - cam.CFrame.Position
+	local look = cam.CFrame.LookVector
+	local angle = math.atan2(dir.X, dir.Z) - math.atan2(look.X, look.Z)
+	local deg = -math.deg(angle)
+	local holder = new("Frame", { Size = UDim2.fromOffset(240, 240), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Rotation = deg, Parent = refs.Arrows })
+	local arrow = Label({ Text = "▲", Size = UDim2.fromOffset(40, 30), Position = UDim2.new(0.5, 0, 0, 0), AnchorPoint = Vector2.new(0.5, 0), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 34, Font = T.Black, TextColor3 = T.Red, Parent = holder })
+	UIKit.TextStroke(0.3).Parent = arrow
+	UIKit.Tween(arrow, 1.3, { TextTransparency = 1 })
+	task.delay(1.35, function()
+		holder:Destroy()
+	end)
+end
+
+-- TARGET INFO ------------------------------------------------------------------------------
+local function buildTarget(gui)
+	local f = new("Frame", { Name = "Target", Size = UDim2.fromOffset(200, 34), Position = UDim2.new(0.5, 0, 0.5, -70), AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 1, Visible = false, Parent = gui })
+	refs.TargetName = Label({ Text = "", Size = UDim2.new(1, 0, 0, 18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 14, Font = T.Black, TextColor3 = T.Red, Parent = f })
+	UIKit.TextStroke(0.3).Parent = refs.TargetName
+	local bar, fill = UIKit.Bar({ Size = UDim2.fromOffset(110, 5), Position = UDim2.new(0.5, 0, 0, 22), AnchorPoint = Vector2.new(0.5, 0), Color = T.Red, Parent = f })
+	refs.TargetBar = bar
+	refs.TargetFill = fill
+	refs.Target = f
+end
+
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+local function updateTarget()
+	local cam = workspace.CurrentCamera
+	rayParams.FilterDescendantsInstances = { player.Character, cam, workspace:FindFirstChild("Effects") }
+	local result = workspace:Raycast(cam.CFrame.Position, cam.CFrame.LookVector * 400, rayParams)
+	local model = result and result.Instance:FindFirstAncestorOfClass("Model")
+	local hum = model and model:FindFirstChildOfClass("Humanoid")
+	if not hum and model and model.Parent and model.Parent:IsA("Model") then
+		model = model.Parent
+		hum = model:FindFirstChildOfClass("Humanoid")
+	end
+	if hum and hum.Health > 0 and ClientState.Deployed and not ClientState.Dead then
+		local isBot = model:GetAttribute("BotName") ~= nil
+		refs.TargetName.Text = string.upper(model.Name) .. (isBot and "  [BOT]" or "")
+		refs.TargetFill.Size = UDim2.fromScale(math.clamp(hum.Health / hum.MaxHealth, 0, 1), 1)
+		refs.Target.Visible = true
+	else
+		refs.Target.Visible = false
+	end
+end
+
+-- VEHICLE HUD + MINIGUN --------------------------------------------------------------------
+local function buildVehicle(gui)
+	local f = UIKit.Panel({ Name = "VehicleHUD", Size = UDim2.fromOffset(300, 74), Position = UDim2.new(0.5, 0, 1, -40), AnchorPoint = Vector2.new(0.5, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.4, Visible = false, Parent = gui })
+	refs.Speed = Label({ Text = "0", Size = UDim2.fromOffset(110, 44), Position = UDim2.fromOffset(12, 6), TextXAlignment = Enum.TextXAlignment.Right, TextSize = 42, Font = T.Black, Parent = f })
+	Label({ Text = "MPH", Size = UDim2.fromOffset(40, 16), Position = UDim2.fromOffset(126, 28), TextSize = 12, Font = T.Black, TextColor3 = T.Sub, Parent = f })
+	refs.CarName = Label({ Text = "", Size = UDim2.fromOffset(120, 16), Position = UDim2.fromOffset(170, 10), TextSize = 12, Font = T.Black, TextColor3 = T.Accent, Parent = f })
+	local _, fill = UIKit.Bar({ Size = UDim2.fromOffset(116, 8), Position = UDim2.fromOffset(170, 32), Color = T.Green, Parent = f })
+	refs.CarHealth = fill
+	Label({ Text = "W/S drive · A/D steer · SHIFT boost · SPACE exit", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, Parent = f })
+	refs.Vehicle = f
+
+	local spinBar, spinFill = UIKit.Bar({ Size = UDim2.fromOffset(80, 4), Position = UDim2.new(0.5, 0, 0.5, 34), AnchorPoint = Vector2.new(0.5, 0), Color = T.Accent, Parent = gui })
+	refs.SpinBar = spinBar
+	refs.SpinFill = spinFill
+end
+
+local function updateVehicle()
+	local car = Vehicle.Car
+	refs.Vehicle.Visible = car ~= nil
+	local abilities = refs.Gui:FindFirstChild("Abilities")
+	if abilities then
+		abilities.Visible = car == nil
+	end
+	if car then
+		refs.Speed.Text = tostring(math.floor(Vehicle.Speed * 0.6))
+		refs.CarName.Text = string.upper(car.Name)
+		local hp, max = car:GetAttribute("Health") or 0, car:GetAttribute("MaxHealth") or 1
+		refs.CarHealth.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
+		refs.CarHealth.BackgroundColor3 = T.Red:Lerp(T.Green, math.clamp(hp / max, 0, 1))
+	end
+	local def = Weapons.CurrentDef()
+	local spin = Weapons.Spin()
+	refs.SpinBar.Visible = def ~= nil and def.SpinUp ~= nil and spin > 0 and spin < 1
+	refs.SpinFill.Size = UDim2.fromScale(spin, 1)
+end
+
+function Extras.Init(gui: ScreenGui)
+	refs.Gui = gui
+	buildRadar(gui)
+	buildTarget(gui)
+	buildVehicle(gui)
+	refs.Arrows = new("Frame", { Name = "DamageArrows", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = gui })
+	local acc = 0
+	RunService.RenderStepped:Connect(function(dt)
+		acc += dt
+		updateVehicle()
+		if acc >= 1 / 15 then
+			acc = 0
+			updateRadar()
+			updateTarget()
+		end
+	end)
+end
+
+return Extras
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">Menus</string>
             <string name="Source"><![CDATA[-- Full-screen menus: Main Menu, Armory, Store (Robux), Achievements,
@@ -4478,6 +6980,7 @@ local Remotes = require(Shared.Remotes)
 local Util = require(Shared.Util)
 local UIKit = require(script.Parent.UIKit)
 local ClientState = require(script.Parent.ClientState)
+local Effects = require(script.Parent.Effects)
 
 local player = Players.LocalPlayer
 local T = UIKit.Theme
@@ -4488,6 +6991,7 @@ Menus.OnDeploy = nil -- injected
 Menus.Notify = function(_text, _color) end -- injected (HUD.Message)
 
 local gui
+local renderSettings
 local windows = {}
 local openName = nil
 local mainMenu, scoreboard, results
@@ -4793,6 +7297,65 @@ local function renderAchievements(w)
 	end
 end
 
+-- SETTINGS ------------------------------------------------------------------------------
+local function saveSettings()
+	Effects.ShakeScale = ClientState.Settings.Shake
+	Remotes.SaveSettings:FireServer(ClientState.Settings)
+end
+
+function renderSettings(w)
+	clear(w.Content)
+	clear(w.Right)
+	local S = ClientState.Settings
+	local list = scroller(w.Content)
+	local function row(order, title, desc)
+		local r = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 64), BackgroundColor3 = T.Panel, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 6, Parent = list })
+		Label({ Text = title, Size = UDim2.new(0.5, 0, 0, 22), Position = UDim2.fromOffset(16, 10), TextSize = 16, Font = T.Black, ZIndex = 7, Parent = r })
+		Label({ Text = desc, Size = UDim2.new(0.5, 0, 0, 16), Position = UDim2.fromOffset(16, 34), TextSize = 12, Font = T.Medium, TextColor3 = T.Sub, ZIndex = 7, Parent = r })
+		local controls = new("Frame", { Size = UDim2.new(0.5, -16, 1, 0), Position = UDim2.new(0.5, 0, 0, 0), BackgroundTransparency = 1, ZIndex = 7, Parent = r }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		return controls
+	end
+	local function stepper(parent, text, onMinus, onPlus)
+		local minus = UIKit.Button({ Text = "−", Size = UDim2.fromOffset(40, 36), Color = T.Panel3, LayoutOrder = 1, Parent = parent }, onMinus)
+		minus.ZIndex = 8
+		local value = UIKit.Panel({ Size = UDim2.fromOffset(90, 36), BackgroundColor3 = T.Panel2, LayoutOrder = 2, ZIndex = 8, Parent = parent })
+		Label({ Text = text, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, Font = T.Black, ZIndex = 9, Parent = value })
+		local plus = UIKit.Button({ Text = "+", Size = UDim2.fromOffset(40, 36), Color = T.Panel3, LayoutOrder = 3, Parent = parent }, onPlus)
+		plus.ZIndex = 8
+	end
+	local function change(key, value)
+		S[key] = value
+		saveSettings()
+		w.Render()
+	end
+	stepper(row(1, "FIELD OF VIEW", "Wider view vs. bigger targets"), tostring(S.FOV), function()
+		change("FOV", math.max(60, S.FOV - 5))
+	end, function()
+		change("FOV", math.min(100, S.FOV + 5))
+	end)
+	stepper(row(2, "AIM SENSITIVITY", "Mouse speed while aiming down sights"), string.format("%.1fx", S.AdsSens), function()
+		change("AdsSens", math.max(0.2, math.floor((S.AdsSens - 0.1) * 10 + 0.5) / 10))
+	end, function()
+		change("AdsSens", math.min(1.5, math.floor((S.AdsSens + 0.1) * 10 + 0.5) / 10))
+	end)
+	local shakeRow = row(3, "SCREEN SHAKE", "Reduce if explosions make you dizzy")
+	for i, opt in { { "OFF", 0 }, { "LOW", 0.5 }, { "FULL", 1 } } do
+		local b = UIKit.Button({ Text = opt[1], Size = UDim2.fromOffset(70, 36), Color = math.abs(S.Shake - opt[2]) < 0.01 and T.Accent or T.Panel3, TextSize = 13, LayoutOrder = i, Parent = shakeRow }, function()
+			change("Shake", opt[2])
+		end)
+		b.ZIndex = 8
+	end
+	local crossRow = row(4, "CROSSHAIR COLOR", "Pick what stands out on every map")
+	for i, name in { "White", "Green", "Cyan", "Red", "Yellow" } do
+		local b = UIKit.Button({ Text = S.Crosshair == name and "✓" or "", Size = UDim2.fromOffset(36, 36), Color = ClientState.CrosshairColors[name], TextColor = Color3.new(0, 0, 0), TextSize = 16, LayoutOrder = i, Parent = crossRow }, function()
+			change("Crosshair", name)
+		end)
+		b.ZIndex = 8
+	end
+end
+
 -- OPEN / CLOSE ---------------------------------------------------------------------
 function Menus.Open(name: string, tab: string?)
 	local w = windows[name]
@@ -4888,6 +7451,9 @@ function Menus.ShowScoreboard(on: boolean)
 end
 
 -- RESULTS ------------------------------------------------------------------------------
+local voteCards = {}
+local myVote = nil
+
 local function buildResults()
 	results = new("TextButton", { Name = "Results", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.25, Text = "", AutoButtonColor = false, Modal = true, Visible = false, ZIndex = 8, Parent = gui })
 end
@@ -4934,7 +7500,43 @@ function Menus.ShowResults(info)
 		end)
 		b.ZIndex = 10
 	end
+	-- map vote
+	local options = string.split(ReplicatedStorage:GetAttribute("VoteOptions") or "", ",")
+	if #options > 0 and options[1] ~= "" then
+		local vote = new("Frame", { Name = "Vote", Size = UDim2.fromOffset(600, 96), Position = UDim2.new(0.5, 0, 1, -14), AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 1, ZIndex = 9, Parent = results })
+		Label({ Text = "VOTE FOR THE NEXT MAP", Size = UDim2.new(1, 0, 0, 16), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = T.Accent, ZIndex = 10, Parent = vote })
+		local row = new("Frame", { Size = UDim2.new(1, 0, 0, 74), Position = UDim2.fromOffset(0, 22), BackgroundTransparency = 1, ZIndex = 9, Parent = vote }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		voteCards = {}
+		for i, id in options do
+			local info = Config.Maps[id] or { Name = id, Icon = "🗺️", Desc = "" }
+			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 74), Color = T.Panel2, LayoutOrder = i, Parent = row }, function()
+				myVote = id
+				Remotes.Vote:FireServer(id)
+			end)
+			card.ZIndex = 10
+			Label({ Text = info.Icon .. "  " .. info.Name, Size = UDim2.new(1, -12, 0, 22), Position = UDim2.fromOffset(10, 8), TextSize = 15, Font = T.Black, ZIndex = 11, Parent = card })
+			Label({ Text = info.Desc, Size = UDim2.new(1, -12, 0, 14), Position = UDim2.fromOffset(10, 30), TextSize = 10, Font = T.Medium, TextColor3 = T.Sub, ZIndex = 11, Parent = card })
+			local count = Label({ Text = "0 VOTES", Size = UDim2.new(1, -12, 0, 16), Position = UDim2.fromOffset(10, 50), TextSize = 12, Font = T.Black, TextColor3 = T.Accent, ZIndex = 11, Parent = card })
+			voteCards[id] = { Card = card, Count = count }
+		end
+	end
 	ClientState.MenuOpen = true
+end
+
+local function updateVotes()
+	for id, c in voteCards do
+		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
+		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
+		UIKit.SetButtonColor(c.Card, id == myVote and T.Accent or T.Panel2)
+		for _, l in c.Card:GetChildren() do
+			if l:IsA("TextLabel") and l ~= c.Count then
+				l.TextColor3 = id == myVote and Color3.new(0, 0, 0) or (l.TextSize > 12 and T.Text or T.Sub)
+			end
+		end
+		c.Count.TextColor3 = id == myVote and Color3.new(0, 0, 0) or T.Accent
+	end
 end
 
 function Menus.HideResults()
@@ -4996,7 +7598,7 @@ local function buildMainMenu()
 		end
 	end)
 	play.ZIndex = 2
-	for i, item in { { "🔫  ARMORY", "Armory", T.Panel2 }, { "💎  STORE", "Store", T.Robux }, { "🏆  ACHIEVEMENTS", "Achievements", T.Panel2 } } do
+	for i, item in { { "🔫  ARMORY", "Armory", T.Panel2 }, { "💎  STORE", "Store", T.Robux }, { "🏆  ACHIEVEMENTS", "Achievements", T.Panel2 }, { "⚙️  SETTINGS", "Settings", T.Panel2 } } do
 		local b = UIKit.Button({ Text = item[1], Size = UDim2.fromOffset(320, 46), Color = item[3], TextSize = 18, LayoutOrder = i + 1, Parent = buttons }, function()
 			Menus.Open(item[2])
 		end)
@@ -5004,7 +7606,7 @@ local function buildMainMenu()
 	end
 
 	local controls = Label({
-		Text = "WASD move · SHIFT sprint · SPACE double jump · C slide (ground) / slam (air) · Q dash\nLMB shoot · RMB aim · R reload · 1/2 swap · V knife · G grenade · Z/X call-ins · TAB scores",
+		Text = "WASD move · SHIFT sprint · SPACE double jump · C slide / slam · Q dash · E drive cars\nLMB shoot · RMB aim · R reload · 1/2 swap · V knife · G grenade · Z/X call-ins · TAB scores",
 		Size = UDim2.new(1, 0, 0, 40), Position = UDim2.new(0, 0, 1, -70), TextSize = 12, Font = T.Medium, TextColor3 = T.Sub, TextWrapped = true, ZIndex = 2, Parent = left,
 	})
 	controls.TextYAlignment = Enum.TextYAlignment.Top
@@ -5082,6 +7684,11 @@ function Menus.Init(playerGui: PlayerGui)
 		renderAchievements(ach)
 	end
 
+	local settings = window("Settings", "⚙️ SETTINGS", nil)
+	settings.Render = function()
+		renderSettings(settings)
+	end
+
 	buildScoreboard()
 	buildResults()
 	buildMainMenu()
@@ -5103,6 +7710,9 @@ function Menus.Init(playerGui: PlayerGui)
 		end
 		if results.Visible and ReplicatedStorage:GetAttribute("MatchState") ~= "Results" then
 			Menus.HideResults()
+			myVote = nil
+		elseif results.Visible then
+			updateVotes()
 		end
 	end)
 end
@@ -5111,7 +7721,7 @@ return Menus
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="40">
           <Properties>
             <string name="Name">MovementController</string>
             <string name="Source"><![CDATA[-- Advanced movement: sprint, slide, dash, double/triple jump, ground slam, jump pads.
@@ -5438,7 +8048,7 @@ return Movement
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">UIKit</string>
             <string name="Source"><![CDATA[-- Tiny UI helper library + the game's visual theme.
@@ -5658,7 +8268,141 @@ return UIKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="33">
+        <Item class="ModuleScript" referent="42">
+          <Properties>
+            <string name="Name">VehicleController</string>
+            <string name="Source"><![CDATA[-- Arcade car handling. The server gives the driver network ownership,
+-- so this client drives the car by setting its velocity directly.
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local ClientState = require(script.Parent.ClientState)
+
+local player = Players.LocalPlayer
+
+local Vehicle = {}
+Vehicle.Car = nil
+Vehicle.Speed = 0
+Vehicle.OnChanged = nil -- (driving: boolean) -> ()
+
+local seat, chassis
+local flippedTime = 0
+local boostHeld = false
+
+local function setDriving(car: Model?, vehicleSeat: VehicleSeat?)
+	Vehicle.Car = car
+	seat = vehicleSeat
+	chassis = car and car.PrimaryPart or nil
+	ClientState.Driving = car ~= nil
+	if car then
+		player.CameraMode = Enum.CameraMode.Classic
+		player.CameraMinZoomDistance = 18
+		player.CameraMaxZoomDistance = 40
+	else
+		player.CameraMinZoomDistance = 0.5
+		player.CameraMaxZoomDistance = 128
+		if ClientState.Deployed and not ClientState.Dead then
+			player.CameraMode = Enum.CameraMode.LockFirstPerson
+		end
+	end
+	if Vehicle.OnChanged then
+		Vehicle.OnChanged(car ~= nil)
+	end
+end
+
+local function bindCharacter(char: Model)
+	setDriving(nil, nil)
+	local humanoid = char:WaitForChild("Humanoid")
+	humanoid.Seated:Connect(function(active, seatPart)
+		if active and seatPart and seatPart:IsA("VehicleSeat") and seatPart.Parent and seatPart.Parent:GetAttribute("Vehicle") then
+			setDriving(seatPart.Parent, seatPart)
+		elseif ClientState.Driving then
+			setDriving(nil, nil)
+		end
+	end)
+	humanoid.Died:Connect(function()
+		if ClientState.Driving then
+			setDriving(nil, nil)
+		end
+	end)
+end
+
+local function step(dt: number)
+	if not Vehicle.Car or not chassis or not chassis.Parent or not seat then
+		Vehicle.Speed = 0
+		return
+	end
+	local car = Vehicle.Car
+	local maxSpeed = (car:GetAttribute("Speed") or 80) * (boostHeld and 1.25 or 1)
+	local throttle = seat.ThrottleFloat
+	local steer = seat.SteerFloat
+	local cf = chassis.CFrame
+	local forward = cf.LookVector
+	local flatForward = Vector3.new(forward.X, 0, forward.Z)
+	flatForward = flatForward.Magnitude > 0.01 and flatForward.Unit or Vector3.zAxis
+	local vel = chassis.AssemblyLinearVelocity
+	local forwardSpeed = vel:Dot(flatForward)
+
+	-- throttle / brake / reverse
+	local target = throttle > 0 and throttle * maxSpeed or throttle * maxSpeed * 0.4
+	local accel = 38
+	if throttle ~= 0 and math.sign(throttle) ~= math.sign(forwardSpeed) and math.abs(forwardSpeed) > 2 then
+		accel = 110 -- braking
+	elseif throttle == 0 then
+		accel = 22 -- coasting
+	end
+	local delta = math.clamp(target - forwardSpeed, -accel * dt, accel * dt)
+	forwardSpeed += delta
+
+	-- grip: kill most sideways sliding (a little drift is fun)
+	local lateral = vel - flatForward * vel:Dot(flatForward)
+	lateral = Vector3.new(lateral.X, 0, lateral.Z) * math.max(0, 1 - dt * 6)
+	chassis.AssemblyLinearVelocity = flatForward * forwardSpeed + lateral + Vector3.new(0, vel.Y, 0)
+
+	-- steering scales with speed and flips when reversing
+	local steerFactor = math.clamp(forwardSpeed / 18, -1, 1)
+	local yaw = -steer * 1.9 * steerFactor
+	local av = chassis.AssemblyAngularVelocity
+	chassis.AssemblyAngularVelocity = Vector3.new(av.X * 0.6, yaw, av.Z * 0.6)
+
+	-- auto-flip when stuck upside down
+	if cf.UpVector.Y < 0.3 then
+		flippedTime += dt
+		if flippedTime > 1.5 then
+			flippedTime = 0
+			chassis.CFrame = CFrame.lookAt(cf.Position + Vector3.new(0, 5, 0), cf.Position + Vector3.new(0, 5, 0) + flatForward)
+			chassis.AssemblyLinearVelocity = Vector3.zero
+		end
+	else
+		flippedTime = 0
+	end
+	Vehicle.Speed = math.abs(forwardSpeed)
+end
+
+function Vehicle.Init()
+	if player.Character then
+		task.spawn(bindCharacter, player.Character)
+	end
+	player.CharacterAdded:Connect(bindCharacter)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
+			boostHeld = true
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.KeyCode == Enum.KeyCode.LeftShift then
+			boostHeld = false
+		end
+	end)
+	RunService.Heartbeat:Connect(step)
+end
+
+return Vehicle
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">WeaponController</string>
             <string name="Source"><![CDATA[-- First-person gunplay: viewmodel, ADS, recoil, spread, reloads, knife, grenades.
@@ -5683,7 +8427,10 @@ local camera = workspace.CurrentCamera
 local WC = {}
 WC.HUD = nil -- injected
 
-local BASE_FOV = 72
+local function baseFov()
+	return ClientState.Settings.FOV or 72
+end
+local spin = 0 -- minigun spin-up progress (0..1)
 
 local current = nil -- { Id, Def, Tool }
 local ammo = {} -- [weaponId] = { Mag, Reserve }
@@ -5739,7 +8486,7 @@ local function alive(): boolean
 end
 
 local function canAct(): boolean
-	return alive() and not ClientState.MenuOpen
+	return alive() and not ClientState.MenuOpen and not ClientState.Driving
 end
 
 -- VIEWMODEL --------------------------------------------------------------------
@@ -5925,6 +8672,9 @@ local function shotVisual(dir: Vector3)
 		return
 	end
 	local def = current.Def
+	if def.Projectile then
+		return -- the server simulates and replicates the rocket
+	end
 	rayParams.FilterDescendantsInstances = { character, camera, workspace:FindFirstChild("Effects") }
 	local origin = camera.CFrame.Position
 	local result = workspace:Raycast(origin, dir * def.Range, rayParams)
@@ -5990,6 +8740,9 @@ local function tryShoot()
 		return
 	end
 	if now - equipTime < 0.25 then
+		return
+	end
+	if def.SpinUp and spin < 1 then
 		return
 	end
 	local a = ammo[current.Id]
@@ -6058,7 +8811,18 @@ function WC.Grenade()
 	UIKit.Sound("Dash", 0.6)
 end
 
+function WC.Spin(): number
+	return spin
+end
+
+function WC.CurrentDef()
+	return current and current.Def or nil
+end
+
 function WC.OnHit(info)
+	if not info.Vehicle then
+		Effects.HitFlash(info.Position, info.Headshot)
+	end
 	if WC.HUD then
 		WC.HUD.Hitmarker(info.Headshot, info.Killed)
 		WC.HUD.DamageNumber(info.Position, info.Damage, info.Headshot)
@@ -6079,7 +8843,15 @@ local function render(dt: number)
 	camera = workspace.CurrentCamera
 	local now = os.clock()
 	local S = Movement.State
-	local isAlive = alive()
+	local isAlive = alive() and not ClientState.Driving
+	if current and current.Def.SpinUp then
+		local spinning = firing and canAct() and not reloading
+		spin = math.clamp(spin + (spinning and dt / current.Def.SpinUp or -dt * 1.5), 0, 1)
+	else
+		spin = 0
+	end
+	-- ADS sensitivity
+	UserInputService.MouseDeltaSensitivity = aimAlpha > 0.5 and (ClientState.Settings.AdsSens or 0.7) or 1
 
 	-- input-driven state
 	if not isAlive or ClientState.MenuOpen then
@@ -6101,7 +8873,7 @@ local function render(dt: number)
 	if isAlive then
 		camera.CFrame = camera.CFrame * CFrame.Angles(math.rad(recoilPitch), math.rad(recoilYaw), 0) * Effects.StepShake(dt)
 
-		local fov = BASE_FOV
+		local fov = baseFov()
 		if S.Sprinting then
 			fov += 8
 		end
@@ -6142,6 +8914,10 @@ local function render(dt: number)
 
 		kick = lerp(kick, 0, math.min(1, dt * 14))
 		local kickCF = CFrame.new(0, 0, kick * 0.18) * CFrame.Angles(math.rad(kick * 4), 0, 0)
+		if def.SpinUp and spin > 0 then
+			-- minigun rumble while spinning
+			kickCF *= CFrame.new((math.random() - 0.5) * 0.02 * spin, (math.random() - 0.5) * 0.02 * spin, 0)
+		end
 
 		local reloadCF = CFrame.identity
 		if reloading then
@@ -6185,6 +8961,7 @@ local function render(dt: number)
 			knifeModel.Parent = nil
 		end
 	else
+		setViewmodelVisible(false)
 		if WC.HUD then
 			WC.HUD.SetScope(false)
 			WC.HUD.SetCrosshair(0, false)

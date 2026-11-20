@@ -24,6 +24,7 @@ Combat.ByPlayer = {} -- [Player] = entity
 Combat.Hooks = {
 	Round = nil, -- RoundService (IsCounting, TakeFirstBlood, OnKill, OnDeath)
 	Killstreaks = nil, -- KillstreakService (OnStreak)
+	Vehicles = nil, -- VehicleService (CarFromPart, DamageCar, AreaDamage)
 }
 
 -- HELPERS --------------------------------------------------------------------
@@ -352,6 +353,10 @@ function Combat.HandleDeath(killer, victim, info)
 		medal("METEOR STRIKE", 100, "SlamKills")
 	elseif info.Kind == "Airstrike" then
 		AchievementService.Add(kp, "AirstrikeKills", 1)
+	elseif info.Kind == "Roadkill" then
+		medal("ROADKILL", 100)
+	elseif info.Kind == "Vehicle" then
+		medal("CAR BOMB", 75)
 	elseif info.Kind == nil then
 		if distance >= 150 then
 			medal("LONG SHOT", 75, "LongShots")
@@ -380,6 +385,12 @@ function Combat.HandleDeath(killer, victim, info)
 		medal("CLUTCH", 75, "ClutchKills")
 	end
 
+	if info.Explosive then
+		AchievementService.Add(kp, "ExplosiveKills", 1)
+		if info.Projectile then
+			medal(info.Direct and "DIRECT HIT" or "BOOM", info.Direct and 75 or 25)
+		end
+	end
 	AchievementService.Add(kp, "Kills", 1)
 	AchievementService.SetMax(kp, "BestStreak", killer.Streak)
 
@@ -446,6 +457,9 @@ end
 -- Area damage (grenades, slams, airstrikes). Returns number of kills.
 function Combat.AreaDamage(attacker, position: Vector3, radius: number, maxDamage: number, info, effect: string?)
 	Remotes.Effect:FireAllClients(effect or "Explosion", position, radius)
+	if Combat.Hooks.Vehicles and info.Explosive then
+		Combat.Hooks.Vehicles.AreaDamage(attacker, position, radius, maxDamage)
+	end
 	local kills = 0
 	local victims = {}
 	for _, victim in Combat.Entities do
@@ -502,9 +516,17 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 	local effectsFolder = workspace:FindFirstChild("Effects")
 
 	local totals = {}
+	local carTotals = {}
+	local vehicles = Combat.Hooks.Vehicles
 	local ends = {}
+	-- passengers shooting out of a car shouldn't hit their own car
+	local ownCar = nil
+	local seatPart = entity.Humanoid and entity.Humanoid.SeatPart
+	if seatPart and vehicles then
+		ownCar = vehicles.CarFromPart(seatPart)
+	end
 	for i, dir in dirs do
-		local exclude = { entity.Character, effectsFolder }
+		local exclude = { entity.Character, effectsFolder, ownCar }
 		local start = origin
 		local remaining = def.Range
 		local pierce = def.Penetrate or 0
@@ -519,6 +541,12 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 			end
 			local _, model = Util.HumanoidFromPart(result.Instance)
 			local victim = model and Combat.Entities[model]
+			local car = (not model and vehicles) and vehicles.CarFromPart(result.Instance) or nil
+			if car then
+				carTotals[car] = (carTotals[car] or 0) + def.Damage * dmgMult * 0.7
+				endPos = result.Position
+				break
+			end
 			if victim and Combat.IsAlive(victim) then
 				local hitPart = result.Instance
 				local headshot = hitPart.Name == "Head" or (hitPart.Parent ~= nil and hitPart.Parent:IsA("Accessory"))
@@ -571,6 +599,11 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 			kills += 1
 		end
 	end
+	if vehicles then
+		for car, dmg in carTotals do
+			vehicles.DamageCar(car, entity, dmg)
+		end
+	end
 	if kills >= 2 then
 		AchievementService.Add(entity.Player, "Collaterals", 1)
 		if counting() then
@@ -579,6 +612,81 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 		notify(entity, "Medal", { Medals = { { Text = "COLLATERAL", Bonus = 100 } } })
 	end
 	Remotes.Effect:FireAllClients("Shot", entity.Character, weaponId, ends)
+end
+
+
+-- PROJECTILES (rockets, grenade launcher) --------------------------------------
+-- Simulated on the server with stepped raycasts; the visual part is moved each frame.
+function Combat.FireProjectile(entity, weaponId: string, origin: Vector3, dir: Vector3)
+	local def = Weapons.Get(weaponId)
+	local spec = def.Projectile
+	local effects = workspace:FindFirstChild("Effects") or workspace
+	local rocket = Instance.new("Part")
+	rocket.Name = "Projectile"
+	rocket.Anchored = true
+	rocket.CanCollide = false
+	rocket.CanQuery = false
+	rocket.CanTouch = false
+	rocket.Size = Vector3.new(spec.Size, spec.Size, spec.Size * 3)
+	rocket.Material = Enum.Material.Neon
+	rocket.Color = def.Look.Accent
+	rocket.CFrame = CFrame.lookAt(origin + dir * 3, origin + dir * 4)
+	local light = Instance.new("PointLight")
+	light.Color = def.Look.Accent
+	light.Range = 14
+	light.Brightness = 3
+	light.Parent = rocket
+	local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
+	a0.Position = Vector3.new(0, 0.2, spec.Size * 1.5)
+	a1.Position = Vector3.new(0, -0.2, spec.Size * 1.5)
+	a0.Parent, a1.Parent = rocket, rocket
+	local trail = Instance.new("Trail")
+	trail.Attachment0, trail.Attachment1 = a0, a1
+	trail.Lifetime = 0.4
+	trail.LightEmission = 1
+	trail.Color = ColorSequence.new(Color3.fromRGB(255, 200, 120), Color3.fromRGB(120, 120, 120))
+	trail.Transparency = NumberSequence.new(0, 1)
+	trail.WidthScale = NumberSequence.new(1, 3)
+	trail.Parent = rocket
+	rocket.Parent = effects
+	Remotes.Effect:FireAllClients("Launch", entity.Character, weaponId)
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { entity.Character, effects }
+	local pos = origin + dir * 2
+	local vel = dir * spec.Speed
+	local life = 0
+	local conn
+	conn = RunService.Heartbeat:Connect(function(dt)
+		life += dt
+		local nextVel = vel - Vector3.new(0, spec.Gravity * dt, 0)
+		local step = (vel + nextVel) / 2 * dt
+		local result = workspace:Raycast(pos, step, params)
+		vel = nextVel
+		if result or life > 5 then
+			conn:Disconnect()
+			local hitPos = result and result.Position or pos
+			rocket:Destroy()
+			local direct = nil
+			if result then
+				local _, model = Util.HumanoidFromPart(result.Instance)
+				direct = model and Combat.Entities[model]
+			end
+			if direct and Combat.IsAlive(direct) then
+				Combat.Damage(entity, direct, spec.Direct, {
+					Weapon = weaponId, WeaponName = def.Name, Class = def.Class, Explosive = true, Projectile = true, Direct = true,
+					Position = hitPos, Distance = (hitPos - origin).Magnitude,
+				})
+			end
+			Combat.AreaDamage(entity, hitPos, spec.Radius, def.Damage, {
+				Weapon = weaponId, WeaponName = def.Name, Class = def.Class, Explosive = true, Projectile = true,
+			})
+			return
+		end
+		pos += step
+		rocket.CFrame = CFrame.lookAt(pos, pos + vel)
+	end)
 end
 
 Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flags)
@@ -636,6 +744,10 @@ Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flag
 	local head = entity.Character:FindFirstChild("Head")
 	if not validVector(origin) or not head or (origin - head.Position).Magnitude > 12 then
 		origin = head and head.Position or entity.Root.Position
+	end
+	if def.Projectile then
+		Combat.FireProjectile(entity, weaponId, origin, clean[1])
+		return
 	end
 	Combat.Shoot(entity, weaponId, origin, clean, typeof(flags) == "table" and flags or {})
 end)

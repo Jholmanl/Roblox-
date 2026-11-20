@@ -10,7 +10,14 @@ local State = {
 	MenuOpen = false, -- any full-screen menu is open (blocks shooting)
 	Deployed = false, -- pressed PLAY
 	Dead = false,
+	Driving = false,
+	Settings = { FOV = 72, Shake = 1, AdsSens = 0.7, Crosshair = "White" },
 	Changed = Instance.new("BindableEvent"),
+}
+
+State.CrosshairColors = {
+	White = Color3.new(1, 1, 1), Green = Color3.fromRGB(70, 255, 120), Cyan = Color3.fromRGB(0, 230, 255),
+	Red = Color3.fromRGB(255, 70, 80), Yellow = Color3.fromRGB(255, 220, 40),
 }
 
 function State.HasPass(key: string): boolean
@@ -23,6 +30,11 @@ end
 
 Remotes.DataSync.OnClientEvent:Connect(function(data)
 	State.Data = data
+	if data.Settings then
+		for k, v in data.Settings do
+			State.Settings[k] = v
+		end
+	end
 	State.Changed:Fire()
 end)
 

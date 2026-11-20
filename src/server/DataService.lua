@@ -33,6 +33,7 @@ local DEFAULT = {
 	BoostUntil = 0,
 	Tokens = { Airstrike = 0, Nuke = 0 },
 	Receipts = {},
+	Settings = { FOV = 72, Shake = 1, AdsSens = 0.7, Crosshair = "White" },
 }
 
 local function key(player: Player)
@@ -67,6 +68,7 @@ function DataService.Sync(player: Player)
 		Achievements = data.Achievements,
 		Daily = data.Daily,
 		DailyAvailable = DataService.DailyAvailable(player),
+		Settings = data.Settings,
 	})
 end
 

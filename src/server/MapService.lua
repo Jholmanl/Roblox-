@@ -1,217 +1,206 @@
--- Builds the arena (if you haven't made your own) and picks safe spawn points.
--- To use your own map: put a Model/Folder named "Map" in Workspace with a
--- child folder "Spawns" containing parts. Parts with attribute JumpPad (number)
--- launch players, parts with attribute HealthPack (true) heal & refill ammo.
+-- Loads maps (with per-map lighting), runs map voting, and picks safe spawns.
+-- Map modules live in Server/Maps. To use a hand-built map instead, put a
+-- Model named "Map" in Workspace with a "Spawns" folder (it is used as-is).
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
+local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
 
+local MapsFolder = script.Parent.Maps
 local MapService = {}
 MapService.Spawns = {} :: { CFrame }
-
-local DARK = Color3.fromRGB(40, 44, 54)
-local MID = Color3.fromRGB(72, 78, 94)
-local LIGHT = Color3.fromRGB(110, 118, 136)
-local CRATE = Color3.fromRGB(176, 128, 66)
-
-local function block(parent, name, size: Vector3, cf: CFrame, color: Color3, material)
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Anchored = true
-	p.Size = size
-	p.CFrame = cf
-	p.Color = color
-	p.Material = material or Enum.Material.SmoothPlastic
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = parent
-	return p
+MapService.Current = nil
+MapService.OnMapLoaded = nil :: ((Instance) -> ())?
+MapService.Order = { "Downtown", "Harbor", "Timberline", "Arena" }
+MapService.Defs = {}
+for _, id in MapService.Order do
+	MapService.Defs[id] = require(MapsFolder:WaitForChild(id))
 end
 
-local function neon(parent, size, cf, color)
-	local p = block(parent, "Trim", size, cf, color, Enum.Material.Neon)
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CastShadow = false
-	return p
+local function ensure(class: string, parent: Instance)
+	local inst = parent:FindFirstChildOfClass(class) or Instance.new(class)
+	inst.Parent = parent
+	return inst
 end
 
--- A tilted slab from a low point to a high point (top surface touches both).
-local function ramp(parent, low: Vector3, high: Vector3, width: number, color)
-	local length = (high - low).Magnitude
-	local cf = CFrame.lookAt((low + high) / 2, high) * CFrame.new(0, -0.5, 0)
-	local p = block(parent, "Ramp", Vector3.new(width, 1, length), cf, color, Enum.Material.DiamondPlate)
-	neon(parent, Vector3.new(0.3, 0.3, length), cf * CFrame.new(width / 2, 0.5, 0), Config.Colors.Accent)
-	neon(parent, Vector3.new(0.3, 0.3, length), cf * CFrame.new(-width / 2, 0.5, 0), Config.Colors.Accent)
-	return p
-end
-
-local function build()
-	local map = Instance.new("Model")
-	map.Name = "Map"
-	local geo = Instance.new("Folder")
-	geo.Name = "Geometry"
-	geo.Parent = map
-	local spawns = Instance.new("Folder")
-	spawns.Name = "Spawns"
-	spawns.Parent = map
-
-	local HALF = 125
-	block(geo, "Floor", Vector3.new(HALF * 2 + 10, 2, HALF * 2 + 10), CFrame.new(0, -1, 0), DARK, Enum.Material.Concrete)
-	for i = -HALF + 25, HALF - 25, 25 do
-		neon(geo, Vector3.new(0.25, 0.05, HALF * 2), CFrame.new(i, 0.03, 0), Config.Colors.Accent2).Transparency = 0.75
-		neon(geo, Vector3.new(HALF * 2, 0.05, 0.25), CFrame.new(0, 0.03, i), Config.Colors.Accent2).Transparency = 0.75
-	end
-
-	-- outer walls
-	for _, side in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-		local x, z = side[1], side[2]
-		local size = x ~= 0 and Vector3.new(4, 40, HALF * 2 + 8) or Vector3.new(HALF * 2 + 8, 40, 4)
-		local cf = CFrame.new(x * (HALF + 2), 20, z * (HALF + 2))
-		block(geo, "Wall", size, cf, MID, Enum.Material.Metal)
-		neon(geo, Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 6 - 20, 0), Config.Colors.Accent2)
-		neon(geo, Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 20, 0), Config.Colors.Accent)
-	end
-
-	-- center core with 4 ramps
-	block(geo, "Core", Vector3.new(20, 10, 20), CFrame.new(0, 5, 0), MID, Enum.Material.Metal)
-	neon(geo, Vector3.new(20.4, 0.4, 20.4), CFrame.new(0, 10, 0), Config.Colors.Accent)
-	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
-		ramp(geo, dir * 34, dir * 10 + Vector3.new(0, 10, 0), 8, LIGHT)
-		local side = Vector3.new(dir.Z, 0, dir.X)
-		block(geo, "CoreCover", Vector3.new(1, 3.5, 1) + side:Abs() * 5, CFrame.new(dir * 9.5 + side * 7 + Vector3.new(0, 11.75, 0)), LIGHT)
-		block(geo, "CoreCover", Vector3.new(1, 3.5, 1) + side:Abs() * 5, CFrame.new(dir * 9.5 - side * 7 + Vector3.new(0, 11.75, 0)), LIGHT)
-	end
-	local beacon = neon(geo, Vector3.new(2, 2, 2), CFrame.new(0, 13, 0), Config.Colors.Accent)
-	local light = Instance.new("PointLight")
-	light.Range = 40
-	light.Brightness = 2
-	light.Color = Config.Colors.Accent
-	light.Parent = beacon
-
-	-- mirrored quadrant content
-	local crates = {
-		{ 22, 40, Vector3.new(6, 6, 6) }, { 40, 22, Vector3.new(6, 6, 6) },
-		{ 30, 30, Vector3.new(4, 12, 4) },
-		{ 60, 45, Vector3.new(12, 6, 3) }, { 45, 60, Vector3.new(3, 6, 12) },
-		{ 100, 40, Vector3.new(6, 6, 6) }, { 40, 100, Vector3.new(6, 6, 6) },
-		{ 75, 55, Vector3.new(6, 4, 6) }, { 55, 75, Vector3.new(6, 4, 6) },
-		{ 108, 15, Vector3.new(10, 5, 3) }, { 15, 108, Vector3.new(3, 5, 10) },
-	}
-	for _, sx in { 1, -1 } do
-		for _, sz in { 1, -1 } do
-			local trim = (sx * sz > 0) and Config.Colors.Accent or Config.Colors.Accent2
-			for i, c in crates do
-				local size = c[3]
-				local cf = CFrame.new(c[1] * sx, size.Y / 2, c[2] * sz)
-				local isCrate = size.X == size.Z
-				block(geo, "Cover", size, cf, isCrate and CRATE or MID, isCrate and Enum.Material.WoodPlanks or Enum.Material.Metal)
-				if not isCrate or i % 2 == 0 then
-					neon(geo, Vector3.new(size.X + 0.1, 0.25, size.Z + 0.1), cf * CFrame.new(0, size.Y / 2, 0), trim)
-				end
-			end
-
-			-- raised corner base
-			local base = Vector3.new(88 * sx, 0, 88 * sz)
-			block(geo, "Base", Vector3.new(36, 8, 36), CFrame.new(base + Vector3.new(0, 4, 0)), MID, Enum.Material.Metal)
-			neon(geo, Vector3.new(36.4, 0.4, 36.4), CFrame.new(base + Vector3.new(0, 8, 0)), trim)
-			ramp(geo, Vector3.new(54 * sx, 0, 88 * sz), Vector3.new(70 * sx, 8, 88 * sz), 8, LIGHT)
-			ramp(geo, Vector3.new(88 * sx, 0, 54 * sz), Vector3.new(88 * sx, 8, 70 * sz), 8, LIGHT)
-			block(geo, "BaseCover", Vector3.new(10, 4, 1.5), CFrame.new(base + Vector3.new(-8 * sx, 10, -15 * sz)), LIGHT)
-			block(geo, "BaseCover", Vector3.new(1.5, 4, 10), CFrame.new(base + Vector3.new(-15 * sx, 10, -8 * sz)), LIGHT)
-
-			-- health pack
-			local hp = block(geo, "HealthPack", Vector3.new(2.5, 2.5, 2.5), CFrame.new(52 * sx, 1.5, 52 * sz), Config.Colors.Green, Enum.Material.Neon)
-			hp.CanCollide = false
-			hp:SetAttribute("HealthPack", true)
-			local hl = Instance.new("PointLight")
-			hl.Color = Config.Colors.Green
-			hl.Range = 12
-			hl.Parent = hp
-		end
-	end
-
-	-- jump pads in each lane
-	for _, pos in { Vector3.new(70, 0, 0), Vector3.new(-70, 0, 0), Vector3.new(0, 0, 70), Vector3.new(0, 0, -70) } do
-		local pad = block(geo, "JumpPad", Vector3.new(0.6, 8, 8), CFrame.new(pos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)), Config.Colors.Purple, Enum.Material.Neon)
-		pad.Shape = Enum.PartType.Cylinder
-		pad:SetAttribute("JumpPad", 115)
-		local pl = Instance.new("PointLight")
-		pl.Color = Config.Colors.Purple
-		pl.Range = 16
-		pl.Brightness = 3
-		pl.Parent = pad
-	end
-
-	-- spawn points around the edge (facing the middle)
-	for _, along in { -60, -20, 20, 60 } do
-		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-			local pos
-			if edge[1] ~= 0 then
-				pos = Vector3.new(edge[1] * 115, 3, along)
-			else
-				pos = Vector3.new(along, 3, edge[2] * 115)
-			end
-			local s = Instance.new("Part")
-			s.Name = "Spawn"
-			s.Anchored = true
-			s.CanCollide = false
-			s.CanQuery = false
-			s.Transparency = 1
-			s.Size = Vector3.new(2, 1, 2)
-			s.CFrame = CFrame.lookAt(pos, Vector3.new(0, 3, 0))
-			s.Parent = spawns
-		end
-	end
-
-	map.Parent = workspace
-	return map
-end
-
-local function setupLighting()
-	Lighting.ClockTime = 15.5
-	Lighting.Brightness = 2.5
-	Lighting.Ambient = Color3.fromRGB(70, 70, 85)
-	Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 140)
+local function applyLighting(L)
+	Lighting.ClockTime = L.ClockTime or 14
+	Lighting.Brightness = L.Brightness or 2.5
+	Lighting.Ambient = L.Ambient or Color3.fromRGB(70, 70, 80)
+	Lighting.OutdoorAmbient = L.OutdoorAmbient or Color3.fromRGB(120, 120, 130)
 	Lighting.GlobalShadows = true
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.6
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
-	local function ensure(class, props)
-		local inst = Lighting:FindFirstChildOfClass(class) or Instance.new(class)
-		for k, v in props do
-			inst[k] = v
-		end
-		inst.Parent = Lighting
-	end
-	ensure("Atmosphere", { Density = 0.3, Haze = 1.2, Color = Color3.fromRGB(200, 210, 255), Decay = Color3.fromRGB(110, 90, 160) })
-	ensure("BloomEffect", { Intensity = 0.8, Size = 30, Threshold = 1.6 })
-	ensure("ColorCorrectionEffect", { Saturation = 0.15, Contrast = 0.1, Brightness = 0.02 })
-	ensure("SunRaysEffect", { Intensity = 0.05, Spread = 0.6 })
+	local atmo = ensure("Atmosphere", Lighting)
+	local a = L.Atmosphere or {}
+	atmo.Density = a.Density or 0.3
+	atmo.Haze = a.Haze or 1
+	atmo.Color = a.Color or Color3.fromRGB(200, 210, 230)
+	atmo.Decay = a.Decay or Color3.fromRGB(100, 100, 130)
+	atmo.Glare = 0.2
+	local bloom = ensure("BloomEffect", Lighting)
+	bloom.Intensity = 0.7
+	bloom.Size = 28
+	bloom.Threshold = 1.5
+	local cc = ensure("ColorCorrectionEffect", Lighting)
+	cc.Saturation = L.Saturation or 0.15
+	cc.Contrast = 0.12
+	cc.Brightness = 0.02
+	cc.TintColor = L.Tint or Color3.new(1, 1, 1)
+	local rays = ensure("SunRaysEffect", Lighting)
+	rays.Intensity = 0.06
+	rays.Spread = 0.7
+	local dof = ensure("DepthOfFieldEffect", Lighting)
+	dof.FarIntensity = 0.12
+	dof.FocusDistance = 120
+	dof.InFocusRadius = 120
+	dof.NearIntensity = 0
+	pcall(function()
+		local clouds = ensure("Clouds", workspace.Terrain)
+		clouds.Cover = 0.55
+		clouds.Density = 0.6
+	end)
+	pcall(function()
+		workspace.Terrain.Decoration = true -- animated grass blades
+	end)
+	workspace.Terrain.WaterColor = Color3.fromRGB(30, 110, 140)
+	workspace.Terrain.WaterTransparency = 0.6
+	workspace.Terrain.WaterWaveSize = 0.15
+	workspace.Terrain.WaterReflectance = 0.6
 end
 
-function MapService.Init()
-	setupLighting()
-	local effects = workspace:FindFirstChild("Effects") or Instance.new("Folder")
-	effects.Name = "Effects"
-	effects.Parent = workspace
+-- Snap spawn markers to whatever surface is under them.
+local function groundSpawn(marker: BasePart): CFrame
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { workspace:FindFirstChild("Effects"), workspace:FindFirstChild("Bots") }
+	local origin = marker.Position + Vector3.new(0, 40, 0)
+	local result = workspace:Raycast(origin, Vector3.new(0, -120, 0), params)
+	local y = result and result.Position.Y + 3.5 or marker.Position.Y + 3
+	return CFrame.new(marker.Position.X, y, marker.Position.Z) * marker.CFrame.Rotation
+end
 
-	local map = workspace:FindFirstChild("Map") or build()
-	local spawnFolder = map:FindFirstChild("Spawns")
-	if spawnFolder then
-		for _, s in spawnFolder:GetChildren() do
-			if s:IsA("BasePart") then
-				table.insert(MapService.Spawns, s.CFrame + Vector3.new(0, 3, 0))
-			end
+function MapService.Load(id: string)
+	local def = MapService.Defs[id]
+	if not def then
+		warn("[MapService] unknown map " .. tostring(id))
+		return
+	end
+	local old = workspace:FindFirstChild("Map")
+	if old then
+		old:Destroy()
+	end
+	local effects = workspace:FindFirstChild("Effects")
+	if effects then
+		effects:ClearAllChildren()
+	else
+		effects = Instance.new("Folder")
+		effects.Name = "Effects"
+		effects.Parent = workspace
+	end
+	workspace.Terrain:Clear()
+
+	local kit = def.Build()
+	local map = kit.Model
+	map.Parent = workspace
+	MapService.Current = def
+	applyLighting(def.Lighting or {})
+
+	MapService.Spawns = {}
+	for _, s in map.Spawns:GetChildren() do
+		if s:IsA("BasePart") then
+			table.insert(MapService.Spawns, groundSpawn(s))
 		end
 	end
 	if #MapService.Spawns == 0 then
-		table.insert(MapService.Spawns, CFrame.new(0, 20, 0))
+		table.insert(MapService.Spawns, CFrame.new(0, 30, 0))
 	end
 	Combat.SetupPickups(map)
+	ReplicatedStorage:SetAttribute("MapId", def.Id)
+	ReplicatedStorage:SetAttribute("MapName", def.Name)
+	if MapService.OnMapLoaded then
+		MapService.OnMapLoaded(map)
+	end
+	Remotes.Notify:FireAllClients("Announce", { Text = def.Name, Sub = def.Desc, Color = Color3.fromRGB(255, 198, 26), Icon = def.Icon })
+end
+
+-- VOTING -----------------------------------------------------------------------
+local votes = {} :: { [Player]: string }
+local options = {} :: { string }
+
+local function publishVotes()
+	for _, id in MapService.Order do
+		ReplicatedStorage:SetAttribute("Votes_" .. id, 0)
+	end
+	for _, id in votes do
+		ReplicatedStorage:SetAttribute("Votes_" .. id, (ReplicatedStorage:GetAttribute("Votes_" .. id) or 0) + 1)
+	end
+end
+
+function MapService.StartVote()
+	votes = {}
+	options = {}
+	local pool = table.clone(MapService.Order)
+	for i = #pool, 2, -1 do
+		local j = math.random(1, i)
+		pool[i], pool[j] = pool[j], pool[i]
+	end
+	for i = 1, math.min(3, #pool) do
+		table.insert(options, pool[i])
+	end
+	ReplicatedStorage:SetAttribute("VoteOptions", table.concat(options, ","))
+	publishVotes()
+end
+
+function MapService.EndVote(): string
+	local counts = {}
+	for _, id in votes do
+		counts[id] = (counts[id] or 0) + 1
+	end
+	local best, bestCount = options[1] or MapService.Order[1], -1
+	for _, id in options do
+		local c = (counts[id] or 0) + math.random() * 0.5 -- random tie-break
+		if c > bestCount then
+			best, bestCount = id, c
+		end
+	end
+	ReplicatedStorage:SetAttribute("VoteOptions", "")
+	return best
+end
+
+Remotes.Vote.OnServerEvent:Connect(function(player, id)
+	if typeof(id) == "string" and table.find(options, id) then
+		votes[player] = id
+		publishVotes()
+	end
+end)
+Players.PlayerRemoving:Connect(function(player)
+	votes[player] = nil
+end)
+
+function MapService.Init()
+	local existing = workspace:FindFirstChild("Map")
+	if existing and existing:FindFirstChild("Spawns") then
+		-- hand-made map in the place file
+		for _, s in existing.Spawns:GetChildren() do
+			if s:IsA("BasePart") then
+				table.insert(MapService.Spawns, groundSpawn(s))
+			end
+		end
+		Combat.SetupPickups(existing)
+		applyLighting({})
+		if MapService.OnMapLoaded then
+			MapService.OnMapLoaded(existing)
+		end
+		return
+	end
+	MapService.Load(MapService.Order[1])
 end
 
 -- Spawn point farthest from living enemies (with a bit of randomness).

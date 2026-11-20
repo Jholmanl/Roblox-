@@ -67,7 +67,7 @@ end
 
 -- PROFILE (top-left) -------------------------------------------------------------
 local function buildProfile()
-	local f = new("Frame", { Name = "Profile", Size = UDim2.fromOffset(260, 80), Position = UDim2.fromOffset(16, 12), BackgroundTransparency = 1, Parent = gui })
+	local f = new("Frame", { Name = "Profile", Size = UDim2.fromOffset(260, 80), Position = UDim2.fromOffset(16, 192), BackgroundTransparency = 1, Parent = gui })
 	local badge = UIKit.Panel({ Size = UDim2.fromOffset(46, 46), BackgroundColor3 = T.Accent, BackgroundTransparency = 0, Parent = f })
 	Label({ Text = "LVL", Size = UDim2.new(1, 0, 0, 12), Position = UDim2.fromOffset(0, 5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 10, Font = T.Black, TextColor3 = Color3.new(0, 0, 0), Parent = badge })
 	refs.Level = Label({ Text = "1", Size = UDim2.new(1, 0, 0, 24), Position = UDim2.fromOffset(0, 16), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 22, Font = T.Black, TextColor3 = Color3.new(0, 0, 0), Parent = badge })
@@ -86,12 +86,13 @@ end
 
 -- SIDE MENU (left) ---------------------------------------------------------------
 local function buildSideMenu()
-	local f = new("Frame", { Name = "Side", Size = UDim2.fromOffset(150, 200), Position = UDim2.new(0, 16, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Parent = gui }, { UIKit.List(6) })
+	local f = new("Frame", { Name = "Side", Size = UDim2.fromOffset(150, 240), Position = UDim2.new(0, 16, 0.62, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Parent = gui }, { UIKit.List(6) })
 	local items = {
 		{ "Armory", "🔫 ARMORY", "B", T.Panel2 },
 		{ "Store", "💎 STORE", "N", T.Robux },
 		{ "Achievements", "🏆 TROPHIES", "J", T.Panel2 },
 		{ "Scoreboard", "📋 SCORES", "TAB", T.Panel2 },
+		{ "Settings", "⚙️ SETTINGS", "P", T.Panel2 },
 	}
 	for i, item in items do
 		local b = UIKit.Button({ Text = "", Size = UDim2.fromOffset(150, 34), Color = item[4], LayoutOrder = i, Parent = f }, function()
@@ -284,6 +285,13 @@ function HUD.SetCrosshair(px: number, visible: boolean)
 		return
 	end
 	refs.Cross.Visible = visible
+	local color = ClientState.CrosshairColors[ClientState.Settings.Crosshair] or Color3.new(1, 1, 1)
+	if refs.CrossColor ~= color then
+		refs.CrossColor = color
+		for _, b in refs.CrossBars do
+			b[1].BackgroundColor3 = color
+		end
+	end
 	local gap = math.clamp(px, 4, 120) + 4
 	for _, b in refs.CrossBars do
 		b[1].Position = UDim2.new(0.5, b[2] * gap, 0.5, b[3] * gap)
@@ -506,8 +514,11 @@ end
 
 -- DAMAGE / DEATH ---------------------------------------------------------------------
 local hurtFlash = 0
-function HUD.Damaged(_from: Vector3?, amount: number)
+function HUD.Damaged(from: Vector3?, amount: number)
 	hurtFlash = math.min(1, hurtFlash + amount / 40)
+	if HUD.Extras then
+		HUD.Extras.DamageFrom(from)
+	end
 end
 
 local function buildDeath()
@@ -593,6 +604,7 @@ local function update(dt: number)
 	local left = math.max(0, (ReplicatedStorage:GetAttribute("MatchEnd") or 0) - now)
 
 	refs.Timer.Text = Util.Time(left)
+	refs.Mode.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. " · FFA · FIRST TO " .. Config.KillsToWin
 	refs.Timer.TextColor3 = (state == "Active" and left < 30) and T.Red or T.Text
 	if state == "Intermission" then
 		refs.Banner.Text = "WARMUP  ·  MATCH STARTS IN " .. math.ceil(left)
@@ -714,6 +726,7 @@ local function update(dt: number)
 end
 
 -- PUBLIC ----------------------------------------------------------------------------
+HUD.Extras = nil
 function HUD.SetVisible(visible: boolean)
 	if gui then
 		gui.Enabled = visible
@@ -732,6 +745,9 @@ function HUD.Init(playerGui: PlayerGui)
 	buildAbilities()
 	buildCrosshair()
 	buildDeath()
+	HUD.Gui = gui
+	HUD.Extras = require(script.Parent.HUDExtras)
+	HUD.Extras.Init(gui)
 	RunService.RenderStepped:Connect(update)
 end
 

@@ -20,6 +20,7 @@ RoundService.GetHolders = function()
 end
 RoundService.OnEntityDied = function(_entity) end
 RoundService.RespawnAll = function() end
+RoundService.Map = nil -- MapService (injected)
 
 local function setState(state: string, duration: number)
 	RoundService.State = state
@@ -82,6 +83,10 @@ function RoundService.EndMatch(winnerEntity)
 	end
 	RoundService.ForcedWinner = winnerEntity
 	setState("Results", Config.ResultsLength)
+	if RoundService.Map then
+		RoundService.Map.StartVote()
+	end
+	local mapId = ReplicatedStorage:GetAttribute("MapId") or "Arena"
 
 	local list = ranking()
 	if winnerEntity then
@@ -106,6 +111,7 @@ function RoundService.EndMatch(winnerEntity)
 			DataService.AddXP(player, Config.MatchPlayXP)
 			if place == 1 then
 				AchievementService.Add(player, "Wins", 1)
+				AchievementService.Add(player, "Wins_" .. mapId, 1)
 				DataService.AddCash(player, Config.WinCash, true, "VICTORY")
 				DataService.AddXP(player, Config.WinXP)
 			end
@@ -173,9 +179,15 @@ function RoundService.Start()
 				RoundService.EndMatch(nil)
 			end
 
-			-- RESULTS
+			-- RESULTS (players vote for the next map)
 			while timeLeft() > 0 do
 				task.wait(0.25)
+			end
+			if RoundService.Map then
+				local nextMap = RoundService.Map.EndVote()
+				if nextMap ~= ReplicatedStorage:GetAttribute("MapId") then
+					RoundService.Map.Load(nextMap)
+				end
 			end
 			RoundService.RespawnAll()
 		end

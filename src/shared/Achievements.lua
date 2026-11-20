@@ -52,6 +52,13 @@ local list = {
 	{ Id = "Grave", Name = "From the Grave", Desc = "Get a kill after you've died", Stat = "GraveKills", Goal = 1, Reward = 750, Icon = "⚰️", Category = "Style" },
 	{ Id = "Clutch", Name = "Clutch Factor", Desc = "Get a kill with 20 HP or less", Stat = "ClutchKills", Goal = 1, Reward = 250, Icon = "❤️‍🩹", Category = "Style" },
 	{ Id = "Clutch50", Name = "Cockroach", Desc = "Get 50 clutch kills", Stat = "ClutchKills", Goal = 50, Reward = 3000, Icon = "🪳", Category = "Style" },
+	{ Id = "Roadkill", Name = "Hit and Run", Desc = "Run someone over with a car", Stat = "Roadkills", Goal = 1, Reward = 300, Icon = "🚗", Category = "Vehicles" },
+	{ Id = "Roadkill25", Name = "Road Rage", Desc = "Get 25 roadkills", Stat = "Roadkills", Goal = 25, Reward = 3000, Icon = "🏎️", Category = "Vehicles" },
+	{ Id = "CarBoom", Name = "Car Bomb", Desc = "Blow up a vehicle", Stat = "CarsDestroyed", Goal = 1, Reward = 300, Icon = "💥", Category = "Vehicles" },
+	{ Id = "CarBoom25", Name = "Scrapyard", Desc = "Blow up 25 vehicles", Stat = "CarsDestroyed", Goal = 25, Reward = 3000, Icon = "🔥", Category = "Vehicles" },
+	{ Id = "Drive1", Name = "Learner's Permit", Desc = "Get behind the wheel", Stat = "Drives", Goal = 1, Reward = 100, Icon = "🔑", Category = "Vehicles" },
+	{ Id = "Drive50", Name = "Getaway Driver", Desc = "Drive 50 times", Stat = "Drives", Goal = 50, Reward = 2000, Icon = "🚙", Category = "Vehicles" },
+	{ Id = "Explosive50", Name = "Boom Squad", Desc = "Get 50 explosive kills", Stat = "ExplosiveKills", Goal = 50, Reward = 3000, Icon = "🧨", Category = "Vehicles" },
 	{ Id = "JumpPad", Name = "Frequent Flyer", Desc = "Use jump pads 100 times", Stat = "JumpPads", Goal = 100, Reward = 500, Icon = "🚀", Category = "Style" },
 
 	-- Rivalry
@@ -62,19 +69,10 @@ local list = {
 	{ Id = "FirstBlood", Name = "First Blood", Desc = "Get the first kill of a match", Stat = "FirstBloods", Goal = 1, Reward = 250, Icon = "🩸", Category = "Rivalry" },
 	{ Id = "Comeback", Name = "Comeback Kid", Desc = "Get a kill after dying 3 times in a row", Stat = "Comebacks", Goal = 1, Reward = 200, Icon = "🔄", Category = "Rivalry" },
 
-	-- Arsenal mastery
-	{ Id = "MStriker", Name = "Striker Mastery", Desc = "100 kills with the Striker AR", Stat = "Kills_Striker", Goal = 100, Reward = 1000, Icon = "🔫", Category = "Arsenal" },
-	{ Id = "MViper", Name = "Viper Mastery", Desc = "100 kills with the Viper SMG", Stat = "Kills_Viper", Goal = 100, Reward = 1000, Icon = "🐍", Category = "Arsenal" },
-	{ Id = "MBrute", Name = "Brute Mastery", Desc = "100 kills with the Brute Shotgun", Stat = "Kills_Brute", Goal = 100, Reward = 1000, Icon = "🦬", Category = "Arsenal" },
-	{ Id = "MHornet", Name = "Hornet Mastery", Desc = "100 kills with the Hornet Burst", Stat = "Kills_Hornet", Goal = 100, Reward = 1500, Icon = "🐝", Category = "Arsenal" },
-	{ Id = "MInferno", Name = "Inferno Mastery", Desc = "100 kills with the Inferno LMG", Stat = "Kills_Inferno", Goal = 100, Reward = 1500, Icon = "🔥", Category = "Arsenal" },
-	{ Id = "MLongbow", Name = "Longbow Mastery", Desc = "100 kills with the Longbow Sniper", Stat = "Kills_Longbow", Goal = 100, Reward = 2000, Icon = "🏹", Category = "Arsenal" },
-	{ Id = "MRailgun", Name = "Railgun Mastery", Desc = "100 kills with the Railgun", Stat = "Kills_Railgun", Goal = 100, Reward = 2000, Icon = "⚡", Category = "Arsenal" },
-	{ Id = "MSidekick", Name = "Sidekick Mastery", Desc = "100 kills with the Sidekick Pistol", Stat = "Kills_Sidekick", Goal = 100, Reward = 1000, Icon = "🔫", Category = "Arsenal" },
-	{ Id = "MStinger", Name = "Stinger Mastery", Desc = "100 kills with the Stinger", Stat = "Kills_Stinger", Goal = 100, Reward = 1000, Icon = "🦂", Category = "Arsenal" },
-	{ Id = "MHandCannon", Name = "Hand Cannon Mastery", Desc = "100 kills with the Hand Cannon", Stat = "Kills_HandCannon", Goal = 100, Reward = 1500, Icon = "🤠", Category = "Arsenal" },
+	-- Arsenal (weapon mastery achievements are generated below)
 	{ Id = "Buy1", Name = "Window Shopper", Desc = "Buy a weapon from the Armory", Stat = "WeaponsBought", Goal = 1, Reward = 100, Icon = "🛒", Category = "Arsenal" },
-	{ Id = "BuyAll", Name = "Collector", Desc = "Own 9 weapons", Stat = "WeaponsOwned", Goal = 9, Reward = 5000, Icon = "🗃️", Category = "Arsenal" },
+	{ Id = "Own8", Name = "Collector", Desc = "Own 8 weapons", Stat = "WeaponsOwned", Goal = 8, Reward = 3000, Icon = "🗃️", Category = "Arsenal" },
+	{ Id = "Own16", Name = "Arms Dealer", Desc = "Own 16 weapons", Stat = "WeaponsOwned", Goal = 16, Reward = 10000, Icon = "🏪", Category = "Arsenal" },
 
 	-- Career
 	{ Id = "Win1", Name = "Winner Winner", Desc = "Win a match", Stat = "Wins", Goal = 1, Reward = 500, Icon = "🏆", Category = "Career" },
@@ -93,10 +91,26 @@ local list = {
 	{ Id = "Supporter", Name = "Supporter", Desc = "Buy anything from the Store", Stat = "RobuxPurchases", Goal = 1, Reward = 1000, Icon = "💚", Category = "Career" },
 }
 
+-- one mastery achievement per weapon + one "conquer" achievement per map
+local Weapons = require(script.Parent.Weapons)
+for _, id in Weapons.Order do
+	local def = Weapons.Get(id)
+	table.insert(list, {
+		Id = "M" .. id, Name = def.Name .. " Mastery", Desc = "Get 100 kills with the " .. def.Name,
+		Stat = "Kills_" .. id, Goal = 100, Reward = 1000 + (def.Level or 1) * 50, Icon = "🔫", Category = "Arsenal",
+	})
+end
+for _, m in { { "Downtown", "🏙️" }, { "Harbor", "⚓" }, { "Timberline", "🌲" }, { "Arena", "⚡" } } do
+	table.insert(list, {
+		Id = "Win" .. m[1], Name = "Conquer " .. m[1], Desc = "Win a match on " .. m[1],
+		Stat = "Wins_" .. m[1], Goal = 1, Reward = 750, Icon = m[2], Category = "Career",
+	})
+end
+
 Achievements.List = list
 Achievements.ById = {}
 Achievements.ByStat = {}
-Achievements.Categories = { "Combat", "Streaks", "Style", "Rivalry", "Arsenal", "Career" }
+Achievements.Categories = { "Combat", "Streaks", "Style", "Vehicles", "Rivalry", "Arsenal", "Career" }
 
 for _, a in list do
 	Achievements.ById[a.Id] = a

@@ -17,6 +17,7 @@ local HUD = require(script.Parent.HUD)
 local Menus = require(script.Parent.Menus)
 local Movement = require(script.Parent.MovementController)
 local Weapons = require(script.Parent.WeaponController)
+local Vehicle = require(script.Parent.VehicleController)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -53,6 +54,10 @@ HUD.OpenMenu = function(name)
 end
 Movement.Init()
 Weapons.Init()
+Vehicle.Init()
+ClientState.Changed.Event:Connect(function()
+	Effects.ShakeScale = ClientState.Settings.Shake or 1
+end)
 
 Menus.OnDeploy = function()
 	ClientState.Deployed = true
@@ -76,6 +81,7 @@ local function onCharacter(char: Model)
 	camera.CameraType = Enum.CameraType.Custom
 	camera.CameraSubject = humanoid
 	player.CameraMode = Enum.CameraMode.LockFirstPerson
+	player.CameraMinZoomDistance = 0.5
 	humanoid.Died:Connect(function()
 		ClientState.Dead = true
 		player.CameraMode = Enum.CameraMode.Classic
@@ -117,6 +123,8 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		Menus.Toggle("Store")
 	elseif k == Enum.KeyCode.J then
 		Menus.Toggle("Achievements")
+	elseif k == Enum.KeyCode.P then
+		Menus.Toggle("Settings")
 	elseif k == Enum.KeyCode.Tab then
 		Menus.ShowScoreboard(true)
 	elseif k == Enum.KeyCode.ButtonSelect then
@@ -189,6 +197,8 @@ end)
 Remotes.Effect.OnClientEvent:Connect(function(kind, a, b, c)
 	if kind == "Shot" then
 		Effects.RemoteShot(a, b, c)
+	elseif kind == "Launch" then
+		Effects.Launch(a, b)
 	elseif kind == "Explosion" then
 		Effects.Explosion(a, b)
 	elseif kind == "Slam" then

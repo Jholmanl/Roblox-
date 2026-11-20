@@ -15,6 +15,7 @@ local KillstreakService = require(script.Parent.KillstreakService)
 local MapService = require(script.Parent.MapService)
 local RoundService = require(script.Parent.RoundService)
 local BotService = require(script.Parent.BotService)
+local VehicleService = require(script.Parent.VehicleService)
 
 Players.CharacterAutoLoads = false
 Players.RespawnTime = Config.RespawnTime
@@ -22,7 +23,10 @@ Players.RespawnTime = Config.RespawnTime
 -- WIRING ---------------------------------------------------------------------
 Combat.Hooks.Round = RoundService
 Combat.Hooks.Killstreaks = KillstreakService
+Combat.Hooks.Vehicles = VehicleService
 KillstreakService.Round = RoundService
+RoundService.Map = MapService
+MapService.OnMapLoaded = VehicleService.OnMapLoaded
 AchievementService.Init()
 MapService.Init()
 
@@ -206,6 +210,27 @@ Remotes.ClaimDaily.OnServerEvent:Connect(function(player)
 		AchievementService.SetMax(player, "BestDaily", streak)
 		Remotes.Notify:FireClient(player, "Message", { Text = "DAY " .. streak .. " REWARD: $" .. reward, Color = Config.Colors.Green })
 		DataService.Sync(player)
+	end
+end)
+
+local CROSSHAIRS = { White = true, Green = true, Cyan = true, Red = true, Yellow = true }
+Remotes.SaveSettings.OnServerEvent:Connect(function(player, settings)
+	local data = DataService.Get(player)
+	if not data or typeof(settings) ~= "table" then
+		return
+	end
+	local s = data.Settings
+	if typeof(settings.FOV) == "number" then
+		s.FOV = math.clamp(math.floor(settings.FOV), 60, 100)
+	end
+	if typeof(settings.Shake) == "number" then
+		s.Shake = math.clamp(settings.Shake, 0, 1)
+	end
+	if typeof(settings.AdsSens) == "number" then
+		s.AdsSens = math.clamp(settings.AdsSens, 0.2, 1.5)
+	end
+	if typeof(settings.Crosshair) == "string" and CROSSHAIRS[settings.Crosshair] then
+		s.Crosshair = settings.Crosshair
 	end
 end)
 

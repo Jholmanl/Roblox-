@@ -68,6 +68,99 @@ Weapons.Defs = {
 		Look = { Body = Color3.fromRGB(20, 20, 30), Accent = Color3.fromRGB(170, 90, 255), Length = 3.4, Barrel = 1.4, Scope = true, Neon = true },
 	},
 
+	Vanguard = {
+		Name = "VANGUARD CARBINE", Class = "Assault Rifle", Slot = "Primary",
+		Damage = 22, HeadMult = 1.6, FireRate = 11.5, Auto = true,
+		Mag = 30, Reserve = 150, Reload = 1.8,
+		Spread = 2.0, AdsSpread = 0.45, Range = 500, FalloffStart = 100,
+		Recoil = 0.75, ZoomFov = 56, Speed = 1.05,
+		Price = 1200, Level = 4,
+		Look = { Body = Color3.fromRGB(58, 62, 52), Accent = Color3.fromRGB(120, 200, 90), Length = 2.3, Barrel = 0.7, Scope = false },
+	},
+	Tempest = {
+		Name = "TEMPEST PDW", Class = "SMG", Slot = "Primary",
+		Damage = 15, HeadMult = 1.4, FireRate = 18, Auto = true,
+		Mag = 40, Reserve = 200, Reload = 1.9,
+		Spread = 3.2, AdsSpread = 1.1, Range = 250, FalloffStart = 50,
+		Recoil = 0.5, ZoomFov = 60, Speed = 1.12,
+		Price = 2200, Level = 8,
+		Look = { Body = Color3.fromRGB(210, 210, 215), Accent = Color3.fromRGB(255, 80, 80), Length = 1.8, Barrel = 0.4, Scope = false },
+	},
+	Ranger = {
+		Name = "RANGER DMR", Class = "DMR", Slot = "Primary",
+		Damage = 48, HeadMult = 2.0, FireRate = 4, Auto = false,
+		Mag = 15, Reserve = 75, Reload = 2.3,
+		Spread = 1.4, AdsSpread = 0.05, Range = 1000, FalloffStart = 300,
+		Recoil = 2.2, ZoomFov = 36, Speed = 0.95,
+		Price = 4500, Level = 12,
+		Look = { Body = Color3.fromRGB(110, 96, 70), Accent = Color3.fromRGB(40, 40, 40), Length = 3.2, Barrel = 1.2, Scope = true },
+	},
+	Warden = {
+		Name = "WARDEN BATTLE RIFLE", Class = "Battle Rifle", Slot = "Primary",
+		Damage = 34, HeadMult = 1.6, FireRate = 7, Auto = true,
+		Mag = 20, Reserve = 100, Reload = 2.4,
+		Spread = 2.4, AdsSpread = 0.5, Range = 700, FalloffStart = 180,
+		Recoil = 1.6, ZoomFov = 52, Speed = 0.95,
+		Price = 5000, Level = 15,
+		Look = { Body = Color3.fromRGB(35, 38, 42), Accent = Color3.fromRGB(255, 140, 0), Length = 3.0, Barrel = 1.0, Scope = true },
+	},
+	Razor = {
+		Name = "RAZOR AUTO-SHOTGUN", Class = "Shotgun", Slot = "Primary",
+		Damage = 11, HeadMult = 1.3, FireRate = 4, Auto = true, Pellets = 7,
+		Mag = 12, Reserve = 48, Reload = 3.0,
+		Spread = 5.5, AdsSpread = 4, Range = 120, FalloffStart = 20,
+		Recoil = 2.5, ZoomFov = 62, Speed = 1.0,
+		Price = 6500, Level = 20,
+		Look = { Body = Color3.fromRGB(28, 28, 32), Accent = Color3.fromRGB(0, 204, 255), Length = 2.6, Barrel = 0.9, Scope = false, Drum = true },
+	},
+	Duke = {
+		Name = "DUKE DOUBLE-BARREL", Class = "Shotgun", Slot = "Primary",
+		Damage = 13, HeadMult = 1.3, FireRate = 3.5, Auto = false, Pellets = 12,
+		Mag = 2, Reserve = 30, Reload = 2.2,
+		Spread = 7, AdsSpread = 5, Range = 110, FalloffStart = 20,
+		Recoil = 6, ZoomFov = 64, Speed = 1.05,
+		Price = 3500, Level = 11,
+		Look = { Body = Color3.fromRGB(110, 70, 40), Accent = Color3.fromRGB(190, 190, 190), Length = 2.9, Barrel = 1.3, Scope = false, Double = true },
+	},
+	Reaper = {
+		Name = "REAPER MINIGUN", Class = "Minigun", Slot = "Primary",
+		Damage = 19, HeadMult = 1.3, FireRate = 22, Auto = true, SpinUp = 0.7,
+		Mag = 200, Reserve = 400, Reload = 6,
+		Spread = 4, AdsSpread = 2.6, Range = 500, FalloffStart = 120,
+		Recoil = 0.45, ZoomFov = 62, Speed = 0.72,
+		Price = 15000, Level = 35,
+		Look = { Body = Color3.fromRGB(45, 45, 50), Accent = Color3.fromRGB(255, 60, 40), Length = 3.4, Barrel = 1.4, Scope = false, Rotary = true },
+	},
+	Titan = {
+		Name = "TITAN .50 SNIPER", Class = "Sniper", Slot = "Primary",
+		Damage = 140, HeadMult = 2.0, FireRate = 0.6, Auto = false, Penetrate = 2,
+		Mag = 4, Reserve = 24, Reload = 3.6,
+		Spread = 9, AdsSpread = 0, Range = 2000, FalloffStart = 2000,
+		Recoil = 8, ZoomFov = 14, Speed = 0.85, Scoped = true,
+		Price = 12000, Level = 30,
+		Look = { Body = Color3.fromRGB(50, 50, 40), Accent = Color3.fromRGB(255, 198, 26), Length = 4.2, Barrel = 2.0, Scope = true },
+	},
+	Havoc = {
+		Name = "HAVOC RPG", Class = "Launcher", Slot = "Primary",
+		Damage = 150, HeadMult = 1, FireRate = 0.8, Auto = false,
+		Projectile = { Speed = 170, Gravity = 0, Radius = 16, Direct = 60, Size = 0.7 },
+		Mag = 1, Reserve = 6, Reload = 2.8,
+		Spread = 1.5, AdsSpread = 0.2, Range = 900, FalloffStart = 900,
+		Recoil = 5, ZoomFov = 50, Speed = 0.85,
+		Price = 10000, Level = 28,
+		Look = { Body = Color3.fromRGB(70, 85, 60), Accent = Color3.fromRGB(255, 120, 40), Length = 3.6, Barrel = 0.3, Scope = false, Tube = true },
+	},
+	Thumper = {
+		Name = "THUMPER GRENADE LAUNCHER", Class = "Launcher", Slot = "Primary",
+		Damage = 110, HeadMult = 1, FireRate = 1.6, Auto = false,
+		Projectile = { Speed = 115, Gravity = 70, Radius = 14, Direct = 30, Size = 0.6 },
+		Mag = 6, Reserve = 18, Reload = 3.2,
+		Spread = 1.5, AdsSpread = 0.4, Range = 600, FalloffStart = 600,
+		Recoil = 3, ZoomFov = 55, Speed = 0.92,
+		Price = 9000, Level = 26,
+		Look = { Body = Color3.fromRGB(60, 62, 66), Accent = Color3.fromRGB(110, 200, 70), Length = 2.4, Barrel = 0.6, Scope = false, Drum = true },
+	},
+
 	-- SECONDARIES ------------------------------------------------------
 	Sidekick = {
 		Name = "SIDEKICK PISTOL", Class = "Pistol", Slot = "Secondary",
@@ -96,9 +189,31 @@ Weapons.Defs = {
 		Price = 4000, Level = 14,
 		Look = { Body = Color3.fromRGB(160, 160, 170), Accent = Color3.fromRGB(255, 198, 26), Length = 1.4, Barrel = 0.5, Scope = false },
 	},
+	Judge = {
+		Name = "JUDGE REVOLVER-SHOTGUN", Class = "Revolver", Slot = "Secondary",
+		Damage = 12, HeadMult = 1.4, FireRate = 2, Auto = false, Pellets = 6,
+		Mag = 5, Reserve = 30, Reload = 2.4,
+		Spread = 5, AdsSpread = 3.5, Range = 90, FalloffStart = 15,
+		Recoil = 4, ZoomFov = 64, Speed = 1.08,
+		Price = 2500, Level = 9,
+		Look = { Body = Color3.fromRGB(60, 60, 66), Accent = Color3.fromRGB(200, 160, 90), Length = 1.5, Barrel = 0.5, Scope = false },
+	},
+	Arc = {
+		Name = "ARC ENERGY PISTOL", Class = "Energy Pistol", Slot = "Secondary",
+		Damage = 30, HeadMult = 1.8, FireRate = 5, Auto = false,
+		Mag = 16, Reserve = 96, Reload = 1.5,
+		Spread = 1.2, AdsSpread = 0.2, Range = 450, FalloffStart = 120,
+		Recoil = 1.2, ZoomFov = 60, Speed = 1.1,
+		Price = 3500, Level = 16,
+		Look = { Body = Color3.fromRGB(230, 230, 240), Accent = Color3.fromRGB(0, 204, 255), Length = 1.3, Barrel = 0.3, Scope = false, Neon = true },
+	},
 }
 
-Weapons.Order = { "Striker", "Viper", "Brute", "Hornet", "Inferno", "Longbow", "Railgun", "Sidekick", "Stinger", "HandCannon" }
+Weapons.Order = {
+	"Striker", "Vanguard", "Viper", "Tempest", "Brute", "Duke", "Hornet", "Ranger", "Warden", "Inferno",
+	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "Railgun",
+	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc",
+}
 
 function Weapons.Get(id: string)
 	return Weapons.Defs[id]
