@@ -218,7 +218,13 @@ local function updateVehicle()
 	end
 	if car then
 		refs.Speed.Text = tostring(math.floor(Vehicle.Speed * 0.6))
-		refs.CarName.Text = string.upper(car.Name)
+		if Vehicle.Boosting then
+			refs.CarName.Text = "🚀 DRIFT BOOST"
+		elseif Vehicle.Drifting then
+			refs.CarName.Text = string.format("🌀 DRIFT %.1fs", Vehicle.DriftTime)
+		else
+			refs.CarName.Text = string.upper(car.Name)
+		end
 		local hp, max = car:GetAttribute("Health") or 0, car:GetAttribute("MaxHealth") or 1
 		refs.CarHealth.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
 		refs.CarHealth.BackgroundColor3 = T.Red:Lerp(T.Green, math.clamp(hp / max, 0, 1))
