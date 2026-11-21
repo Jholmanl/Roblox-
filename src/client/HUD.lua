@@ -267,7 +267,7 @@ local function buildAbilities()
 		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 	refs.Abilities = {}
-	for i, a in { { "Dash", "💨", "Q" }, { "Slide", "🛝", "C" }, { "Slam", "☄️", "C AIR" } } do
+	for i, a in { { "Dash", "💨", "Q" }, { "Slide", "🏂", "C" }, { "Slam", "☄️", "T" } } do
 		local box = UIKit.Panel({ Size = UDim2.fromOffset(64, 56), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.45, LayoutOrder = i, Parent = f })
 		box.ClipsDescendants = true
 		local cd = new("Frame", { Name = "Cooldown", Size = UDim2.fromScale(1, 0), Position = UDim2.fromScale(0, 1), AnchorPoint = Vector2.new(0, 1), BackgroundColor3 = T.Accent, BackgroundTransparency = 0.6, BorderSizePixel = 0, Parent = box })

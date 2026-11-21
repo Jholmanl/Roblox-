@@ -93,7 +93,7 @@ Press **E** to drive. **W/S** drives, **A/D** steers, **Shift** boosts, **S** br
 | Feature | What it does |
 |---|---|
 | **Slide** (C on the ground) | Slide while sprinting. You keep full accuracy while sliding. |
-| **Ground Slam** (C in the air) | Crash down from height. Deals area damage on impact. |
+| **Ground Slam** (T in the air) | Crash down from height. Deals area damage on impact. |
 | **Dash** (Q) | Burst in any direction. Getting a kill right after a dash earns a *Blink Kill*. |
 | **Double jump** (Space in the air) | Everyone gets one air jump. The Triple Jump pass adds a second. |
 | **Jump pads** | Launch you across the arena. |
@@ -144,7 +144,7 @@ To test paid perks in Studio without buying them, set `Config.StudioGrantAllPass
 |---|---|---|---|
 | WASD / Shift | Move / sprint | LMB / RMB | Shoot / aim (ADS) |
 | Space (in air) | Double jump | R | Reload |
-| C / Ctrl | Slide (ground), Slam (air) | 1 / 2 / wheel | Swap weapon |
+| C / Ctrl / T | Slide (C/Ctrl), Ground slam in the air (T) | 1 / 2 / wheel | Swap weapon |
 | Q | Dash | V or F | Knife |
 | G | Grenade | Z / X | Use bought Airstrike / Nuke |
 | B / N / J / P | Armory / Store / Achievements / Settings | Tab | Scoreboard |

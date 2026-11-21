@@ -646,7 +646,7 @@ local function buildMainMenu()
 	end
 
 	local controls = Label({
-		Text = "WASD move · SHIFT sprint · SPACE double jump · C slide / slam · Q dash · E drive cars\nLMB shoot · RMB aim · R reload · 1/2 swap · V knife · G grenade · Z/X call-ins · TAB scores",
+		Text = "WASD move · SHIFT sprint · SPACE double jump · C slide · T slam (in air) · Q dash · E drive cars\nLMB shoot · RMB aim · R reload · 1/2 swap · V knife · G grenade · Z/X call-ins · TAB scores",
 		Size = UDim2.new(1, 0, 0, 40), Position = UDim2.new(0, 0, 1, -70), TextSize = 12, Font = T.Medium, TextColor3 = T.Sub, TextWrapped = true, ZIndex = 2, Parent = left,
 	})
 	controls.TextYAlignment = Enum.TextYAlignment.Top

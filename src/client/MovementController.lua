@@ -143,14 +143,20 @@ function Movement.Slam()
 	root.AssemblyLinearVelocity = Vector3.new(0, -150, 0)
 end
 
--- C / Ctrl: slide on the ground, slam in the air
+local function canMove(): boolean
+	return not (ClientState.Driving or (humanoid and humanoid.Sit) or player:GetAttribute("Downed"))
+end
+
+-- C / Ctrl: slide (on the ground)
 function Movement.Crouch()
-	if ClientState.Driving or (humanoid and humanoid.Sit) or player:GetAttribute("Downed") then
-		return
-	end
-	if grounded() then
+	if canMove() and grounded() then
 		Movement.Slide()
-	else
+	end
+end
+
+-- T: ground slam (in the air)
+function Movement.GroundSlam()
+	if canMove() and not grounded() then
 		Movement.Slam()
 	end
 end
@@ -292,6 +298,8 @@ function Movement.Init()
 			sprintHeld = true
 		elseif key == Enum.KeyCode.C or key == Enum.KeyCode.LeftControl then
 			Movement.Crouch()
+		elseif key == Enum.KeyCode.T or key == Enum.KeyCode.DPadDown then
+			Movement.GroundSlam()
 		elseif key == Enum.KeyCode.Q then
 			Movement.Dash()
 		elseif key == Enum.KeyCode.ButtonL3 then
@@ -325,6 +333,14 @@ function Movement.Init()
 		end, true)
 		ContextActionService:SetTitle("NS_Slide", "SLIDE")
 		ContextActionService:SetPosition("NS_Slide", UDim2.new(1, -230, 1, -80))
+		ContextActionService:BindAction("NS_Slam", function(_, inputState)
+			if inputState == Enum.UserInputState.Begin then
+				Movement.GroundSlam()
+			end
+			return Enum.ContextActionResult.Sink
+		end, true)
+		ContextActionService:SetTitle("NS_Slam", "SLAM")
+		ContextActionService:SetPosition("NS_Slam", UDim2.new(1, -170, 1, -140))
 		ContextActionService:BindAction("NS_Dash", function(_, inputState)
 			if inputState == Enum.UserInputState.Begin then
 				Movement.Dash()
