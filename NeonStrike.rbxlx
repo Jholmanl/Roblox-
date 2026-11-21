@@ -11975,21 +11975,21 @@ local function build(options: { string })
 		local info = Config.Maps[id] or { Name = id, Icon = "🗺️", Desc = "" }
 		local theme = THEMES[id] or { T.Panel3, T.Panel }
 		local c = card(mapRow, id, "Map", i, Vector2.new(250, 170), theme[1], theme[2])
-		local icon = Label({ Text = info.Icon, Size = UDim2.new(1, 0, 0, 64), Position = UDim2.fromOffset(0, 18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 54, Font = T.Black, Parent = c })
+		local icon = Label({ Text = info.Icon, Size = UDim2.new(1, 0, 0, 58), Position = UDim2.fromOffset(0, 30), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 54, Font = T.Black, Parent = c })
 		icon.TextTransparency = 0.05
-		local name = Label({ Text = info.Name, Size = UDim2.new(1, -20, 0, 26), Position = UDim2.fromOffset(10, 84), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 22, Font = T.Black, Parent = c })
+		local name = Label({ Text = info.Name, Size = UDim2.new(1, -20, 0, 26), Position = UDim2.fromOffset(10, 88), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 22, Font = T.Black, Parent = c })
 		UIKit.TextStroke(0.4).Parent = name
-		Label({ Text = info.Desc, Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(10, 110), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Bold, TextColor3 = rgb(225, 230, 240), Parent = c })
+		Label({ Text = info.Desc, Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(10, 114), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Bold, TextColor3 = rgb(225, 230, 240), Parent = c })
 	end
 	for i, id in Config.ModeOrder do
 		local m = Config.Modes[id]
 		local accent = (#m.Teams > 0) and Config.Teams[m.Teams[1]].Color or rgb(200, 70, 220)
-		local c = card(modeRow, id, "Mode", i, Vector2.new(250, 122), accent:Lerp(Color3.new(0, 0, 0), 0.35), rgb(18, 20, 30))
+		local c = card(modeRow, id, "Mode", i, Vector2.new(250, 156), accent:Lerp(Color3.new(0, 0, 0), 0.35), rgb(18, 20, 30))
 		Label({ Text = MODE_ICONS[id] or "🎯", Size = UDim2.fromOffset(40, 36), Position = UDim2.fromOffset(12, 12), TextSize = 28, Font = T.Black, Parent = c })
-		local name = Label({ Text = m.Name, Size = UDim2.new(1, -64, 0, 20), Position = UDim2.fromOffset(56, 12), TextSize = 15, Font = T.Black, TextWrapped = true, Parent = c })
+		local name = Label({ Text = m.Name, Size = UDim2.new(1, -66, 0, 36), Position = UDim2.fromOffset(56, 10), TextSize = 15, Font = T.Black, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = c })
 		UIKit.TextStroke(0.5).Parent = name
 		-- team color dots (one per team, or a rainbow ring of 6 for FFA)
-		local dots = new("Frame", { Size = UDim2.fromOffset(120, 12), Position = UDim2.fromOffset(56, 36), BackgroundTransparency = 1, Parent = c }, { UIKit.List(4, true) })
+		local dots = new("Frame", { Size = UDim2.fromOffset(120, 12), Position = UDim2.fromOffset(56, 50), BackgroundTransparency = 1, Parent = c }, { UIKit.List(4, true) })
 		local colors = {}
 		if #m.Teams > 0 then
 			for _, team in m.Teams do
@@ -12004,10 +12004,11 @@ local function build(options: { string })
 			local d = new("Frame", { Size = UDim2.fromOffset(12, 12), BackgroundColor3 = col, BorderSizePixel = 0, LayoutOrder = k, Parent = dots })
 			UIKit.Corner(6).Parent = d
 		end
-		Label({ Text = m.Desc or "", Size = UDim2.new(1, -24, 0, 28), Position = UDim2.fromOffset(12, 54), TextSize = 11, Font = T.Bold, TextColor3 = rgb(210, 215, 228), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = c })
+		Label({ Text = m.Desc or "", Size = UDim2.new(1, -24, 0, 28), Position = UDim2.fromOffset(12, 68), TextSize = 11, Font = T.Bold, TextColor3 = rgb(210, 215, 228), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = c })
 		c:FindFirstChild("Frame").Size = UDim2.new(1, 0, 0.35, 0)
-		-- the YOUR VOTE badge sits on the dot row for modes so it doesn't hide the name
-		cards[id].Badge.Position = UDim2.new(1, -10, 0, 36)
+		-- badges sit in their own row above the vote bar so they never cover the text
+		cards[id].Badge.Position = UDim2.new(1, -10, 1, -60)
+		cards[id].Lead.Position = UDim2.new(0, 10, 1, -60)
 	end
 end
 
@@ -12053,7 +12054,7 @@ function VoteScreen.Init(playerGui: PlayerGui)
 		stripe.ZIndex = 0
 	end
 
-	root = new("Frame", { Size = UDim2.fromOffset(820, 560), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Parent = bg })
+	root = new("Frame", { Size = UDim2.fromOffset(820, 570), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Parent = bg })
 	local rootScale = new("UIScale", { Parent = root })
 
 	local title = Label({ Text = "VOTE FOR THE NEXT MATCH", Size = UDim2.new(1, 0, 0, 44), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 38, Font = T.Black, Parent = root })
@@ -12071,7 +12072,7 @@ function VoteScreen.Init(playerGui: PlayerGui)
 	UIKit.Corner(2).Parent = timerBar
 
 	mapRow = section("🗺️  CHOOSE A MAP", "A new set of maps every round", 110, 170)
-	modeRow = section("🎮  CHOOSE A MODE", "No mode votes? The game moves on to the next mode", 330, 122)
+	modeRow = section("🎮  CHOOSE A MODE", "No mode votes? The game moves on to the next mode", 330, 156)
 	footer = Label({ Text = "Click a card to vote · you can change your vote any time", Size = UDim2.new(1, 0, 0, 16), Position = UDim2.new(0, 0, 1, -10), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Bold, TextColor3 = T.Sub, Parent = root })
 
 	blur = new("BlurEffect", { Name = "VoteBlur", Size = 0, Parent = Lighting })
