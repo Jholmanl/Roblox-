@@ -169,7 +169,7 @@ function load(idx) {
   buildTerrain(map.terrain, group);
   // spawn markers: blue = Alpha, red = Bravo, green = Charlie, yellow = free-for-all
   const SPAWN_COL = { A: 0x3c8cff, B: 0xff4646, C: 0x46dc5a, FFA: 0xffc61a };
-  for (const sp of map.spawns) {
+  for (const sp of (location.search.includes('promo') ? [] : map.spawns)) {
     const col = SPAWN_COL[sp[3]] ?? 0xffffff;
     const m = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 10, 10), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.75 }));
     m.position.set(sp[0], sp[1] + 2, sp[2]);
