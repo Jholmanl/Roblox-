@@ -197,7 +197,8 @@ end
 -- Invisible walls around the playable area.
 function MapKit:Boundary(halfX: number, halfZ: number, height: number?)
 	local h = height or 120
-	for _, s in { { halfX, 0, 2, halfZ * 2 }, { -halfX, 0, 2, halfZ * 2 }, { 0, halfZ, halfX * 2, 2 }, { 0, -halfZ, halfX * 2, 2 } } do
+	-- walls overlap at the corners so there's no seam to squeeze through
+	for _, s in { { halfX, 0, 2, halfZ * 2 + 6 }, { -halfX, 0, 2, halfZ * 2 + 6 }, { 0, halfZ, halfX * 2 + 6, 2 }, { 0, -halfZ, halfX * 2 + 6, 2 } } do
 		local w = self:Part(Vector3.new(s[3], h, s[4]), CFrame.new(s[1], h / 2 - 10, s[2]), Color3.new(), M.SmoothPlastic, self.Geo)
 		w.Name = "Boundary"
 		w.Transparency = 1
