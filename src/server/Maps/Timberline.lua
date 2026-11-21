@@ -237,7 +237,7 @@ function Map.Build()
 		end
 	end
 	kit:FFASpawns(ffa)
-	kit:Mountains(HALF + 40, HALF + 40, { Margin = 70, GroundY = -0.5 })
+	kit:Mountains(HALF + 18, HALF + 18, { Margin = 95, GroundY = -0.5 })
 	kit:Boundary(HALF, HALF, 260)
 	return kit
 end

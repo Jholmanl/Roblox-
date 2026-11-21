@@ -33,7 +33,7 @@ const hemi = new THREE.HemisphereLight(0xe8efff, 0x6a5a48, 1.7);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 2.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.bias = -0.0004;
 scene.add(sun);
 scene.add(sun.target);
@@ -77,10 +77,10 @@ function material(m, c, t) {
 
 
 // Voxelize terrain fills like Roblox does (4 stud cells, later fills overwrite earlier ones)
-const TCOL = { Grass: [92, 138, 62], Mud: [96, 76, 58], Sand: [212, 192, 146], Ground: [128, 102, 74], Rock: [120, 118, 114], Water: [44, 120, 160], Slate: [110, 110, 110], LeafyGrass: [80, 130, 60], Asphalt: [60, 60, 64], Concrete: [150, 150, 146] };
+const TCOL = { Grass: [92, 138, 62], Mud: [96, 76, 58], Sand: [212, 192, 146], Ground: [128, 102, 74], Rock: [120, 118, 114], Water: [44, 120, 160], Snow: [240, 244, 250], Slate: [110, 110, 110], LeafyGrass: [80, 130, 60], Asphalt: [60, 60, 64], Concrete: [150, 150, 146] };
 function buildTerrain(ops, parent) {
   if (!ops.length) return;
-  const R = 4, N = 150, YMIN = -24, NY = 26; // x/z: -300..300, y: -24..80
+  const R = 4, N = 340, YMIN = -24, NY = 44, OFF = 680; // x/z: -680..680, y: -24..152
   const names = ["Air"]; const idx = { Air: 0 };
   const grid = new Uint8Array(N * N * NY);
   const id = (m) => (idx[m] ?? (idx[m] = names.push(m) - 1));
@@ -102,11 +102,11 @@ function buildTerrain(ops, parent) {
         return Math.abs(lx) <= sx / 2 && Math.abs(ly) <= sy / 2 && Math.abs(lz) <= sz / 2;
       };
     }
-    const i0 = Math.max(0, Math.floor((minx + 300) / R)), i1 = Math.min(N - 1, Math.floor((maxx + 300) / R));
-    const k0 = Math.max(0, Math.floor((minz + 300) / R)), k1 = Math.min(N - 1, Math.floor((maxz + 300) / R));
+    const i0 = Math.max(0, Math.floor((minx + OFF) / R)), i1 = Math.min(N - 1, Math.floor((maxx + OFF) / R));
+    const k0 = Math.max(0, Math.floor((minz + OFF) / R)), k1 = Math.min(N - 1, Math.floor((maxz + OFF) / R));
     const j0 = Math.max(0, Math.floor((miny - YMIN) / R)), j1 = Math.min(NY - 1, Math.floor((maxy - YMIN) / R));
     for (let j = j0; j <= j1; j++) for (let k = k0; k <= k1; k++) for (let i = i0; i <= i1; i++) {
-      if (test(i * R - 300 + R / 2, j * R + YMIN + R / 2, k * R - 300 + R / 2)) grid[at(i, j, k)] = mid;
+      if (test(i * R - OFF + R / 2, j * R + YMIN + R / 2, k * R - OFF + R / 2)) grid[at(i, j, k)] = mid;
     }
   }
   const lists = {};
@@ -116,7 +116,7 @@ function buildTerrain(ops, parent) {
     const m = names[v];
     if (m === "Water") { if (j + 1 < NY && grid[at(i, j + 1, k)] === v) continue; }
     else if (solid(i + 1, j, k) && solid(i - 1, j, k) && solid(i, j + 1, k) && solid(i, j - 1, k) && solid(i, j, k + 1) && solid(i, j, k - 1)) continue;
-    (lists[m] ||= []).push([i * R - 300 + R / 2, j * R + YMIN + R / 2, k * R - 300 + R / 2]);
+    (lists[m] ||= []).push([i * R - OFF + R / 2, j * R + YMIN + R / 2, k * R - OFF + R / 2]);
   }
   const dummy = new THREE.Object3D();
   for (const [m, cells] of Object.entries(lists)) {
@@ -131,7 +131,7 @@ function buildTerrain(ops, parent) {
       const f = water ? 1 : 0.9 + ((Math.sin(p[0] * 12.9898 + p[2] * 78.233) * 43758.5453) % 1 + 1) % 1 * 0.2;
       inst.setColorAt(n, col.setRGB(f, f, f));
     });
-    inst.receiveShadow = !water; inst.castShadow = !water;
+    inst.receiveShadow = !water; inst.castShadow = false;
     parent.add(inst);
   }
 }
@@ -167,6 +167,14 @@ function load(idx) {
     }
   }
   buildTerrain(map.terrain, group);
+  // spawn markers: blue = Alpha, red = Bravo, green = Charlie, yellow = free-for-all
+  const SPAWN_COL = { A: 0x3c8cff, B: 0xff4646, C: 0x46dc5a, FFA: 0xffc61a };
+  for (const sp of map.spawns) {
+    const col = SPAWN_COL[sp[3]] ?? 0xffffff;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 10, 10), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.75 }));
+    m.position.set(sp[0], sp[1] + 2, sp[2]);
+    group.add(m);
+  }
   scene.add(group);
   box.setFromObject(group);
 
@@ -177,7 +185,7 @@ function load(idx) {
   const skyTop = warm ? new THREE.Color(0x6b86c9) : new THREE.Color(0x7fb2ff);
   const skyLow = warm ? new THREE.Color(0xffb27a) : new THREE.Color(0xd6e8ff);
   scene.background = skyLow.clone().lerp(skyTop, 0.35);
-  scene.fog = new THREE.Fog(skyLow, 350, 1400);
+  scene.fog = new THREE.Fog(skyLow, 500, 2200);
   sun.color = warm ? new THREE.Color(0xffc48a) : new THREE.Color(0xfff6e8);
   sun.intensity = 1.2 + dayT * 1.6;
   const ang = ((clock - 6) / 12) * Math.PI;

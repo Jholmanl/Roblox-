@@ -77,6 +77,10 @@ local list = {
 	{ Id = "JumpPad", Name = "Frequent Flyer", Desc = "Use jump pads 100 times", Stat = "JumpPads", Goal = 100, Reward = 500, Icon = "🚀", Category = "Style" },
 
 	-- Rivalry
+	{ Id = "Revive1", Name = "Combat Medic", Desc = "Revive a downed teammate", Stat = "Revives", Goal = 1, Reward = 300, Icon = "✚", Category = "Rivalry" },
+	{ Id = "Revive50", Name = "Guardian Angel", Desc = "Revive 50 teammates", Stat = "Revives", Goal = 50, Reward = 4000, Icon = "😇", Category = "Rivalry" },
+	{ Id = "Knock25", Name = "Knockout Puncher", Desc = "Knock down 25 enemies on a streak", Stat = "Knockdowns", Goal = 25, Reward = 2000, Icon = "⬇️", Category = "Rivalry" },
+	{ Id = "SelfRevive", Name = "Not Today", Desc = "Self-revive while downed", Stat = "SelfRevives", Goal = 1, Reward = 400, Icon = "💪", Category = "Rivalry" },
 	{ Id = "Revenge", Name = "Payback", Desc = "Kill the player who last killed you", Stat = "Revenges", Goal = 1, Reward = 150, Icon = "😤", Category = "Rivalry" },
 	{ Id = "Revenge50", Name = "Grudge Holder", Desc = "Get 50 revenge kills", Stat = "Revenges", Goal = 50, Reward = 2000, Icon = "📒", Category = "Rivalry" },
 	{ Id = "Bounty", Name = "Bounty Hunter", Desc = "End an enemy's 5+ kill streak", Stat = "Bounties", Goal = 1, Reward = 300, Icon = "💰", Category = "Rivalry" },
@@ -525,18 +529,43 @@ return CarBuilder
 local Config = {}
 
 Config.GameName = "NEON STRIKE"
-Config.ModeName = "FREE FOR ALL"
+Config.ModeName = "TEAM DEATHMATCH" -- default; the live mode is ReplicatedStorage.Mode
 
 -- Match flow
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
 Config.MatchLength = 300 -- 5 minute matches
 Config.ResultsLength = 16 -- includes map voting
-Config.KillsToWin = 30
+Config.KillsToWin = 30 -- (unused in team mode)
+Config.TeamKillsToWin = 75 -- first team to this many kills wins
+Config.MaxPlayers = 30 -- set the same number in Game Settings > Places
 
 -- Bots fill the server up to this many combatants so it is never empty
-Config.BotFill = 8
+Config.BotFill = 12 -- bots keep both teams filled up to this many fighters total
 Config.BotDamageMultiplier = 0.45
 Config.BotAccuracy = 0.38
+
+-- Teams (spawns are at opposite ends of every map)
+Config.Teams = {
+	A = { Name = "ALPHA", Color = Color3.fromRGB(40, 140, 255), Brick = "Bright blue" },
+	B = { Name = "BRAVO", Color = Color3.fromRGB(255, 70, 70), Brick = "Bright red" },
+	C = { Name = "CHARLIE", Color = Color3.fromRGB(70, 220, 90), Brick = "Lime green" },
+}
+
+-- Game modes (players vote for the next mode on the results screen)
+Config.Modes = {
+	FFA = { Name = "FREE FOR ALL", Short = "FFA", Teams = {}, KillsToWin = 30, Desc = "Everyone for themselves. Spawns all over the map." },
+	TDM = { Name = "TEAM DEATHMATCH", Short = "TDM", Teams = { "A", "B" }, KillsToWin = 75, Desc = "Alpha vs Bravo. Spawns at opposite ends." },
+	TTDM = { Name = "TRIPLE TEAM DEATHMATCH", Short = "3TDM", Teams = { "A", "B", "C" }, KillsToWin = 60, Desc = "Alpha vs Bravo vs Charlie. Three bases." },
+}
+Config.ModeOrder = { "TDM", "FFA", "TTDM" }
+
+-- Downed / revive: only players on a 5+ kill streak get knocked down instead of dying
+Config.DownStreak = 5
+Config.DownedHealth = 60 -- downed players bleed this much HP
+Config.BleedRate = 3 -- HP per second (about 20 seconds to bleed out)
+Config.ReviveTime = 2.5 -- seconds a teammate holds E
+Config.SelfReviveTime = 4 -- seconds to hold F for a self revive (once per down)
+Config.ReviveHealth = 0.5 -- share of max HP after a revive
 
 -- Players
 Config.BaseHealth = 100
@@ -1728,7 +1757,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EVENTS = {
 	-- client -> server
 	"Deploy", "Fire", "Reload", "Knife", "Grenade", "Slam", "JumpPad",
-	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken", "Vote", "SaveSettings",
+	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken", "Vote", "SaveSettings", "SelfRevive",
 	-- server -> client
 	"Effect", "HitConfirm", "Damaged", "KillFeed", "Notify", "KillInfo",
 	"DataSync", "Killstreak", "MatchResults",
@@ -2282,6 +2311,7 @@ local GunBuilder = require(Shared.GunBuilder)
 local Util = require(Shared.Util)
 local Combat = require(script.Parent.CombatService)
 local MapService = require(script.Parent.MapService)
+local TeamService = require(script.Parent.TeamService)
 
 local BotService = {}
 BotService.Bots = {} -- list of records
@@ -2359,7 +2389,7 @@ local function runAI(record, model: Model)
 	local nextStrafe = 0
 	local nextShot = os.clock() + 1
 	local shotsInMag = def.Mag
-	local wander = MapService.PickSpawn(entity).Position
+	local wander = MapService.RandomPoint()
 	local nextWander = 0
 	local currentTarget = nil
 	local reactionUntil = 0
@@ -2375,7 +2405,7 @@ local function runAI(record, model: Model)
 		-- pick the closest visible enemy, otherwise head for the closest one
 		local best, bestDist, bestVisible = nil, math.huge, false
 		for _, other in Combat.Entities do
-			if other ~= entity and Combat.IsAlive(other) then
+			if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 				local d = (other.Root.Position - myPos).Magnitude
 				if d < 260 then
 					local visible = hasLineOfSight(head.Position, other, { model, workspace:FindFirstChild("Effects") })
@@ -2437,7 +2467,7 @@ local function runAI(record, model: Model)
 			end
 		else
 			if now > nextWander or (wander - myPos).Magnitude < 8 then
-				wander = MapService.PickSpawn(entity).Position
+				wander = MapService.RandomPoint()
 				nextWander = now + 6
 			end
 			local flat = Vector3.new(wander.X - myPos.X, 0, wander.Z - myPos.Z)
@@ -2525,7 +2555,16 @@ local function addBot()
 end
 
 local function removeBot()
-	local record = table.remove(BotService.Bots)
+	-- take a bot off the biggest team so teams stay even
+	local largest = TeamService.Largest()
+	local index = #BotService.Bots
+	for i = #BotService.Bots, 1, -1 do
+		if BotService.Bots[i].Entity.Team == largest then
+			index = i
+			break
+		end
+	end
+	local record = table.remove(BotService.Bots, index)
 	if not record then
 		return
 	end
@@ -2606,6 +2645,7 @@ local Util = require(Shared.Util)
 local GunBuilder = require(Shared.GunBuilder)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local Combat = {}
 Combat.Entities = {} -- [character Model] = entity (alive or recently dead)
@@ -2699,6 +2739,7 @@ function Combat.NewEntity(name: string, holder: Instance, player: Player?)
 	if player then
 		Combat.ByPlayer[player] = entity
 	end
+	TeamService.Register(entity)
 	return entity
 end
 
@@ -2709,6 +2750,7 @@ function Combat.RemoveEntity(entity)
 	if entity.Player then
 		Combat.ByPlayer[entity.Player] = nil
 	end
+	TeamService.Unregister(entity)
 	entity.Dead = true
 end
 
@@ -2731,8 +2773,14 @@ function Combat.AttachCharacter(entity, character: Model, weaponIds: { string })
 	entity.Root = root
 	entity.Dead = false
 	entity.InfiniteAmmo = false
+	entity.Downed = false
+	entity.DownedBy = nil
+	character:SetAttribute("Team", entity.Team)
+	character:SetAttribute("Downed", false)
 	if entity.Player then
 		entity.Player:SetAttribute("InfiniteAmmo", false)
+		entity.Player:SetAttribute("Downed", false)
+		entity.Player:SetAttribute("SelfReviveUsed", false)
 	end
 	entity.DamageLog = {}
 	entity.LastDamaged = 0
@@ -2813,6 +2861,9 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	if attacker == victim then
 		return false
 	end
+	if attacker and not TeamService.Enemies(attacker, victim) then
+		return false -- no friendly fire
+	end
 	if Combat.Hooks.Round and Combat.Hooks.Round.State == "Results" then
 		return false
 	end
@@ -2848,6 +2899,15 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	end
 
 	if after <= 0 then
+		-- players on a big streak get knocked down instead of dying
+		if victim.Player and not victim.Downed and victim.Streak >= Config.DownStreak and info.Kind ~= "Nuke" then
+			Combat.Down(attacker, victim, info)
+			return false
+		end
+		if victim.Downed and not attacker then
+			attacker = victim.DownedBy -- bled out: credit whoever knocked them
+			info = victim.DownedInfo or info
+		end
 		victim.Dead = true -- set before Health so the Died handler doesn't double count
 		humanoid.Health = 0
 		Combat.HandleDeath(attacker, victim, info)
@@ -2857,6 +2917,103 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	return false
 end
 
+-- DOWNED / REVIVE -----------------------------------------------------------------
+local function clearDowned(entity)
+	entity.Downed = false
+	entity.DownedBy = nil
+	entity.DownedInfo = nil
+	if entity.Character then
+		entity.Character:SetAttribute("Downed", false)
+		local root = entity.Character:FindFirstChild("HumanoidRootPart")
+		local prompt = root and root:FindFirstChild("RevivePrompt")
+		if prompt then
+			prompt:Destroy()
+		end
+	end
+	if entity.Player then
+		entity.Player:SetAttribute("Downed", false)
+	end
+end
+Combat.ClearDowned = clearDowned
+
+function Combat.Down(attacker, victim, info)
+	victim.Downed = true
+	victim.DownedBy = attacker
+	victim.DownedInfo = info
+	victim.DownedAt = os.clock()
+	victim.Humanoid.Health = Config.DownedHealth
+	victim.Character:SetAttribute("Downed", true)
+	victim.Player:SetAttribute("Downed", true)
+	-- teammates hold E on the downed player to revive them
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "RevivePrompt"
+	prompt.ActionText = "Revive"
+	prompt.ObjectText = victim.Name
+	prompt.HoldDuration = Config.ReviveTime
+	prompt.MaxActivationDistance = 9
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt:SetAttribute("Team", victim.Team)
+	prompt.Enabled = victim.Team ~= nil
+	prompt.Parent = victim.Root
+	prompt.Triggered:Connect(function(player)
+		local reviver = Combat.ByPlayer[player]
+		if reviver and reviver ~= victim and reviver.Team ~= nil and reviver.Team == victim.Team and Combat.IsAlive(reviver) and not reviver.Downed and victim.Downed and Combat.IsAlive(victim) then
+			Combat.Revive(victim, reviver)
+		end
+	end)
+	if attacker then
+		AchievementService.Add(attacker.Player, "Knockdowns", 1)
+		notify(attacker, "Medal", { Medals = { { Text = "KNOCKED DOWN", Bonus = 50 } } })
+		if counting() then
+			addAttr(attacker.Holder, "Score", 50)
+		end
+	end
+	Remotes.KillFeed:FireAllClients({
+		Killer = attacker and attacker.Name, KillerTeam = attacker and attacker.Team,
+		Victim = victim.Name, VictimTeam = victim.Team, Weapon = info.WeaponName or "?", Knock = true,
+	})
+	notify(victim, "Downed", { By = attacker and attacker.Name or "?", Bleed = Config.DownedHealth / Config.BleedRate })
+end
+
+function Combat.Revive(victim, reviver)
+	if not victim.Downed then
+		return
+	end
+	clearDowned(victim)
+	victim.Humanoid.Health = victim.Humanoid.MaxHealth * Config.ReviveHealth
+	victim.LastDamaged = os.clock()
+	notify(victim, "Revived", { By = reviver and reviver.Name or nil })
+	if reviver then
+		AchievementService.Add(reviver.Player, "Revives", 1)
+		notify(reviver, "Medal", { Medals = { { Text = "REVIVE", Bonus = 100 } } })
+		if counting() then
+			addAttr(reviver.Holder, "Score", 100)
+		end
+		if reviver.Player then
+			DataService.AddCash(reviver.Player, 25, true)
+			DataService.AddXP(reviver.Player, 100)
+		end
+	else
+		AchievementService.Add(victim.Player, "SelfRevives", 1)
+	end
+end
+
+Remotes.SelfRevive.OnServerEvent:Connect(function(player)
+	local entity = Combat.ByPlayer[player]
+	if not entity or not entity.Downed or not Combat.IsAlive(entity) then
+		return
+	end
+	if player:GetAttribute("SelfReviveUsed") then
+		return
+	end
+	if os.clock() - (entity.DownedAt or 0) < Config.SelfReviveTime - 0.3 then
+		return
+	end
+	player:SetAttribute("SelfReviveUsed", true)
+	Combat.Revive(entity, nil)
+end)
+
 local MULTI_NAMES = { [2] = "DOUBLE KILL", [3] = "TRIPLE KILL", [4] = "QUAD KILL", [5] = "RAMPAGE" }
 local MULTI_STATS = { [2] = "DoubleKills", [3] = "TripleKills", [4] = "QuadKills", [5] = "Rampages" }
 local STREAK_NAMES = { [5] = "K.O STREAK 🔥", [10] = "DOMINATING", [15] = "UNSTOPPABLE", [20] = "GODLIKE", [25] = "LEGENDARY" }
@@ -2864,6 +3021,7 @@ local STREAK_NAMES = { [5] = "K.O STREAK 🔥", [10] = "DOMINATING", [15] = "UNS
 function Combat.HandleDeath(killer, victim, info)
 	local round = Combat.Hooks.Round
 	local victimStreak = victim.Streak
+	clearDowned(victim)
 	victim.Streak = 0
 	victim.InfiniteAmmo = false
 	if victim.Player then
@@ -2881,7 +3039,7 @@ function Combat.HandleDeath(killer, victim, info)
 	local weaponName = info.WeaponName or "?"
 
 	if not killer or killer == victim then
-		Remotes.KillFeed:FireAllClients({ Victim = victim.Name, Weapon = weaponName })
+		Remotes.KillFeed:FireAllClients({ Victim = victim.Name, VictimTeam = victim.Team, Weapon = weaponName })
 		if victim.Player then
 			Remotes.KillInfo:FireClient(victim.Player, { Killer = nil, Weapon = weaponName })
 		end
@@ -3006,6 +3164,7 @@ function Combat.HandleDeath(killer, victim, info)
 	if counting() then
 		addAttr(killer.Holder, "Kills", 1)
 		addAttr(killer.Holder, "Score", score)
+		TeamService.AddScore(killer.Team, 1)
 	end
 	if kp then
 		DataService.AddCash(kp, Config.KillCash + bonus // 5, true)
@@ -3033,8 +3192,10 @@ function Combat.HandleDeath(killer, victim, info)
 	Remotes.KillFeed:FireAllClients({
 		Killer = killer.Name,
 		KillerVIP = hasPass(killer, "VIP"),
+		KillerTeam = killer.Team,
 		Victim = victim.Name,
 		VictimVIP = hasPass(victim, "VIP"),
+		VictimTeam = victim.Team,
 		Weapon = weaponName,
 		Headshot = info.Headshot == true,
 	})
@@ -3072,7 +3233,7 @@ function Combat.AreaDamage(attacker, position: Vector3, radius: number, maxDamag
 		table.insert(victims, victim)
 	end
 	for _, victim in victims do
-		if victim ~= attacker and Combat.IsAlive(victim) then
+		if victim ~= attacker and TeamService.Enemies(attacker, victim) and Combat.IsAlive(victim) then
 			local d = (victim.Root.Position - position).Magnitude
 			if d <= radius then
 				local hitInfo = table.clone(info)
@@ -3152,6 +3313,13 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 				carTotals[car] = (carTotals[car] or 0) + def.Damage * dmgMult * 0.7
 				endPos = result.Position
 				break
+			end
+			if victim and Combat.IsAlive(victim) and not TeamService.Enemies(entity, victim) then
+				-- bullets pass through teammates
+				table.insert(exclude, model)
+				remaining -= (result.Position - start).Magnitude
+				start = result.Position
+				continue
 			end
 			if victim and Combat.IsAlive(victim) then
 				local hitPart = result.Instance
@@ -3297,7 +3465,7 @@ end
 
 Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flags)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) then
+	if not Combat.IsAlive(entity) or entity.Downed then
 		return
 	end
 	if typeof(weaponId) ~= "string" or typeof(origin) ~= "Vector3" or typeof(dirs) ~= "table" then
@@ -3387,7 +3555,7 @@ end)
 -- EQUIPMENT ------------------------------------------------------------------
 Remotes.Knife.OnServerEvent:Connect(function(player)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) then
+	if not Combat.IsAlive(entity) or entity.Downed then
 		return
 	end
 	local now = os.clock()
@@ -3400,7 +3568,7 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 	local look = entity.Root.CFrame.LookVector
 	local best, bestDist = nil, Config.KnifeRange
 	for _, other in Combat.Entities do
-		if other ~= entity and Combat.IsAlive(other) then
+		if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 			local offset = other.Root.Position - entity.Root.Position
 			local d = offset.Magnitude
 			if d <= bestDist and d > 0 and look:Dot(offset.Unit) > 0.3 then
@@ -3458,7 +3626,7 @@ end
 
 Remotes.Grenade.OnServerEvent:Connect(function(player, dir)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) or not validVector(dir) then
+	if not Combat.IsAlive(entity) or entity.Downed or not validVector(dir) then
 		return
 	end
 	local now = os.clock()
@@ -3475,7 +3643,7 @@ end)
 
 Remotes.Slam.OnServerEvent:Connect(function(player, position)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) or not validVector(position) then
+	if not Combat.IsAlive(entity) or entity.Downed or not validVector(position) then
 		return
 	end
 	local now = os.clock()
@@ -3513,7 +3681,7 @@ function Combat.SetupPickups(folder: Instance)
 				end
 				local _, model = Util.HumanoidFromPart(hit)
 				local entity = model and Combat.Entities[model]
-				if not Combat.IsAlive(entity) then
+				if not Combat.IsAlive(entity) or entity.Downed then
 					return
 				end
 				ready = false
@@ -3548,7 +3716,15 @@ RunService.Heartbeat:Connect(function(dt)
 	accum = 0
 	local now = os.clock()
 	for _, entity in Combat.Entities do
-		if Combat.IsAlive(entity) then
+		if Combat.IsAlive(entity) and entity.Downed then
+			local hum = entity.Humanoid
+			local left = hum.Health - Config.BleedRate * step
+			if left <= 0.5 then
+				Combat.Damage(nil, entity, 9999, entity.DownedInfo or { WeaponName = "BLED OUT" })
+			else
+				hum.Health = left
+			end
+		elseif Combat.IsAlive(entity) then
 			local hum = entity.Humanoid
 			if now - entity.LastDamaged >= Config.RegenDelay and hum.Health < hum.MaxHealth then
 				hum.Health = math.min(hum.MaxHealth, hum.Health + Config.RegenRate * step)
@@ -3833,6 +4009,7 @@ local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local KillstreakService = {}
 KillstreakService.Round = nil -- injected RoundService
@@ -3854,7 +4031,7 @@ end
 local function airstrike(entity)
 	local targets = {}
 	for _, other in Combat.Entities do
-		if other ~= entity and Combat.IsAlive(other) then
+		if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 			table.insert(targets, groundBelow(other.Root.Position))
 		end
 	end
@@ -3905,7 +4082,7 @@ local function nuke(entity)
 		Remotes.Effect:FireAllClients("NukeDetonate")
 		local victims = {}
 		for _, other in Combat.Entities do
-			if other ~= entity and Combat.IsAlive(other) then
+			if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 				table.insert(victims, other)
 			end
 		end
@@ -3919,6 +4096,7 @@ local function nuke(entity)
 		KillstreakService.NukeActive = false
 		local round = KillstreakService.Round
 		if round and round.State == "Active" then
+			round.NukeEnding = true
 			round.EndMatch(entity)
 		end
 	end)
@@ -4210,7 +4388,7 @@ Remotes.SetLoadout.OnServerEvent:Connect(function(player, slot, weaponId)
 	DataService.Sync(player)
 	-- swap right away if you haven't been in a fight in the last few seconds
 	local entity = Combat.ByPlayer[player]
-	if Combat.IsAlive(entity) and os.clock() - entity.LastDamaged > 4 then
+	if Combat.IsAlive(entity) and not entity.Downed and os.clock() - entity.LastDamaged > 4 then
 		Combat.ResetAmmo(entity, weaponId)
 		Combat.GiveLoadout(player, data.Loadout)
 	else
@@ -4234,13 +4412,16 @@ Remotes.SaveSettings.OnServerEvent:Connect(function(player, settings)
 		return
 	end
 	local s = data.Settings
-	if typeof(settings.FOV) == "number" then
+	local function num(v)
+		return typeof(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
+	end
+	if num(settings.FOV) then
 		s.FOV = math.clamp(math.floor(settings.FOV), 60, 100)
 	end
-	if typeof(settings.Shake) == "number" then
+	if num(settings.Shake) then
 		s.Shake = math.clamp(settings.Shake, 0, 1)
 	end
-	if typeof(settings.AdsSens) == "number" then
+	if num(settings.AdsSens) then
 		s.AdsSens = math.clamp(settings.AdsSens, 0.2, 1.5)
 	end
 	if typeof(settings.Crosshair) == "string" and CROSSHAIRS[settings.Crosshair] then
@@ -4268,10 +4449,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
+local TeamService = require(script.Parent.TeamService)
+local Config = require(Shared.Config)
 
 local MapsFolder = script.Parent.Maps
 local MapService = {}
-MapService.Spawns = {} :: { CFrame }
+MapService.Spawns = {} -- list of { CFrame = CFrame, Team = "A"|"B"|"C"|"FFA"|nil }
 MapService.Current = nil
 MapService.OnMapLoaded = nil :: ((Instance) -> ())?
 MapService.Order = { "Downtown", "Harbor", "Timberline", "Arena" }
@@ -4372,15 +4555,7 @@ function MapService.Load(id: string)
 	MapService.Current = def
 	applyLighting(def.Lighting or {})
 
-	MapService.Spawns = {}
-	for _, s in map.Spawns:GetChildren() do
-		if s:IsA("BasePart") then
-			table.insert(MapService.Spawns, groundSpawn(s))
-		end
-	end
-	if #MapService.Spawns == 0 then
-		table.insert(MapService.Spawns, CFrame.new(0, 30, 0))
-	end
+	MapService.CollectSpawns(map)
 	Combat.SetupPickups(map)
 	ReplicatedStorage:SetAttribute("MapId", def.Id)
 	ReplicatedStorage:SetAttribute("MapName", def.Name)
@@ -4390,21 +4565,41 @@ function MapService.Load(id: string)
 	Remotes.Notify:FireAllClients("Announce", { Text = def.Name, Sub = def.Desc, Color = Color3.fromRGB(255, 198, 26), Icon = def.Icon })
 end
 
+function MapService.CollectSpawns(map: Instance)
+	MapService.Spawns = {}
+	local folder = map:FindFirstChild("Spawns")
+	for _, s in folder and folder:GetChildren() or {} do
+		if s:IsA("BasePart") then
+			table.insert(MapService.Spawns, { CFrame = groundSpawn(s), Team = s:GetAttribute("Team") })
+		end
+	end
+	if #MapService.Spawns == 0 then
+		table.insert(MapService.Spawns, { CFrame = CFrame.new(0, 30, 0) })
+	end
+end
+
 -- VOTING -----------------------------------------------------------------------
 local votes = {} :: { [Player]: string }
+local modeVotes = {} :: { [Player]: string }
 local options = {} :: { string }
 
 local function publishVotes()
 	for _, id in MapService.Order do
 		ReplicatedStorage:SetAttribute("Votes_" .. id, 0)
 	end
-	for _, id in votes do
-		ReplicatedStorage:SetAttribute("Votes_" .. id, (ReplicatedStorage:GetAttribute("Votes_" .. id) or 0) + 1)
+	for _, id in Config.ModeOrder do
+		ReplicatedStorage:SetAttribute("Votes_" .. id, 0)
+	end
+	for _, list in { votes, modeVotes } do
+		for _, id in list do
+			ReplicatedStorage:SetAttribute("Votes_" .. id, (ReplicatedStorage:GetAttribute("Votes_" .. id) or 0) + 1)
+		end
 	end
 end
 
 function MapService.StartVote()
 	votes = {}
+	modeVotes = {}
 	options = {}
 	local pool = table.clone(MapService.Order)
 	for i = #pool, 2, -1 do
@@ -4418,41 +4613,58 @@ function MapService.StartVote()
 	publishVotes()
 end
 
-function MapService.EndVote(): string
+local function winner(list, choices, fallback)
 	local counts = {}
-	for _, id in votes do
+	for _, id in list do
 		counts[id] = (counts[id] or 0) + 1
 	end
-	local best, bestCount = options[1] or MapService.Order[1], -1
-	for _, id in options do
+	local best, bestCount = fallback, -1
+	for _, id in choices do
 		local c = (counts[id] or 0) + math.random() * 0.5 -- random tie-break
 		if c > bestCount then
 			best, bestCount = id, c
 		end
 	end
-	ReplicatedStorage:SetAttribute("VoteOptions", "")
 	return best
 end
 
+-- Returns the winning map id and game mode id.
+function MapService.EndVote(): (string, string)
+	local map = winner(votes, options, options[1] or MapService.Order[1])
+	-- no mode votes: rotate to the next mode so every mode gets played
+	local mode
+	if next(modeVotes) == nil then
+		local i = table.find(Config.ModeOrder, TeamService.Mode) or 0
+		mode = Config.ModeOrder[i % #Config.ModeOrder + 1]
+	else
+		mode = winner(modeVotes, Config.ModeOrder, TeamService.Mode)
+	end
+	ReplicatedStorage:SetAttribute("VoteOptions", "")
+	return map, mode
+end
+
 Remotes.Vote.OnServerEvent:Connect(function(player, id)
-	if typeof(id) == "string" and table.find(options, id) then
+	if typeof(id) ~= "string" then
+		return
+	end
+	if table.find(options, id) then
 		votes[player] = id
+		publishVotes()
+	elseif Config.Modes[id] then
+		modeVotes[player] = id
 		publishVotes()
 	end
 end)
 Players.PlayerRemoving:Connect(function(player)
 	votes[player] = nil
+	modeVotes[player] = nil
 end)
 
 function MapService.Init()
 	local existing = workspace:FindFirstChild("Map")
 	if existing and existing:FindFirstChild("Spawns") then
 		-- hand-made map in the place file
-		for _, s in existing.Spawns:GetChildren() do
-			if s:IsA("BasePart") then
-				table.insert(MapService.Spawns, groundSpawn(s))
-			end
-		end
+		MapService.CollectSpawns(existing)
 		Combat.SetupPickups(existing)
 		applyLighting({})
 		if MapService.OnMapLoaded then
@@ -4463,22 +4675,41 @@ function MapService.Init()
 	MapService.Load(MapService.Order[1])
 end
 
--- Spawn point farthest from living enemies (with a bit of randomness).
+-- Spawn for this fighter in the current mode (team base, or anywhere in FFA),
+-- picking the point farthest from living enemies (with a bit of randomness).
 function MapService.PickSpawn(forEntity): CFrame
+	local want = (forEntity and forEntity.Team) or (TeamService.IsTeamMode() and nil or "FFA")
+	local candidates = {}
+	for _, sp in MapService.Spawns do
+		if sp.Team == want then
+			table.insert(candidates, sp)
+		end
+	end
+	if #candidates == 0 then
+		-- maps without FFA points fall back to every spawn
+		candidates = MapService.Spawns
+	end
 	local scored = {}
-	for _, cf in MapService.Spawns do
+	for _, sp in candidates do
+		local cf = sp.CFrame
 		local nearest = math.huge
 		for _, other in Combat.Entities do
-			if other ~= forEntity and Combat.IsAlive(other) then
+			if other ~= forEntity and TeamService.Enemies(forEntity, other) and Combat.IsAlive(other) then
 				nearest = math.min(nearest, (other.Root.Position - cf.Position).Magnitude)
 			end
 		end
-		table.insert(scored, { cf = cf, score = nearest + math.random() * 25 })
+		table.insert(scored, { cf = cf, score = math.min(nearest, 400) + math.random() * 25 })
 	end
 	table.sort(scored, function(a, b)
 		return a.score > b.score
 	end)
 	return scored[1].cf
+end
+
+-- Any spawn point (bots use these as places to wander to)
+function MapService.RandomPoint(): Vector3
+	local sp = MapService.Spawns[math.random(1, #MapService.Spawns)]
+	return sp.CFrame.Position
 end
 
 return MapService
@@ -4520,7 +4751,19 @@ local CRATE = rgb(176, 128, 66)
 function Map.Build()
 	local kit = MapKit.new(3)
 	local HALF = 125
-	kit:Part(Vector3.new(HALF * 2 + 10, 2, HALF * 2 + 10), CFrame.new(0, -1, 0), DARK, M.Concrete)
+	local holes = kit:Tunnel({
+		Axis = "Z", Cross = 0, From = -118, To = 118, Floor = -14, Width = 14, Height = 9, Style = "Subway",
+		Entrances = { { At = -104, Dir = 1 }, { At = 104, Dir = -1 } },
+	})
+	-- a deeper cross tunnel passes under the first one
+	local crossHoles = kit:Tunnel({
+		Axis = "X", Cross = 0, From = -118, To = 118, Floor = -26, Width = 14, Height = 9, Style = "Sewer",
+		Entrances = { { At = -110, Dir = 1 }, { At = 110, Dir = -1 } },
+	})
+	for _, h in crossHoles do
+		table.insert(holes, h)
+	end
+	kit:Ground(0, -HALF - 5, HALF + 5, -HALF - 5, HALF + 5, 2, holes, DARK, M.Concrete)
 	for i = -HALF + 25, HALF - 25, 25 do
 		kit:Neon(Vector3.new(0.25, 0.05, HALF * 2), CFrame.new(i, 0.03, 0), ACCENT2).Transparency = 0.75
 		kit:Neon(Vector3.new(HALF * 2, 0.05, 0.25), CFrame.new(0, 0.03, i), ACCENT2).Transparency = 0.75
@@ -4577,12 +4820,29 @@ function Map.Build()
 	for _, pos in { Vector3.new(70, 0, 0), Vector3.new(-70, 0, 0), Vector3.new(0, 0, 70), Vector3.new(0, 0, -70) } do
 		kit:JumpPad(pos, 115)
 	end
-	for _, along in { -60, -20, 20, 60 } do
-		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-			local pos = edge[1] ~= 0 and Vector3.new(edge[1] * 115, 3, along) or Vector3.new(along, 3, edge[2] * 115)
-			kit:Spawn(pos)
+	-- ladders up the corner bases + sandbag cover in the lanes
+	for _, sx in { 1, -1 } do
+		for _, sz in { 1, -1 } do
+			kit:Ladder(Vector3.new(88 * sx - 19 * sx, 0, 88 * sz + 8 * sz), 12)
 		end
 	end
+	for _, s in { { 40, 0, 0 }, { -40, 0, 0 }, { 0, 40, 90 }, { 0, -40, 90 } } do
+		kit:Sandbags(CFrame.new(s[1], 0, s[2]) * CFrame.Angles(0, math.rad(s[3]), 0), 10, 3)
+	end
+	-- FREE FOR ALL spawns around the edges + TRIPLE TEAM base on the west side
+	local ffa = {}
+	for _, along in { -60, -20, 20, 60 } do
+		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			table.insert(ffa, edge[1] ~= 0 and Vector3.new(edge[1] * 115, 0, along) or Vector3.new(along, 0, edge[2] * 115))
+		end
+	end
+	kit:FFASpawns(ffa)
+	kit:SpawnBase(Vector3.new(-114, 0, 0), Vector3.new(0, 0, 0), "C", 100)
+	kit:Mountains(HALF + 10, HALF + 10, { Margin = 70, GroundY = -0.5 })
+	-- TEAM SPAWNS at both ends
+	kit:SpawnBase(Vector3.new(0, 0, -114), Vector3.new(0, 0, 0), "A", 110)
+	kit:SpawnBase(Vector3.new(0, 0, 114), Vector3.new(0, 0, 0), "B", 110)
+	kit:Boundary(HALF + 4, HALF + 4, 260)
 	return kit
 end
 
@@ -4593,7 +4853,8 @@ return Map
         <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">Downtown</string>
-            <string name="Source"><![CDATA[-- DOWNTOWN: city blocks, roads, enterable buildings, a park with a pond, cars.
+            <string name="Source"><![CDATA[-- DOWNTOWN: city blocks, subway tunnel, fire escapes, open-window buildings,
+-- barricaded intersections. Team ALPHA spawns south, BRAVO north.
 local MapKit = require(script.Parent.MapKit)
 local M = Enum.Material
 local P = MapKit.Palette
@@ -4602,7 +4863,7 @@ local rgb = Color3.fromRGB
 local Map = {
 	Id = "Downtown",
 	Name = "DOWNTOWN",
-	Desc = "City streets, rooftops and a park. Grab a car!",
+	Desc = "City streets, rooftops and a subway under the avenue.",
 	Icon = "🏙️",
 	Lighting = {
 		ClockTime = 17.8, Brightness = 2.2,
@@ -4620,8 +4881,17 @@ function Map.Build()
 	local kit = MapKit.new(7)
 	local rng = kit.Rng
 
+	-- SUBWAY under the main avenue (x = 0), entrances at both spawns + mid-blocks
+	local holes = kit:Tunnel({
+		Axis = "Z", Cross = 0, From = -152, To = 152, Floor = -14, Width = 14, Height = 9, Style = "Subway",
+		Entrances = {
+			{ At = -150, Dir = 1 }, { At = -80, Dir = 1 }, { At = -20, Dir = -1 },
+			{ At = 20, Dir = 1 }, { At = 80, Dir = -1 }, { At = 150, Dir = -1 },
+		},
+	})
+
 	-- ground (the asphalt IS the road surface; blocks are raised sidewalks)
-	kit:Part(Vector3.new(HALF * 2 + 40, 2, HALF * 2 + 40), CFrame.new(0, -1, 0), P.Asphalt, M.Asphalt)
+	kit:Ground(0, -HALF - 20, HALF + 20, -HALF - 20, HALF + 20, 2, holes, P.Asphalt, M.Asphalt)
 	for _, c in ROADS do
 		kit:Road("X", Vector3.new(0, 0, c), HALF * 2, ROAD_W, ROADS, true)
 		kit:Road("Z", Vector3.new(c, 0, 0), HALF * 2, ROAD_W, ROADS, true)
@@ -4634,6 +4904,13 @@ function Map.Build()
 			kit:Crosswalk(Vector3.new(x + ROAD_W / 2 + 3, 0, z), "X", ROAD_W)
 			kit:TrafficLight(Vector3.new(x + 14, 0.8, z + 14), Vector3.new(-1, 0, 0))
 			kit:TrafficLight(Vector3.new(x - 14, 0.8, z - 14), Vector3.new(1, 0, 0))
+			kit:StreetSign(Vector3.new(x - 14, 0.8, z + 14), math.rad(45))
+			kit:Manhole(Vector3.new(x + 5, 0, z - 5))
+			-- barricaded intersection: sandbag nests on two corners
+			if not (x == 0 and math.abs(z) > 50) then
+				kit:Sandbags(CFrame.new(x - 6, 0, z + 6) * CFrame.Angles(0, math.rad(45), 0), 8, 3)
+				kit:Sandbags(CFrame.new(x + 6, 0, z - 6) * CFrame.Angles(0, math.rad(45), 0), 8, 3)
+			end
 		end
 	end
 
@@ -4644,21 +4921,31 @@ function Map.Build()
 			local cx, cz = (sx[1] + sx[2]) / 2, (sz[1] + sz[2]) / 2
 			kit:Sidewalk(Vector3.new(cx, 0, cz), sx[2] - sx[1], sz[2] - sz[1])
 			local edge = math.abs(cx) > 100 or math.abs(cz) > 100
-			-- street lights along the curb
 			if not edge then
 				for d = sx[1] + 8, sx[2] - 8, 30 do
 					kit:StreetLight(Vector3.new(d, 0.8, sz[1] + 1.5), Vector3.new(0, 0, -1))
 					kit:StreetLight(Vector3.new(d, 0.8, sz[2] - 1.5), Vector3.new(0, 0, 1))
 				end
+				-- street furniture along the curbs
+				kit:Hydrant(Vector3.new(sx[1] + 3, 0.8, sz[1] + 22))
+				kit:TrashCan(Vector3.new(sx[2] - 3, 0.8, sz[1] + 30))
+				kit:TrashCan(Vector3.new(sx[1] + 3, 0.8, sz[2] - 30))
+				kit:NewsBox(CFrame.new(sx[2] - 2.5, 0.8, sz[2] - 20) * CFrame.Angles(0, math.rad(-90), 0))
+				kit:Planter(Vector3.new(sx[1] + 22, 0.8, sz[2] - 3))
+				kit:Planter(Vector3.new(sx[2] - 22, 0.8, sz[1] + 3))
+				kit:PowerBox(CFrame.new(sx[2] - 3, 0.8, (sz[1] + sz[2]) / 2) * CFrame.Angles(0, math.rad(90), 0))
 			end
 		end
 	end
+	kit:BusStop(CFrame.new(-14.5, 0.8, -50) * CFrame.Angles(0, math.rad(-90), 0))
+	kit:BusStop(CFrame.new(14.5, 0.8, 50) * CFrame.Angles(0, math.rad(90), 0))
 
-	-- SKYLINE: towers on the edge strips (form the map boundary)
+	-- SKYLINE: towers on the east/west edge strips (the north/south ends are spawns)
 	for _, sx in spans do
 		for _, sz in spans do
 			local cx, cz = (sx[1] + sx[2]) / 2, (sz[1] + sz[2]) / 2
-			if math.abs(cx) > 100 or math.abs(cz) > 100 then
+			local spawnStrip = math.abs(cz) > 100 and math.abs(cx) < 100
+			if (math.abs(cx) > 100 or math.abs(cz) > 100) and not spawnStrip then
 				local w, d = sx[2] - sx[1] - 8, sz[2] - sz[1] - 8
 				local cols = w > 50 and 2 or 1
 				local rows = d > 50 and 2 or 1
@@ -4666,7 +4953,7 @@ function Map.Build()
 					for j = 1, rows do
 						local tx = sx[1] + 4 + (i - 0.5) * w / cols
 						local tz = sz[1] + 4 + (j - 0.5) * d / rows
-						local h = rng:NextNumber(36, 86)
+						local h = rng:NextNumber(40, 80)
 						local tint = ({ rgb(120, 124, 130), rgb(150, 140, 120), rgb(90, 96, 110), rgb(170, 160, 150) })[rng:NextInteger(1, 4)]
 						kit:Tower(CFrame.new(tx, 0.8, tz), w / cols - 4, d / rows - 4, h, tint, M.Concrete)
 					end
@@ -4674,24 +4961,30 @@ function Map.Build()
 			end
 		end
 	end
-	-- road ends blocked with barriers + a bus
-	for _, c in ROADS do
+
+	-- TEAM SPAWNS at both ends
+	kit:SpawnBase(Vector3.new(0, 0, -138), Vector3.new(0, 0, 0), "A", 150)
+	kit:SpawnBase(Vector3.new(0, 0, 138), Vector3.new(0, 0, 0), "B", 150)
+	for _, c in { -100, 100 } do
 		for _, s in { -1, 1 } do
-			kit:Barrier(CFrame.new(c - 6, 0, s * 150) * CFrame.Angles(0, 0, 0))
-			kit:Barrier(CFrame.new(c + 6, 0, s * 150))
+			kit:Barrier(CFrame.new(c - 6, 0, s * 152))
+			kit:Barrier(CFrame.new(c + 6, 0, s * 152))
+		end
+	end
+	for _, s in { -1, 1 } do
+		for _, c in ROADS do
 			kit:Barrier(CFrame.new(s * 150, 0, c - 6) * CFrame.Angles(0, math.rad(90), 0))
 			kit:Barrier(CFrame.new(s * 150, 0, c + 6) * CFrame.Angles(0, math.rad(90), 0))
 		end
 	end
 
-	-- BLOCK A (+,+): CENTRAL PARK with grass, pond, trees
+	-- BLOCK A (+,+): CENTRAL PARK with grass, pond, trees and hiding bushes
 	kit:Fill(M.Grass, CFrame.new(50, 0, 50), Vector3.new(72, 1.6, 72))
 	kit:Fill(M.Mud, CFrame.new(62, -1.2, 62), Vector3.new(26, 2, 20))
 	kit:Water(CFrame.new(62, -0.2, 62), Vector3.new(24, 1.6, 18))
 	for _, path in { { Vector3.new(50, 0.9, 50), Vector3.new(72, 0.2, 5) }, { Vector3.new(50, 0.9, 50), Vector3.new(5, 0.2, 72) } } do
 		kit:Part(path[2], CFrame.new(path[1]), P.Sidewalk, M.Pavement)
 	end
-	-- fountain
 	kit:Cylinder(1.6, 16, CFrame.new(50, 1.6, 50) * CFrame.Angles(0, 0, math.rad(90)), P.Concrete, M.Marble)
 	local pool = kit:Cylinder(0.3, 14, CFrame.new(50, 2.45, 50) * CFrame.Angles(0, 0, math.rad(90)), rgb(60, 140, 200), M.Glass)
 	pool.Transparency = 0.3
@@ -4702,26 +4995,30 @@ function Map.Build()
 	end
 	for _, b in { { 40, 56 }, { 60, 44 }, { 44, 40 } } do
 		kit:Bench(CFrame.new(b[1], 0.8, b[2]))
-		kit:Bush(Vector3.new(b[1] + 6, 0.8, b[2] + 4), 0.8)
 	end
+	for _, b in { { 22, 34 }, { 34, 22 }, { 78, 70 }, { 70, 82 }, { 26, 70 }, { 82, 26 } } do
+		kit:HideBush(Vector3.new(b[1], 0.8, b[2]), 1)
+	end
+	kit:Sandbags(CFrame.new(50, 0.8, 30), 10, 3)
 
-	-- BLOCK B (-,+): apartments + alley
-	kit:Building({ Name = "Apartments", Origin = CFrame.new(-66, 0.8, 32), W = 36, D = 28, Floors = 3, Color = P.Brick, Material = M.Brick, Doors = { Front = true, Back = true }, Awning = rgb(30, 90, 140) })
-	kit:Building({ Name = "Hotel", Origin = CFrame.new(-66, 0.8, 70), W = 36, D = 24, Floors = 2, Color = P.Plaster, Material = M.SmoothPlastic, Trim = P.BrickDark, Doors = { Front = true, Back = true }, Awning = rgb(150, 30, 40) })
-	kit:Building({ Name = "Diner", Origin = CFrame.new(-26, 0.8, 54) * CFrame.Angles(0, math.rad(90), 0), W = 26, D = 20, Floors = 1, Color = rgb(200, 70, 60), Material = M.SmoothPlastic, Trim = P.White, Doors = { Front = true, Back = true }, Awning = P.White })
+	-- BLOCK B (-,+): apartments with fire escape, hotel, diner + alley
+	kit:Building({ Name = "Apartments", Origin = CFrame.new(-66, 0.8, 32), W = 36, D = 28, Floors = 3, Color = P.Brick, Material = M.Brick, Trim = rgb(200, 190, 170), Doors = { Front = true, Back = true }, Awning = rgb(30, 90, 140), FireEscape = "Right", OpenWindows = 0.35, Balconies = true })
+	kit:Building({ Name = "Hotel", Origin = CFrame.new(-66, 0.8, 72), W = 36, D = 22, Floors = 3, FloorH = 11, Color = P.Plaster, Material = M.SmoothPlastic, Trim = P.BrickDark, Doors = { Front = true, Back = true }, Awning = rgb(150, 30, 40), Ladder = "Back", OpenWindows = 0.3 })
+	kit:Building({ Name = "Diner", Origin = CFrame.new(-26, 0.8, 54) * CFrame.Angles(0, math.rad(90), 0), W = 26, D = 20, Floors = 1, Color = rgb(200, 70, 60), Material = M.SmoothPlastic, Trim = P.White, Doors = { Front = true, Back = true }, Awning = P.White, Storefront = rgb(220, 40, 40), Ladder = "Back" })
 	kit:Dumpster(CFrame.new(-40, 0.8, 18))
-	kit:Dumpster(CFrame.new(-42, 0.8, 84) * CFrame.Angles(0, math.rad(90), 0))
+	kit:Dumpster(CFrame.new(-42, 0.8, 86) * CFrame.Angles(0, math.rad(90), 0))
+	kit:HideBush(Vector3.new(-44, 0.8, 50), 0.8)
 	for i = 1, 4 do
-		kit:Crate(Vector3.new(-30 + i * 2, 0.8, 80 - i * 3), 3.5, i)
+		kit:Crate(Vector3.new(-32 + i * 2, 0.8, 80 - i * 3), 3.5, i)
 	end
+	kit:Sandbags(CFrame.new(-40, 0.8, 34) * CFrame.Angles(0, math.rad(90), 0), 8, 4)
 
-	-- BLOCK C (-,-): parking lot + gas station
+	-- BLOCK C (-,-): parking lot + gas station + corner store
 	kit:Part(Vector3.new(70, 0.1, 70), CFrame.new(-50, 0.85, -50), P.Asphalt, M.Asphalt)
 	for i = 0, 6 do
 		kit:Deco(Vector3.new(0.4, 0.05, 12), CFrame.new(-82 + i * 10, 0.93, -26), P.White, M.SmoothPlastic)
 		kit:Deco(Vector3.new(0.4, 0.05, 12), CFrame.new(-82 + i * 10, 0.93, -74), P.White, M.SmoothPlastic)
 	end
-	-- gas station canopy
 	for _, x in { -64, -36 } do
 		for _, z in { -58, -42 } do
 			kit:Pillar(Vector3.new(x, 0.8, z), 12, 1.4, P.White, M.SmoothPlastic)
@@ -4729,50 +5026,65 @@ function Map.Build()
 	end
 	kit:Part(Vector3.new(34, 1.6, 22), CFrame.new(-50, 13.6, -50), P.White, M.SmoothPlastic)
 	kit:Neon(Vector3.new(34.2, 0.6, 22.2), CFrame.new(-50, 12.9, -50), rgb(220, 40, 40))
+	kit:Ladder(Vector3.new(-66.5, 0.8, -50), 14, nil)
 	for _, x in { -56, -44 } do
 		kit:Part(Vector3.new(2, 5, 3), CFrame.new(x, 3.3, -50), rgb(220, 40, 40), M.SmoothPlastic)
 	end
-	kit:Building({ Name = "Store", Origin = CFrame.new(-50, 0.8, -78) * CFrame.Angles(0, math.rad(180), 0), W = 30, D = 14, Floors = 1, Color = rgb(230, 230, 220), Material = M.SmoothPlastic, Trim = rgb(220, 40, 40), Doors = { Front = true }, Awning = rgb(220, 40, 40) })
+	kit:Building({ Name = "Store", Origin = CFrame.new(-50, 0.8, -80) * CFrame.Angles(0, math.rad(180), 0), W = 30, D = 12, Floors = 1, Color = rgb(230, 230, 220), Material = M.SmoothPlastic, Trim = rgb(220, 40, 40), Doors = { Front = true }, Awning = rgb(220, 40, 40), Storefront = rgb(30, 120, 200), Props = false })
+	kit:Sandbags(CFrame.new(-30, 0.8, -30) * CFrame.Angles(0, math.rad(45), 0), 10, 3)
 
-	-- BLOCK D (+,-): office tower (4 floors) + plaza
-	kit:Building({ Name = "Office", Origin = CFrame.new(58, 0.8, -58), W = 40, D = 40, Floors = 4, Color = rgb(170, 180, 190), Material = M.Concrete, Trim = rgb(60, 70, 90), Doors = { Front = true, Left = true }, Awning = rgb(60, 70, 90) })
+	-- BLOCK D (+,-): office tower + pharmacy + plaza
+	kit:Building({ Name = "Office", Origin = CFrame.new(62, 0.8, -60), W = 36, D = 36, Floors = 4, Color = rgb(170, 180, 190), Material = M.Concrete, Trim = rgb(60, 70, 90), Doors = { Front = true, Left = true }, Awning = rgb(60, 70, 90), FireEscape = "Right", OpenWindows = 0.2 })
+	kit:Building({ Name = "Pharmacy", Origin = CFrame.new(28, 0.8, -78) * CFrame.Angles(0, math.rad(180), 0), W = 22, D = 16, Floors = 1, Color = rgb(235, 235, 235), Material = M.SmoothPlastic, Trim = rgb(30, 150, 80), Doors = { Front = true }, Awning = rgb(30, 150, 80), Storefront = rgb(30, 160, 90), Ladder = "Left", Props = false })
 	for i = 1, 3 do
-		kit:Barrier(CFrame.new(20 + i * 9, 0.8, -20) * CFrame.Angles(0, rng:NextNumber(-0.2, 0.2), 0))
+		kit:Barrier(CFrame.new(20 + i * 9, 0.8, -22) * CFrame.Angles(0, rng:NextNumber(-0.2, 0.2), 0))
 	end
 	kit:Tree(Vector3.new(22, 0.8, -40), 1, "Oak")
-	kit:Tree(Vector3.new(24, 0.8, -84), 1, "Oak")
+	kit:HideBush(Vector3.new(36, 0.8, -40), 0.9)
 
-	-- street cover: wrecked / parked cars + barriers in the roads
+	-- street cover: wrecked / parked cars, barriers, cones
 	local parked = {
-		{ -100, 40, 0, "Sedan" }, { -96, -60, 180, "Truck" }, { 4, 60, 0, "Sedan" }, { -4, -70, 180, "Sports" },
-		{ 100, -30, 0, "Sedan" }, { 60, 4, 90, "Truck" }, { -60, -4, 270, "Sedan" }, { 40, 104, 90, "Sedan" },
+		{ -100, 40, 0, "Sedan" }, { -96, -60, 180, "Truck" }, { 6, 62, 0, "Sedan" }, { -6, -62, 180, "Sports" },
+		{ 100, -30, 0, "Sedan" }, { 60, 4, 90, "Truck" }, { -60, -4, 270, "Sedan" }, { 40, 104, 90, "Sedan" }, { -40, -104, 270, "Truck" },
 	}
 	for _, c in parked do
 		local spot = kit:VehicleSpot(CFrame.new(c[1], 0, c[2]) * CFrame.Angles(0, math.rad(c[3]), 0), c[4])
 		spot:SetAttribute("Parked", true)
 	end
-	for _, b in { { 0, 30, 15 }, { -30, 0, 80 }, { 100, 60, -10 }, { 30, -100, 95 }, { -100, -30, 5 } } do
+	for _, b in { { -30, 0, 80 }, { 100, 60, -10 }, { 30, -100, 95 }, { -100, -30, 5 }, { 70, 100, 85 } } do
 		kit:Barrier(CFrame.new(b[1], 0, b[2]) * CFrame.Angles(0, math.rad(b[3]), 0))
 	end
-	-- drivable cars
-	for _, c in { { -94, 70, 0, "Sports" }, { 6, -40, 180, "Sedan" }, { 94, 40, 0, "Jeep" }, { -40, 96, 90, "Sedan" }, { 40, -96, 270, "Truck" } } do
+	for _, c in { { 96, 8 }, { 92, 10 }, { -96, -8 }, { 8, 96 }, { -8, -96 } } do
+		kit:Cone(Vector3.new(c[1], 0, c[2]))
+	end
+	for _, c in { { -94, 70, 0, "Sports" }, { 94, 40, 0, "Jeep" }, { -40, 96, 90, "Sedan" }, { 40, -96, 270, "Truck" } } do
 		kit:VehicleSpot(CFrame.new(c[1], 0, c[2]) * CFrame.Angles(0, math.rad(c[3]), 0), c[4])
 	end
 
-	-- pickups + spawns
 	for _, p in { Vector3.new(20, 0.8, 20), Vector3.new(-20, 0.8, -20), Vector3.new(-20, 0.8, 20), Vector3.new(20, 0.8, -20) } do
 		kit:HealthPack(p)
 	end
-	for _, c in ROADS do
-		kit:Spawn(Vector3.new(c, 3, 140), Vector3.new(c, 3, 0))
-		kit:Spawn(Vector3.new(c, 3, -140), Vector3.new(c, 3, 0))
-		kit:Spawn(Vector3.new(140, 3, c), Vector3.new(0, 3, c))
-		kit:Spawn(Vector3.new(-140, 3, c), Vector3.new(0, 3, c))
+	-- TRIPLE TEAM base (west road end) + FREE FOR ALL spawns all over the city
+	kit:SpawnBase(Vector3.new(-138, 0, 0), Vector3.new(0, 0, 0), "C", 22)
+	local ffa = {}
+	for _, x in ROADS do
+		for _, z in { -50, 50 } do
+			table.insert(ffa, Vector3.new(x, 0, z))
+		end
 	end
-	for _, s in { { 50, 14 }, { -50, 14 }, { 50, -14 }, { -50, -14 }, { 86, 50 }, { -86, -50 } } do
-		kit:Spawn(Vector3.new(s[1], 3.8, s[2]))
+	for _, z in ROADS do
+		for _, x in { -40, 40 } do
+			table.insert(ffa, Vector3.new(x, 0, z))
+		end
 	end
-	kit:Boundary(HALF - 2, HALF - 2, 160)
+	for _, p in { { 0, -118 }, { 0, 118 }, { -40, -135 }, { 40, -135 }, { -40, 135 }, { 40, 135 }, { 60, 72 }, { -84, -40 }, { 84, 30 } } do
+		table.insert(ffa, Vector3.new(p[1], 0, p[2]))
+	end
+	kit:FFASpawns(ffa)
+
+	-- mountains all around (beyond the boundary, can't be reached)
+	kit:Mountains(HALF, HALF, { Margin = 60, GroundY = -0.5 })
+	kit:Boundary(HALF - 2, HALF - 2, 260)
 	return kit
 end
 
@@ -4783,7 +5095,8 @@ return Map
         <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">Harbor</string>
-            <string name="Source"><![CDATA[-- HARBOR: container maze, cranes, warehouses and a cargo ship you can board.
+            <string name="Source"><![CDATA[-- HARBOR: container maze, cranes, warehouses, a boardable cargo ship and a
+-- storm-drain tunnel. Team ALPHA spawns west, BRAVO east.
 local MapKit = require(script.Parent.MapKit)
 local M = Enum.Material
 local P = MapKit.Palette
@@ -4792,7 +5105,7 @@ local rgb = Color3.fromRGB
 local Map = {
 	Id = "Harbor",
 	Name = "HARBOR",
-	Desc = "Shipping docks at sunset. Fight through the container maze.",
+	Desc = "Shipping docks at sunset. Container maze, cranes and a storm drain.",
 	Icon = "⚓",
 	Lighting = {
 		ClockTime = 17.4, Brightness = 2.4,
@@ -4802,125 +5115,152 @@ local Map = {
 	},
 }
 
-local HALF = 180
+local HALF = 150
 
 function Map.Build()
 	local kit = MapKit.new(33)
 	local rng = kit.Rng
 
+	-- STORM DRAIN under the crane lane, spawn to spawn
+	local holes = kit:Tunnel({
+		Axis = "X", Cross = -74, From = -146, To = 146, Floor = -14, Width = 14, Height = 9, Style = "Sewer",
+		Entrances = { { At = -142, Dir = 1 }, { At = -30, Dir = -1 }, { At = 30, Dir = 1 }, { At = 142, Dir = -1 } },
+	})
+
 	-- land + sea
-	kit:Part(Vector3.new(HALF * 2 + 20, 4, 230), CFrame.new(0, -2, -75), P.ConcreteDark, M.Concrete)
+	kit:Ground(0, -HALF - 10, HALF + 10, -HALF - 10, 40, 4, holes, P.ConcreteDark, M.Concrete)
 	kit:Part(Vector3.new(HALF * 2 + 20, 0.3, 1.5), CFrame.new(0, 0.15, 39.2), P.Yellow, M.SmoothPlastic)
 	kit:Part(Vector3.new(HALF * 2 + 20, 6, 2), CFrame.new(0, -3, 40.5), P.ConcreteDark, M.Concrete)
-	kit:Fill(M.Sand, CFrame.new(0, -14, 140), Vector3.new(HALF * 2 + 80, 6, 220))
-	kit:Water(CFrame.new(0, -6, 140), Vector3.new(HALF * 2 + 80, 10, 220))
+	kit:Fill(M.Sand, CFrame.new(0, -14, 330), Vector3.new(HALF * 2 + 900, 6, 600))
+	kit:Water(CFrame.new(0, -6, 330), Vector3.new(HALF * 2 + 900, 10, 600))
+	-- distant islands on the sea side
+	for _, isl in { { -260, 420, 70 }, { 40, 520, 110 }, { 320, 380, 80 }, { -480, 300, 90 }, { 520, 470, 120 } } do
+		kit:FillBall(M.Rock, Vector3.new(isl[1], -isl[3] * 0.45, isl[2]), isl[3])
+		kit:FillBall(M.Grass, Vector3.new(isl[1], -isl[3] * 0.6, isl[2]), isl[3] * 0.98)
+	end
 	for x = -HALF + 10, HALF - 10, 20 do
 		kit:Pillar(Vector3.new(x, 0, 37.5), 1.5, 1.4, rgb(40, 40, 44), M.Metal)
 	end
 	kit:Road("X", Vector3.new(0, 0, 20), HALF * 2, 20, {})
+	for x = -120, 120, 40 do
+		kit:Manhole(Vector3.new(x + 7, 0.3, 14))
+	end
 
-	-- CONTAINER YARD (west) with a lane through the middle for the crane
-	local cols = { -165, -153, -141, -117, -105, -93, -69, -57, -45 }
-	local rows = { -140, -116, -92, -56, -32, -8 }
-	for _, x in cols do
-		for _, z in rows do
+	-- CONTAINER YARD (west-middle) with the crane lane through the middle
+	local cols = { -112, -100, -88, -64, -52, -40 }
+	local rows = { -136, -112, -94, -54, -32, -10 }
+	for ci, x in cols do
+		for ri, z in rows do
 			if rng:NextNumber() > 0.14 then
 				local stack = rng:NextInteger(1, 3)
 				for level = 0, stack - 1 do
-					kit:Container(CFrame.new(x, level * 8.5, z), nil, level == 0 and rng:NextNumber() < 0.25)
+					kit:Container(CFrame.new(x, level * 8.5, z), nil, level == 0 and rng:NextNumber() < 0.3)
+				end
+				-- ladder up the tall stacks so you can fight on top
+				if stack >= 2 and (ci + ri) % 3 == 0 then
+					kit:Ladder(Vector3.new(x + 5, 0, z + 6), stack * 8.5 + 3)
 				end
 			end
 		end
 	end
-	kit:Crane(CFrame.new(-105, 0, -74), 92, 42)
-	-- quay crane over the ship
+	kit:Crane(CFrame.new(-76, 0, -74), 76, 40)
+	kit:Ladder(Vector3.new(-76 - 38 + 2, 0, -74 - 8), 42)
 	kit:Crane(CFrame.new(50, 0, 30) * CFrame.Angles(0, math.rad(90), 0), 34, 50)
 
 	-- WAREHOUSES (east)
 	kit:Building({
-		Name = "Warehouse", Origin = CFrame.new(85, 0, -112), W = 60, D = 44, Floors = 1, FloorH = 18,
+		Name = "Warehouse", Origin = CFrame.new(70, 0, -112), W = 56, D = 40, Floors = 1, FloorH = 18,
 		Color = rgb(90, 110, 130), Material = M.CorrodedMetal, Trim = rgb(50, 60, 70), Floor = rgb(110, 110, 110),
 		Doors = { Front = true, Back = true, Left = true, Right = true }, Awning = rgb(240, 180, 30),
+		OpenWindows = 0.5, Ladder = "Back", Pilasters = false,
 	})
 	kit:Building({
-		Name = "PortOffice", Origin = CFrame.new(85, 0, -42), W = 50, D = 28, Floors = 2, FloorH = 12,
+		Name = "PortOffice", Origin = CFrame.new(70, 0, -42), W = 46, D = 26, Floors = 2, FloorH = 12,
 		Color = rgb(220, 214, 200), Material = M.Concrete, Trim = rgb(40, 90, 140),
 		Doors = { Front = true, Back = true }, Awning = rgb(40, 90, 140),
+		OpenWindows = 0.4, FireEscape = "Right",
 	})
-	-- fuel tanks
-	for _, z in { -140, -95 } do
-		kit:Pillar(Vector3.new(152, 0, z), 26, 26, rgb(225, 225, 220), M.Metal)
-		kit:Cylinder(0.8, 26.5, CFrame.new(152, 18, z) * CFrame.Angles(0, 0, math.rad(90)), rgb(200, 60, 50), M.Metal)
+	-- fuel tanks (south)
+	for _, x in { -10, 22 } do
+		kit:Pillar(Vector3.new(x, 0, -132), 24, 22, rgb(225, 225, 220), M.Metal)
+		kit:Cylinder(0.8, 22.5, CFrame.new(x, 17, -132) * CFrame.Angles(0, 0, math.rad(90)), rgb(200, 60, 50), M.Metal)
 	end
-	kit:Fence(Vector3.new(130, 0, -165), Vector3.new(130, 0, -70), 6, P.MetalDark)
+	kit:Ladder(Vector3.new(-10, 0, -120), 26)
 
-	-- CARGO SHIP + gangway
+	-- CARGO SHIP + gangway + stern ladder
 	kit:Ship(CFrame.new(0, 0, 77) * CFrame.Angles(0, math.rad(90), 0), 130, -20)
 	kit:Ramp(Vector3.new(-20, 0, 36), Vector3.new(-20, 12.6, 62.5), 6, P.MetalDark, M.DiamondPlate)
 
 	-- PIERS + boats
-	for _, x in { -145, 145 } do
-		kit:Pier(Vector3.new(x, 0, 41), Vector3.new(x, 0, 130), 10, 0.6)
+	for _, x in { -112, 112 } do
+		kit:Pier(Vector3.new(x, 0, 41), Vector3.new(x, 0, 120), 10, 0.6)
 		for _, side in { -1, 1 } do
-			local bx, bz = x + side * 12, 95 + side * 10
+			local bx, bz = x + side * 12, 90 + side * 10
 			kit:Part(Vector3.new(8, 4, 20), CFrame.new(bx, -1.5, bz), side > 0 and P.White or rgb(40, 80, 140), M.SmoothPlastic)
 			kit:Wedge(Vector3.new(8, 4, 6), CFrame.new(bx, -1.5, bz - 13), side > 0 and P.White or rgb(40, 80, 140), M.SmoothPlastic)
 			kit:Part(Vector3.new(6, 4, 7), CFrame.new(bx, 2.5, bz + 3), P.White, M.SmoothPlastic)
 			kit:Glass(Vector3.new(6.2, 1.5, 7.2), CFrame.new(bx, 3.2, bz + 3))
 		end
+		kit:Sandbags(CFrame.new(x, 0.6, 70), 8, 3)
 	end
 
 	-- LIGHTHOUSE island
-	kit:FillBall(M.Rock, Vector3.new(135, -16, 165), 26)
-	kit:Pillar(Vector3.new(135, 6, 165), 36, 8, P.White, M.SmoothPlastic)
-	for y = 12, 36, 10 do
-		kit:Cylinder(3, 8.2, CFrame.new(135, y, 165) * CFrame.Angles(0, 0, math.rad(90)), P.Red, M.SmoothPlastic)
+	kit:FillBall(M.Rock, Vector3.new(118, -16, 130), 22)
+	kit:Pillar(Vector3.new(118, 4, 130), 34, 8, P.White, M.SmoothPlastic)
+	for y = 10, 34, 10 do
+		kit:Cylinder(3, 8.2, CFrame.new(118, y, 130) * CFrame.Angles(0, 0, math.rad(90)), P.Red, M.SmoothPlastic)
 	end
-	local lamp = kit:Neon(Vector3.new(5, 5, 5), CFrame.new(135, 44.5, 165), rgb(255, 240, 180))
+	local lamp = kit:Neon(Vector3.new(5, 5, 5), CFrame.new(118, 40.5, 130), rgb(255, 240, 180))
 	kit:Light(lamp, "PointLight", rgb(255, 230, 170), 60, 3)
 
 	-- dockside dressing
-	for x = -170, 170, 34 do
+	for x = -136, 136, 34 do
 		kit:Tree(Vector3.new(x, 0, 30), rng:NextNumber(0.9, 1.2), "Palm")
 		kit:StreetLight(Vector3.new(x + 17, 0, 30), Vector3.new(0, 0, -1))
 	end
-	for i = 1, 14 do
-		local x, z = rng:NextNumber(-25, 125), rng:NextNumber(-165, 5)
-		if not (x > 50 and x < 120 and z > -140 and z < -24) then
-			if i % 2 == 0 then
-				kit:Crate(Vector3.new(x, 0, z), 4, rng:NextNumber(0, 1))
-				kit:Crate(Vector3.new(x + 4.2, 0, z), 4, rng:NextNumber(0, 1))
-			else
-				for b = 0, 2 do
-					kit:Pillar(Vector3.new(x + b * 2.3, 0, z), 3.6, 2.2, ({ rgb(30, 80, 160), rgb(200, 60, 40), rgb(60, 140, 70) })[b + 1], M.Metal)
-				end
+	for i = 1, 16 do
+		local x, z = rng:NextNumber(-25, 30), rng:NextNumber(-115, 5)
+		if i % 2 == 0 then
+			kit:Crate(Vector3.new(x, 0, z), 4, rng:NextNumber(0, 1))
+			kit:Crate(Vector3.new(x + 4.2, 0, z), 4, rng:NextNumber(0, 1))
+			kit:Crate(Vector3.new(x + 2, 4, z), 4, rng:NextNumber(0, 1))
+		else
+			for b = 0, 2 do
+				kit:Pillar(Vector3.new(x + b * 2.3, 0, z), 3.6, 2.2, ({ rgb(30, 80, 160), rgb(200, 60, 40), rgb(60, 140, 70) })[b + 1], M.Metal)
 			end
 		end
 	end
-	for _, b in { { -20, -60, 0 }, { 10, -100, 90 }, { -10, -140, 30 }, { 30, -10, 60 } } do
+	-- sandbag lines across the open ground
+	for _, s in { { -8, -50, 0 }, { 20, -90, 0 }, { 0, -20, 90 }, { 34, 0, 0 }, { -24, -110, 90 }, { 104, -74, 90 }, { -28, 4, 0 } } do
+		kit:Sandbags(CFrame.new(s[1], 0, s[2]) * CFrame.Angles(0, math.rad(s[3]), 0), 10, 3)
+	end
+	for _, b in { { 10, -60, 0 }, { 40, -10, 60 }, { -10, -140, 30 } } do
 		kit:Barrier(CFrame.new(b[1], 0, b[2]) * CFrame.Angles(0, math.rad(b[3]), 0))
 	end
 
-	-- pickups, vehicles, spawns
-	for _, p in { Vector3.new(-80, 0, -74), Vector3.new(30, 0, -74), Vector3.new(0, 0, 10), Vector3.new(160, 0, -40) } do
+	-- pickups, vehicles
+	for _, p in { Vector3.new(-76, 0, -74), Vector3.new(30, 0, -74), Vector3.new(0, 0, 10), Vector3.new(40, 0, -128) } do
 		kit:HealthPack(p)
 	end
-	kit:VehicleSpot(CFrame.new(-100, 0.5, 20) * CFrame.Angles(0, math.rad(-90), 0), "Truck")
+	kit:VehicleSpot(CFrame.new(-90, 0.5, 20) * CFrame.Angles(0, math.rad(-90), 0), "Truck")
 	kit:VehicleSpot(CFrame.new(70, 0.5, 16) * CFrame.Angles(0, math.rad(90), 0), "Sedan")
-	kit:VehicleSpot(CFrame.new(150, 0.5, -10), "Jeep")
-	kit:VehicleSpot(CFrame.new(-20, 0.5, -165) * CFrame.Angles(0, math.rad(90), 0), "Sports")
-	local parked = kit:VehicleSpot(CFrame.new(20, 0.5, -120), "Truck")
+	kit:VehicleSpot(CFrame.new(120, 0.5, -10), "Jeep")
+	kit:VehicleSpot(CFrame.new(-120, 0.5, -10), "Jeep")
+	local parked = kit:VehicleSpot(CFrame.new(0, 0.5, -100), "Truck")
 	parked:SetAttribute("Parked", true)
-	for x = -150, 150, 50 do
-		kit:Spawn(Vector3.new(x, 3, -168), Vector3.new(x, 3, 0))
+
+	-- TEAM SPAWNS at both ends
+	kit:SpawnBase(Vector3.new(-138, 0, -74), Vector3.new(0, 0, -74), "A", 130)
+	kit:SpawnBase(Vector3.new(138, 0, -74), Vector3.new(0, 0, -74), "B", 130)
+	-- TRIPLE TEAM base (on the quay) + FREE FOR ALL spawns everywhere
+	kit:SpawnBase(Vector3.new(0, 0, 22), Vector3.new(0, 0, -60), "C", 100)
+	local ffa = {}
+	for _, p in { { -130, -110 }, { -130, -35 }, { 130, -130 }, { 130, -20 }, { -20, -60 }, { 10, -30 }, { -60, 10 }, { 100, 8 }, { -100, 8 }, { 40, -145 }, { -25, -118 }, { 110, -60 }, { 60, 0 }, { -76, -40 } } do
+		table.insert(ffa, Vector3.new(p[1], 0, p[2]))
 	end
-	for _, z in { -120, -60, 0 } do
-		kit:Spawn(Vector3.new(-174, 3, z))
-		kit:Spawn(Vector3.new(172, 3, z + 10))
-	end
-	kit:Spawn(Vector3.new(30, 16, 77), Vector3.new(-40, 16, 77))
-	kit:Spawn(Vector3.new(-50, 16, 70), Vector3.new(40, 16, 70))
-	kit:Boundary(HALF, HALF, 200)
+	kit:FFASpawns(ffa)
+	kit:Mountains(HALF, HALF, { Margin = 50, SkipSide = "N", GroundY = -0.5 })
+	kit:Boundary(HALF, HALF, 260)
 	return kit
 end
 
@@ -5070,7 +5410,7 @@ function MapKit:Light(part: BasePart, kind: string?, color: Color3?, range: numb
 end
 
 -- GAMEPLAY MARKERS ---------------------------------------------------------------
-function MapKit:Spawn(pos: Vector3, lookAt: Vector3?)
+function MapKit:Spawn(pos: Vector3, lookAt: Vector3?, team: string?)
 	local s = Instance.new("Part")
 	s.Name = "Spawn"
 	s.Anchored = true
@@ -5084,6 +5424,9 @@ function MapKit:Spawn(pos: Vector3, lookAt: Vector3?)
 		target = pos + Vector3.new(0, 0, -1)
 	end
 	s.CFrame = CFrame.lookAt(pos, Vector3.new(target.X, pos.Y, target.Z))
+	if team then
+		s:SetAttribute("Team", team)
+	end
 	s.Parent = self.Spawns
 	return s
 end
@@ -5152,7 +5495,7 @@ end
 -- WALLS & BUILDINGS -----------------------------------------------------------------
 -- Builds a wall running along local +X or +Z from `start`, with openings
 -- { At = distance along wall (center), Width, Bottom, Top, Glass = bool }.
-function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: number, height: number, thick: number, openings, color, material, parent)
+function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: number, height: number, thick: number, openings, color, material, parent, trim)
 	local function place(a0, a1, y0, y1, glass)
 		local len, h = a1 - a0, y1 - y0
 		if len < 0.1 or h < 0.1 then
@@ -5174,6 +5517,24 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 			self:Part(size, origin * CFrame.new(pos), color, material, parent)
 		end
 	end
+	-- window sill + head trim sticking out of the wall face
+	local function frame(a0, a1, y, depth, h)
+		if not trim then
+			return
+		end
+		local mid = (a0 + a1) / 2
+		local out = trim.Outward * (thick / 2 + depth / 2)
+		local pos, size
+		if axis == "X" then
+			pos = start + Vector3.new(mid, y, out)
+			size = Vector3.new(a1 - a0 + 0.6, h, depth)
+		else
+			pos = start + Vector3.new(out, y, mid)
+			size = Vector3.new(depth, h, a1 - a0 + 0.6)
+		end
+		local p = self:Part(size, origin * CFrame.new(pos), trim.Color, M.Concrete, parent)
+		p.CanQuery = false
+	end
 	table.sort(openings, function(a, b)
 		return a.At < b.At
 	end)
@@ -5185,6 +5546,10 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 		place(l, r, o.Top, height)
 		if o.Glass then
 			place(l, r, o.Bottom, o.Top, true)
+		end
+		if o.Frame then
+			frame(l, r, o.Bottom - 0.15, 0.7, 0.3) -- sill
+			frame(l, r, o.Top + 0.2, 0.35, 0.4) -- head
 		end
 		cursor = r
 	end
@@ -5203,20 +5568,24 @@ function MapKit:Slab(origin: CFrame, y: number, w: number, d: number, thick: num
 		rect(-hw, hw, -hd, hd)
 		return
 	end
-	rect(-hw, hw, -hd, hole.Z0) -- front strip
-	rect(-hw, hw, hole.Z1, hd) -- back strip
+	rect(-hw, hw, -hd, hole.Z0)
+	rect(-hw, hw, hole.Z1, hd)
 	rect(-hw, hole.X0, hole.Z0, hole.Z1)
 	rect(hole.X1, hw, hole.Z0, hole.Z1)
 end
 
-local function windowOpenings(length: number, floorH: number, spacing: number, door)
+-- Windows along a wall. `openChance` = share of windows left open (no glass)
+-- so players can climb in and out.
+local function windowOpenings(length: number, floorH: number, spacing: number, door, rng, openChance: number, sill: number?)
 	local list = {}
 	local count = math.max(0, math.floor((length - 4) / spacing))
 	local startAt = (length - (count - 1) * spacing) / 2
+	local bottom = sill or 3
 	for i = 0, count - 1 do
 		local at = startAt + i * spacing
 		if not door or math.abs(at - door) > 6 then
-			table.insert(list, { At = at, Width = 4, Bottom = 3, Top = floorH - 2.5, Glass = true })
+			local open = rng:NextNumber() < (openChance or 0)
+			table.insert(list, { At = at, Width = 4, Bottom = bottom, Top = floorH - 2.5, Glass = not open, Frame = true })
 		end
 	end
 	if door then
@@ -5225,12 +5594,26 @@ local function windowOpenings(length: number, floorH: number, spacing: number, d
 	return list
 end
 
+local SIDES = {
+	Front = { N = Vector3.new(0, 0, -1), T = Vector3.new(1, 0, 0), Rot = CFrame.identity },
+	Back = { N = Vector3.new(0, 0, 1), T = Vector3.new(1, 0, 0), Rot = CFrame.identity },
+	Left = { N = Vector3.new(-1, 0, 0), T = Vector3.new(0, 0, 1), Rot = CFrame.Angles(0, math.rad(90), 0) },
+	Right = { N = Vector3.new(1, 0, 0), T = Vector3.new(0, 0, 1), Rot = CFrame.Angles(0, math.rad(90), 0) },
+}
+
 --[[ Enterable multi-storey building.
 spec = {
-	Origin = CFrame (ground center, rotation allowed), W, D, Floors, FloorH (12),
-	Color, Trim, Material, Floor (interior floor color),
+	Origin = CFrame (ground center), W, D, Floors, FloorH (12),
+	Color, Trim, Material, Floor, Name, Awning,
 	Doors = { Front = true, Back = true, Left = false, Right = false },
 	Roof = "Flat" | "Gable", RoofAccess = true, Props = true,
+	OpenWindows = 0..1   share of windows left open (climb in/out)
+	OpenSides = { Right = true }   every window on these sides is open
+	Storefront = Color3  big shop windows + sign band on the ground floor front
+	FireEscape = "Right" | "Left" | "Back"   balconies + ladder to the roof
+	Ladder = "Right" | ...   plain roof ladder
+	Balconies = true   small balconies on the front
+	AC = true   wall air-conditioner units
 }
 Front is the local -Z face. ]]
 function MapKit:Building(spec)
@@ -5244,9 +5627,14 @@ function MapKit:Building(spec)
 	local trim = spec.Trim or P.Concrete
 	local floorColor = spec.Floor or rgb(120, 112, 100)
 	local doors = spec.Doors or { Front = true }
+	local rng = self.Rng
 	local model = Instance.new("Model")
 	model.Name = spec.Name or "Building"
 	model.Parent = self.Geo
+	local openSides = spec.OpenSides or {}
+	if spec.FireEscape then
+		openSides[spec.FireEscape] = true
+	end
 
 	-- stairwell strip along the left wall
 	local sx0, sx1 = -W / 2 + t, -W / 2 + t + 5
@@ -5255,9 +5643,14 @@ function MapKit:Building(spec)
 	local sz1 = sz0 + run
 	local hole = { X0 = sx0, X1 = sx1, Z0 = sz0 - 0.5, Z1 = sz1 }
 
+	local function sidePos(side, along, out, y)
+		local s = SIDES[side]
+		local half = (side == "Front" or side == "Back") and D / 2 or W / 2
+		return o * CFrame.new(s.N * (half + out) + s.T * along + Vector3.new(0, y, 0)) * s.Rot
+	end
+
 	for f = 0, floors - 1 do
 		local y = f * H
-		-- floor
 		if f == 0 then
 			self:Part(Vector3.new(W, 0.4, D), o * CFrame.new(0, 0.2, 0), floorColor, M.Concrete, model)
 		else
@@ -5265,36 +5658,51 @@ function MapKit:Building(spec)
 		end
 		local base = y + (f == 0 and 0.4 or 0)
 		local wallH = H - (f == 0 and 0.4 or 0)
-		local function door(side, len)
-			return (f == 0 and doors[side]) and len / 2 or nil
+		local function openings(side, len)
+			local door = (f == 0 and doors[side]) and len / 2 or nil
+			if f == 0 and side == "Front" and spec.Storefront then
+				-- shop windows either side of the door
+				local paneW = len / 2 - 5
+				return {
+					{ At = paneW / 2 + 1, Width = paneW, Bottom = 1.2, Top = 8.5, Glass = true },
+					{ At = len - paneW / 2 - 1, Width = paneW, Bottom = 1.2, Top = 8.5, Glass = true },
+					{ At = len / 2, Width = 6, Bottom = 0, Top = 8.5, Glass = false },
+				}
+			end
+			local chance = openSides[side] and 1 or (spec.OpenWindows or 0)
+			return windowOpenings(len, wallH, 8, door, rng, chance, f == 0 and 2.6 or 3)
 		end
-		self:Wall(o, Vector3.new(-W / 2, base, -D / 2 + t / 2), "X", W, wallH, t, windowOpenings(W, wallH, 8, door("Front", W)), color, mat, model)
-		self:Wall(o, Vector3.new(-W / 2, base, D / 2 - t / 2), "X", W, wallH, t, windowOpenings(W, wallH, 8, door("Back", W)), color, mat, model)
-		self:Wall(o, Vector3.new(-W / 2 + t / 2, base, -D / 2 + t), "Z", D - 2 * t, wallH, t, windowOpenings(D - 2 * t, wallH, 8, door("Left", D - 2 * t)), color, mat, model)
-		self:Wall(o, Vector3.new(W / 2 - t / 2, base, -D / 2 + t), "Z", D - 2 * t, wallH, t, windowOpenings(D - 2 * t, wallH, 8, door("Right", D - 2 * t)), color, mat, model)
-		-- ledge trim between floors
+		self:Wall(o, Vector3.new(-W / 2, base, -D / 2 + t / 2), "X", W, wallH, t, openings("Front", W), color, mat, model, { Outward = -1, Color = trim })
+		self:Wall(o, Vector3.new(-W / 2, base, D / 2 - t / 2), "X", W, wallH, t, openings("Back", W), color, mat, model, { Outward = 1, Color = trim })
+		self:Wall(o, Vector3.new(-W / 2 + t / 2, base, -D / 2 + t), "Z", D - 2 * t, wallH, t, openings("Left", D - 2 * t), color, mat, model, { Outward = -1, Color = trim })
+		self:Wall(o, Vector3.new(W / 2 - t / 2, base, -D / 2 + t), "Z", D - 2 * t, wallH, t, openings("Right", D - 2 * t), color, mat, model, { Outward = 1, Color = trim })
 		if f > 0 then
 			for _, s in { { 0, -D / 2 - 0.2, W + 0.8, 0.8 }, { 0, D / 2 + 0.2, W + 0.8, 0.8 }, { -W / 2 - 0.2, 0, 0.8, D }, { W / 2 + 0.2, 0, 0.8, D } } do
 				self:Part(Vector3.new(s[3], 0.7, s[4]), o * CFrame.new(s[1], y, s[2]), trim, M.Concrete, model)
 			end
 		end
-		-- stairs up to the next floor (or the roof)
 		if f < floors - 1 or spec.RoofAccess ~= false then
 			local cx = (sx0 + sx1) / 2
 			local low = (o * CFrame.new(cx, y + (f == 0 and 0.4 or 0), sz0)).Position
 			local high = (o * CFrame.new(cx, y + H, sz1)).Position
 			self:Ramp(low, high, 5, rgb(90, 90, 96), M.DiamondPlate, model)
+			self:Part(Vector3.new(0.3, 3, run), o * CFrame.new(sx1 + 0.2, y + H + 1.5, (sz0 + sz1) / 2), P.MetalDark, M.Metal, model)
 		end
-		-- interior cover
 		if spec.Props ~= false then
-			local rng = self.Rng
 			for _ = 1, math.floor(W * D / 300) do
 				local px = rng:NextNumber(-W / 2 + 9, W / 2 - 4)
 				local pz = rng:NextNumber(-D / 2 + 4, D / 2 - 4)
-				if rng:NextNumber() < 0.5 then
-					-- desk
+				local roll = rng:NextNumber()
+				if roll < 0.35 then
 					self:Part(Vector3.new(6, 0.4, 3), o * CFrame.new(px, base + 3, pz), P.WoodLight, M.Wood, model)
 					self:Part(Vector3.new(5.6, 2.8, 0.3), o * CFrame.new(px, base + 1.4, pz + 1.3), P.WoodDark, M.Wood, model)
+				elseif roll < 0.6 then
+					-- couch
+					self:Part(Vector3.new(6, 1.6, 2.6), o * CFrame.new(px, base + 0.8, pz), rgb(90, 70, 60), M.Fabric, model)
+					self:Part(Vector3.new(6, 2.4, 0.8), o * CFrame.new(px, base + 1.6, pz + 1.3), rgb(90, 70, 60), M.Fabric, model)
+				elseif roll < 0.8 then
+					-- shelf
+					self:Part(Vector3.new(5, 6, 1.4), o * CFrame.new(px, base + 3, pz), P.WoodDark, M.Wood, model)
 				else
 					self:Part(Vector3.new(3.5, 3.5, 3.5), o * CFrame.new(px, base + 1.75, pz) * CFrame.Angles(0, rng:NextNumber(0, 1.5), 0), rgb(170, 128, 70), M.WoodPlanks, model)
 				end
@@ -5302,28 +5710,62 @@ function MapKit:Building(spec)
 		end
 	end
 
-	-- roof
 	local top = floors * H
+	-- plinth + corner pilasters
+	for _, s in { { 0, -D / 2 - 0.15, W + 0.5, 0.5 }, { 0, D / 2 + 0.15, W + 0.5, 0.5 }, { -W / 2 - 0.15, 0, 0.5, D + 0.5 }, { W / 2 + 0.15, 0, 0.5, D + 0.5 } } do
+		self:Part(Vector3.new(s[3], 1.4, s[4]), o * CFrame.new(s[1], 0.7, s[2]), trim:Lerp(Color3.new(), 0.25), M.Concrete, model)
+	end
+	if spec.Pilasters ~= false then
+		for _, cx in { -W / 2, W / 2 } do
+			for _, cz in { -D / 2, D / 2 } do
+				self:Part(Vector3.new(1.4, top, 1.4), o * CFrame.new(cx, top / 2, cz), trim, M.Concrete, model)
+			end
+		end
+	end
+
 	if spec.Roof == "Gable" then
 		local rh = math.min(W, D) * 0.35
 		self:Part(Vector3.new(W + 1, 0.6, D + 1), o * CFrame.new(0, top + 0.3, 0), trim, M.Wood, model)
 		self:Wedge(Vector3.new(W + 2, rh, D / 2 + 1), o * CFrame.new(0, top + 0.6 + rh / 2, -D / 4 - 0.25), spec.RoofColor or P.WoodDark, M.WoodPlanks, model)
 		self:Wedge(Vector3.new(W + 2, rh, D / 2 + 1), o * CFrame.new(0, top + 0.6 + rh / 2, D / 4 + 0.25) * CFrame.Angles(0, math.rad(180), 0), spec.RoofColor or P.WoodDark, M.WoodPlanks, model)
+		self:Part(Vector3.new(2, rh * 0.8, 2), o * CFrame.new(W / 4, top + rh * 0.6, D / 4), P.Brick, M.Brick, model) -- chimney
 	else
-		self:Slab(o, top, W, D, 1, spec.RoofAccess ~= false and hole or nil, P.ConcreteDark, M.Concrete, model)
+		local roofHole = spec.RoofAccess ~= false and hole or nil
+		self:Slab(o, top, W, D, 1, roofHole, P.ConcreteDark, M.Concrete, model)
+		-- parapet + cornice
 		for _, s in { { 0, -D / 2 + 0.4, W, 0.8 }, { 0, D / 2 - 0.4, W, 0.8 }, { -W / 2 + 0.4, 0, 0.8, D }, { W / 2 - 0.4, 0, 0.8, D } } do
 			self:Part(Vector3.new(s[3], 3, s[4]), o * CFrame.new(s[1], top + 1.5, s[2]), trim, M.Concrete, model)
 		end
+		for _, s in { { 0, -D / 2 - 0.3, W + 2, 1.4 }, { 0, D / 2 + 0.3, W + 2, 1.4 }, { -W / 2 - 0.3, 0, 1.4, D + 2 }, { W / 2 + 0.3, 0, 1.4, D + 2 } } do
+			self:Part(Vector3.new(s[3], 1.1, s[4]), o * CFrame.new(s[1], top - 0.2, s[2]), trim, M.Concrete, model)
+		end
+		-- stair bulkhead (door faces +Z where the ramp arrives)
+		if roofHole then
+			local bh = 8
+			local bx0, bx1 = -W / 2 + 0.8, sx1 + 1
+			local bz0, bz1 = hole.Z0 - 1, hole.Z1
+			self:Part(Vector3.new(bx1 - bx0, bh, 0.8), o * CFrame.new((bx0 + bx1) / 2, top + bh / 2, bz0), trim, M.Concrete, model)
+			self:Part(Vector3.new(0.8, bh, bz1 - bz0), o * CFrame.new(bx1, top + bh / 2, (bz0 + bz1) / 2), trim, M.Concrete, model)
+			self:Part(Vector3.new(0.8, bh - 3, bz1 - bz0), o * CFrame.new(bx0, top + 3 + (bh - 3) / 2, (bz0 + bz1) / 2), trim, M.Concrete, model)
+			self:Part(Vector3.new(bx1 - bx0 + 1, 0.6, bz1 - bz0 + 1), o * CFrame.new((bx0 + bx1) / 2, top + bh + 0.3, (bz0 + bz1) / 2), P.MetalDark, M.Metal, model)
+			local lamp = self:Neon(Vector3.new(0.6, 0.3, 0.6), o * CFrame.new((bx0 + bx1) / 2, top + bh - 0.6, bz1 + 0.2), rgb(255, 230, 180), model)
+			self:Light(lamp, "PointLight", rgb(255, 220, 170), 14, 1.2)
+		end
 		-- rooftop clutter (cover for roof fights)
-		local rng = self.Rng
-		for _ = 1, 2 do
+		for _ = 1, 3 do
 			local px, pz = rng:NextNumber(-W / 2 + 10, W / 2 - 5), rng:NextNumber(-D / 2 + 5, D / 2 - 5)
 			self:Part(Vector3.new(5, 3.5, 4), o * CFrame.new(px, top + 1.75, pz), rgb(180, 182, 186), M.Metal, model)
-			self:Deco(Vector3.new(3, 0.3, 2.5), o * CFrame.new(px, top + 3.6, pz), P.MetalDark, M.Metal, model)
+			self:Deco(Vector3.new(3.2, 0.3, 3), o * CFrame.new(px, top + 3.6, pz), P.MetalDark, M.Metal, model)
+			for i = -1, 1 do
+				self:Deco(Vector3.new(0.1, 2.6, 3.2), o * CFrame.new(px + i * 1.5 + 0.8, top + 1.9, pz), P.MetalDark, M.Metal, model)
+			end
 		end
+		self:Pillar((o * CFrame.new(W / 2 - 3, top, -D / 2 + 3)).Position, 9, 0.3, P.MetalDark, M.Metal, model) -- antenna
 		if W > 24 then
 			local tank = self:Cylinder(7, 6, o * CFrame.new(W / 2 - 6, top + 6.5, D / 2 - 6) * CFrame.Angles(0, 0, math.rad(90)), P.Wood, M.WoodPlanks, model)
 			tank.Name = "WaterTank"
+			self:Wedge(Vector3.new(6, 1.5, 3), o * CFrame.new(W / 2 - 6, top + 10.75, D / 2 - 7.5), P.WoodDark, M.WoodPlanks, model)
+			self:Wedge(Vector3.new(6, 1.5, 3), o * CFrame.new(W / 2 - 6, top + 10.75, D / 2 - 4.5) * CFrame.Angles(0, math.rad(180), 0), P.WoodDark, M.WoodPlanks, model)
 			for _, dx in { -2, 2 } do
 				for _, dz in { -2, 2 } do
 					self:Part(Vector3.new(0.5, 3, 0.5), o * CFrame.new(W / 2 - 6 + dx, top + 1.5, D / 2 - 6 + dz), P.MetalDark, M.Metal, model)
@@ -5331,30 +5773,91 @@ function MapKit:Building(spec)
 			end
 		end
 	end
-	-- awning over the front door
+
+	-- storefront sign band
+	if spec.Storefront then
+		local sign = self:Part(Vector3.new(W * 0.85, 1.8, 0.5), o * CFrame.new(0, 10.3, -D / 2 - 0.4), spec.Storefront, M.SmoothPlastic, model)
+		sign.Name = "ShopSign"
+		self:Neon(Vector3.new(W * 0.85, 0.2, 0.55), o * CFrame.new(0, 9.35, -D / 2 - 0.4), rgb(255, 240, 210), model)
+		for i = -2, 2 do
+			self:Neon(Vector3.new(1.2, 0.9, 0.1), o * CFrame.new(i * 2.2, 10.3, -D / 2 - 0.7), rgb(255, 255, 255), model)
+		end
+	end
 	if doors.Front then
 		self:Part(Vector3.new(10, 0.4, 4), o * CFrame.new(0, 9.5, -D / 2 - 2), spec.Awning or P.Red, M.Fabric, model)
+		for _, x in { -4.8, 4.8 } do
+			self:Part(Vector3.new(0.2, 1.2, 4), o * CFrame.new(x, 8.9, -D / 2 - 2), spec.Awning or P.Red, M.Fabric, model)
+		end
+	end
+
+	-- fire escape: balcony on every floor + ladder all the way to the roof
+	if spec.FireEscape then
+		local side = spec.FireEscape
+		local along = (side == "Front" or side == "Back") and W * 0.15 or D * 0.15
+		for f = 1, floors - 1 do
+			local y = f * H
+			self:Part(Vector3.new(11, 0.3, 3.6), sidePos(side, along, 1.8, y + 0.15), P.MetalDark, M.DiamondPlate, model)
+			self:Part(Vector3.new(11, 3, 0.2), sidePos(side, along, 3.5, y + 1.65), P.MetalDark, M.Metal, model).Transparency = 0.3
+			self:Part(Vector3.new(0.2, 3, 3.6), sidePos(side, along - 5.4, 1.8, y + 1.65), P.MetalDark, M.Metal, model)
+		end
+		local lad = self:Ladder(sidePos(side, along + 6.5, 1.0, 0).Position, top + 3.5, nil)
+		lad.Parent = model
+	elseif spec.Ladder then
+		local lad = self:Ladder(sidePos(spec.Ladder, 0, 1.0, 0).Position, top + 3.5, nil)
+		lad.Parent = model
+	end
+	-- balconies on the front
+	if spec.Balconies then
+		for f = 1, floors - 1 do
+			for i = -1, 1, 2 do
+				local x = i * W * 0.25
+				self:Part(Vector3.new(6, 0.4, 3), o * CFrame.new(x, f * H + 0.2, -D / 2 - 1.5), trim, M.Concrete, model)
+				self:Part(Vector3.new(6, 2.6, 0.25), o * CFrame.new(x, f * H + 1.7, -D / 2 - 2.9), P.MetalDark, M.Metal, model)
+			end
+		end
+	end
+	-- wall AC units
+	if spec.AC ~= false then
+		for _ = 1, floors do
+			local side = ({ "Back", "Left", "Right" })[rng:NextInteger(1, 3)]
+			local len = (side == "Back") and W or D
+			local y = rng:NextInteger(1, floors) * H - H * 0.35
+			self:Part(Vector3.new(2.6, 1.8, 1.4), sidePos(side, rng:NextNumber(-len / 2 + 4, len / 2 - 4), 0.7, y), rgb(200, 202, 205), M.Metal, model)
+		end
 	end
 	return model
 end
 
--- Solid skyscraper (not enterable) used for skylines / map edges.
+-- Skyscraper used for skylines / map edges: podium, banded glass shaft, crown.
 function MapKit:Tower(origin: CFrame, W: number, D: number, height: number, color, material, glassColor)
 	local model = Instance.new("Model")
 	model.Name = "Tower"
 	model.Parent = self.Geo
-	self:Part(Vector3.new(W, height, D), origin * CFrame.new(0, height / 2, 0), color or P.ConcreteDark, material or M.Concrete, model)
+	local c = color or P.ConcreteDark
+	-- podium with a glass shop band
+	self:Part(Vector3.new(W + 2, 10, D + 2), origin * CFrame.new(0, 5, 0), c:Lerp(Color3.new(), 0.15), material or M.Concrete, model)
+	local shop = self:Deco(Vector3.new(W + 2.2, 5, D + 2.2), origin * CFrame.new(0, 4, 0), rgb(40, 60, 80), M.Glass, model)
+	shop.Reflectance = 0.3
+	self:Part(Vector3.new(W, height - 10, D), origin * CFrame.new(0, 10 + (height - 10) / 2, 0), c, material or M.Concrete, model)
 	local band = glassColor or rgb(70, 110, 140)
-	for y = 6, height - 4, 10 do
+	for y = 14, height - 4, 9 do
 		local g = self:Deco(Vector3.new(W + 0.3, 5, D + 0.3), origin * CFrame.new(0, y, 0), band, M.Glass, model)
 		g.Reflectance = 0.25
 	end
-	self:Part(Vector3.new(W - 4, 4, D - 4), origin * CFrame.new(0, height + 2, 0), P.MetalDark, M.Metal, model)
+	-- vertical mullions
+	for i = -2, 2 do
+		for _, s in { 1, -1 } do
+			self:Deco(Vector3.new(0.6, height - 10, 0.5), origin * CFrame.new(i * W / 5, 10 + (height - 10) / 2, s * (D / 2 + 0.2)), c, material or M.Concrete, model)
+			self:Deco(Vector3.new(0.5, height - 10, 0.6), origin * CFrame.new(s * (W / 2 + 0.2), 10 + (height - 10) / 2, i * D / 5), c, material or M.Concrete, model)
+		end
+	end
+	-- crown
+	self:Part(Vector3.new(W + 1, 1.5, D + 1), origin * CFrame.new(0, height + 0.75, 0), c:Lerp(Color3.new(1, 1, 1), 0.2), M.Concrete, model)
+	self:Part(Vector3.new(W - 4, 5, D - 4), origin * CFrame.new(0, height + 4, 0), P.MetalDark, M.Metal, model)
 	if height > 60 then
-		local antenna = self:Deco(Vector3.new(0.6, 18, 0.6), origin * CFrame.new(W / 4, height + 13, D / 4), P.Metal, M.Metal, model)
-		local blink = self:Neon(Vector3.new(1, 1, 1), origin * CFrame.new(W / 4, height + 22.5, D / 4), P.Red, model)
+		self:Deco(Vector3.new(0.6, 18, 0.6), origin * CFrame.new(W / 4, height + 15, D / 4), P.Metal, M.Metal, model)
+		local blink = self:Neon(Vector3.new(1, 1, 1), origin * CFrame.new(W / 4, height + 24.5, D / 4), P.Red, model)
 		self:Light(blink, "PointLight", P.Red, 20, 2)
-		antenna.Name = "Antenna"
 	end
 	return model
 end
@@ -5693,6 +6196,357 @@ function MapKit:Pier(a: Vector3, b: Vector3, width: number, deckY: number)
 	end
 end
 
+-- BATTLE ROYALE PIECES -----------------------------------------------------------------
+
+-- Flat ground (top surface at `top`) covering x0..x1 / z0..z1 with rectangular holes
+-- cut out (tunnel entrances). holes = { { X0, X1, Z0, Z1 }, ... }
+function MapKit:Ground(top: number, x0: number, x1: number, z0: number, z1: number, thickness: number, holes, color, material)
+	local rects = { { x0, x1, z0, z1 } }
+	for _, h in holes or {} do
+		local out = {}
+		for _, r in rects do
+			if h.X1 <= r[1] or h.X0 >= r[2] or h.Z1 <= r[3] or h.Z0 >= r[4] then
+				table.insert(out, r)
+			else
+				if h.X0 > r[1] then
+					table.insert(out, { r[1], h.X0, r[3], r[4] })
+				end
+				if h.X1 < r[2] then
+					table.insert(out, { h.X1, r[2], r[3], r[4] })
+				end
+				local mx0, mx1 = math.max(r[1], h.X0), math.min(r[2], h.X1)
+				if h.Z0 > r[3] then
+					table.insert(out, { mx0, mx1, r[3], h.Z0 })
+				end
+				if h.Z1 < r[4] then
+					table.insert(out, { mx0, mx1, h.Z1, r[4] })
+				end
+			end
+		end
+		rects = out
+	end
+	for _, r in rects do
+		if r[2] - r[1] > 0.1 and r[4] - r[3] > 0.1 then
+			self:Part(Vector3.new(r[2] - r[1], thickness, r[4] - r[3]), CFrame.new((r[1] + r[2]) / 2, top - thickness / 2, (r[3] + r[4]) / 2), color, material)
+		end
+	end
+end
+
+-- Climbable ladder (TrussPart) standing at `base` going up `height` studs.
+function MapKit:Ladder(base: Vector3, height: number, _normal)
+	local h = math.max(2, math.floor(height / 2 + 0.5) * 2)
+	local truss = self:Part(Vector3.new(2, h, 2), CFrame.new(base + Vector3.new(0, h / 2, 0)), rgb(70, 74, 80), M.Metal, self.Geo, "TrussPart")
+	truss.Name = "Ladder"
+	return truss
+end
+
+--[[ Underground tunnel with stair entrances. Returns the ground holes for the entrances.
+spec = { Axis = "Z"|"X", Cross = number, From, To, Floor = -14, Width = 14, Height = 9,
+	Entrances = { { At = number, Dir = 1 | -1 }, ... }, Style = "Subway" | "Sewer" | "Mine", Terrain = bool } ]]
+function MapKit:Tunnel(spec)
+	local axisZ = spec.Axis ~= "X"
+	local c = spec.Cross or 0
+	local floorY = spec.Floor or -14
+	local W = spec.Width or 14
+	local H = spec.Height or 9
+	local style = spec.Style or "Subway"
+	local model = Instance.new("Model")
+	model.Name = style .. "Tunnel"
+	model.Parent = self.Geo
+	local function at(along, across, y)
+		return axisZ and Vector3.new(c + across, y, along) or Vector3.new(along, y, c + across)
+	end
+	local function size(lenAlong, h, lenAcross)
+		return axisZ and Vector3.new(lenAcross, h, lenAlong) or Vector3.new(lenAlong, h, lenAcross)
+	end
+	local wallColor, wallMat, floorColor, floorMat
+	if style == "Mine" then
+		wallColor, wallMat, floorColor, floorMat = rgb(96, 74, 52), M.Ground, rgb(80, 64, 48), M.Ground
+	elseif style == "Sewer" then
+		wallColor, wallMat, floorColor, floorMat = rgb(92, 96, 92), M.Concrete, rgb(70, 74, 72), M.Concrete
+	else
+		wallColor, wallMat, floorColor, floorMat = rgb(214, 216, 210), M.SmoothPlastic, rgb(120, 120, 124), M.Concrete
+	end
+	local a0, a1 = math.min(spec.From, spec.To), math.max(spec.From, spec.To)
+	local len = a1 - a0
+	local mid = (a0 + a1) / 2
+	local depth = -floorY
+	local run = depth * 1.45
+	if spec.Terrain then
+		self:Fill(M.Air, CFrame.new(at(mid, 0, floorY + H / 2)), size(len + 4, H + 2, W + 2))
+	end
+	-- floor, walls, end caps
+	self:Part(size(len + 2, 1, W + 2), CFrame.new(at(mid, 0, floorY - 0.5)), floorColor, floorMat, model)
+	for _, s in { -1, 1 } do
+		self:Part(size(len + 2, H + 1, 1), CFrame.new(at(mid, s * (W / 2 + 0.5), floorY + (H + 1) / 2)), wallColor, wallMat, model)
+	end
+	for _, e in { a0 - 1, a1 + 1 } do
+		self:Part(size(1, H + 1, W + 2), CFrame.new(at(e, 0, floorY + (H + 1) / 2)), wallColor, wallMat, model)
+	end
+	-- ceiling with gaps over the entrance ramps
+	local gaps = {}
+	for _, e in spec.Entrances or {} do
+		local g0, g1 = e.At, e.At + e.Dir * run
+		table.insert(gaps, { math.min(g0, g1) - 0.5, math.max(g0, g1) + 0.5 })
+	end
+	table.sort(gaps, function(x, y)
+		return x[1] < y[1]
+	end)
+	local cursor = a0 - 1
+	local ceilY = floorY + H + 0.5
+	local function ceiling(z0, z1)
+		if z1 - z0 > 0.1 then
+			self:Part(size(z1 - z0, 1, W + 2), CFrame.new(at((z0 + z1) / 2, 0, ceilY)), wallColor:Lerp(Color3.new(), 0.2), wallMat, model)
+		end
+	end
+	for _, g in gaps do
+		ceiling(cursor, g[1])
+		cursor = g[2]
+	end
+	ceiling(cursor, a1 + 1)
+
+	-- style dressing + lights
+	for d = a0 + 6, a1 - 6, 16 do
+		local lamp = self:Neon(size(4, 0.3, 1), CFrame.new(at(d, 0, ceilY - 0.65)), style == "Mine" and rgb(255, 190, 110) or rgb(235, 245, 255), model)
+		self:Light(lamp, "PointLight", style == "Mine" and rgb(255, 180, 100) or rgb(220, 235, 255), 26, 1.4)
+	end
+	if style == "Subway" then
+		for _, s in { -1, 1 } do
+			self:Deco(size(len, 1, 0.1), CFrame.new(at(mid, s * (W / 2 - 0.05), floorY + 3.5)), rgb(30, 110, 60), M.SmoothPlastic, model)
+			self:Deco(size(len, 0.15, 0.3), CFrame.new(at(mid, s * 1.6, floorY + 0.08)), rgb(150, 150, 156), M.Metal, model)
+		end
+		for d = a0 + 4, a1 - 4, 3 do
+			self:Deco(size(0.6, 0.12, 4.4), CFrame.new(at(d, 0, floorY + 0.03)), rgb(80, 62, 48), M.Wood, model)
+		end
+		for d = a0 + 20, a1 - 20, 32 do
+			for _, s in { -1, 1 } do
+				self:Part(size(1.4, H, 1.4), CFrame.new(at(d, s * (W / 2 - 2), floorY + H / 2)), rgb(60, 110, 70), M.Metal, model)
+			end
+		end
+	elseif style == "Sewer" then
+		local water = self:Deco(size(len, 0.2, 3.5), CFrame.new(at(mid, 0, floorY + 0.12)), rgb(60, 90, 70), M.Glass, model)
+		water.Transparency = 0.2
+		for _, s in { -1, 1 } do
+			local pipe = self:Cylinder(len, 1.2, CFrame.new(at(mid, s * (W / 2 - 0.8), floorY + H - 1.5)) * (axisZ and CFrame.Angles(0, math.rad(90), 0) or CFrame.identity), rgb(110, 80, 60), M.CorrodedMetal, model)
+			pipe.CanCollide = false
+		end
+	else -- Mine
+		for d = a0 + 4, a1 - 4, 8 do
+			for _, s in { -1, 1 } do
+				self:Part(size(1, H, 1), CFrame.new(at(d, s * (W / 2 - 0.6), floorY + H / 2)), P.WoodDark, M.Wood, model)
+			end
+			self:Part(size(1, 1, W), CFrame.new(at(d, 0, floorY + H - 0.5)), P.WoodDark, M.Wood, model)
+		end
+		for _, s in { -1, 1 } do
+			self:Deco(size(len, 0.15, 0.3), CFrame.new(at(mid, s * 1.4, floorY + 0.08)), rgb(110, 100, 90), M.Metal, model)
+		end
+	end
+	-- cover inside: crates / barrels every so often
+	local rng = self.Rng
+	for d = a0 + 12, a1 - 12, 26 do
+		local side = rng:NextNumber() < 0.5 and -1 or 1
+		self:Part(Vector3.new(3.5, 3.5, 3.5), CFrame.new(at(d, side * (W / 2 - 2.5), floorY + 1.75)), rgb(150, 112, 60), M.WoodPlanks, model)
+	end
+
+	-- entrances: ramp down from the surface, enclosed shaft, railings on top
+	local holes = {}
+	for _, e in spec.Entrances or {} do
+		local top = at(e.At, 0, 0)
+		local bottom = at(e.At + e.Dir * run, 0, floorY)
+		self:Ramp(bottom, top, 6, rgb(110, 110, 114), M.DiamondPlate, model)
+		local z0, z1 = math.min(e.At, e.At + e.Dir * run), math.max(e.At, e.At + e.Dir * run)
+		for _, s in { -1, 1 } do
+			self:Part(size(z1 - z0, depth, 0.8), CFrame.new(at((z0 + z1) / 2, s * 3.4, floorY + depth / 2)), wallColor, wallMat, model)
+			-- surface railing
+			self:Part(size(z1 - z0, 3.2, 0.3), CFrame.new(at((z0 + z1) / 2, s * 3.6, 1.6)), rgb(40, 110, 60), M.Metal, model)
+		end
+		self:Part(size(0.8, depth, 7.6), CFrame.new(at(e.At - e.Dir * 0.4, 0, floorY + depth / 2)), wallColor, wallMat, model)
+		self:Part(size(0.3, 3.2, 7.4), CFrame.new(at(e.At + e.Dir * run, 0, 1.6)), rgb(40, 110, 60), M.Metal, model)
+		if style == "Subway" then
+			for _, s in { -1, 1 } do
+				local post = at(e.At, s * 3.6, 0)
+				self:Pillar(post, 6, 0.3, rgb(40, 110, 60), M.Metal, model)
+				local globe = self:Ball(1, post + Vector3.new(0, 6.4, 0), rgb(120, 255, 140), M.Neon, model)
+				globe.CanCollide = false
+			end
+		end
+		if spec.Terrain then
+			local mz = (z0 + z1) / 2
+			self:Fill(M.Air, CFrame.new(at(mz, 0, floorY / 2 + 2)), size(z1 - z0 + 1, depth + 6, 7))
+		end
+		local p0, p1 = at(z0, -3.2, 0), at(z1, 3.2, 0)
+		table.insert(holes, { X0 = math.min(p0.X, p1.X), X1 = math.max(p0.X, p1.X), Z0 = math.min(p0.Z, p1.Z), Z1 = math.max(p0.Z, p1.Z) })
+	end
+	return holes
+end
+
+-- Stacked sandbag wall (great cover). rows = 3 is chest height, 4 is full cover.
+function MapKit:Sandbags(cf: CFrame, length: number, rows: number?)
+	local r = rows or 3
+	local tan = rgb(168, 146, 102)
+	for row = 0, r - 1 do
+		local offset = (row % 2) * 1.1
+		for x = -length / 2 + 1.1 + offset, length / 2 - 1.1, 2.2 do
+			local bag = self:Part(Vector3.new(2.2, 1.05, 1.4), cf * CFrame.new(x, 0.52 + row * 1.0, 0) * CFrame.Angles(0, self.Rng:NextNumber(-0.08, 0.08), 0), tan:Lerp(rgb(130, 112, 80), self.Rng:NextNumber()), M.Fabric)
+			bag.Name = "Sandbag"
+		end
+	end
+end
+
+-- Dense bush you can hide inside (no collision, bullets go through).
+function MapKit:HideBush(pos: Vector3, scale: number?)
+	local s = scale or 1
+	local rng = self.Rng
+	for i = 1, 4 do
+		local b = self:Ball(rng:NextNumber(5, 7) * s, pos + Vector3.new(rng:NextNumber(-2, 2) * s, (2 + i * 0.4) * s, rng:NextNumber(-2, 2) * s), i % 2 == 0 and P.LeafDark or P.Leaf, M.LeafyGrass, self.Props)
+		b.CanCollide = false
+		b.CanQuery = false
+		b.Name = "HideBush"
+	end
+end
+
+-- STREET FURNITURE ---------------------------------------------------------------------
+function MapKit:Hydrant(pos: Vector3)
+	self:Pillar(pos, 2.2, 0.8, rgb(200, 40, 30), M.Metal, self.Props)
+	self:Ball(0.9, pos + Vector3.new(0, 2.3, 0), rgb(200, 40, 30), M.Metal, self.Props)
+	self:Cylinder(1.2, 0.35, CFrame.new(pos + Vector3.new(0, 1.5, 0)), rgb(220, 200, 60), M.Metal, self.Props)
+end
+
+function MapKit:TrashCan(pos: Vector3)
+	self:Pillar(pos, 3, 1.8, rgb(40, 70, 50), M.Metal, self.Props)
+	self:Cylinder(0.3, 2, CFrame.new(pos + Vector3.new(0, 3.1, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(30, 50, 36), M.Metal, self.Props)
+end
+
+function MapKit:Manhole(pos: Vector3)
+	local m = self:Cylinder(0.06, 3, CFrame.new(pos + Vector3.new(0, 0.03, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(50, 50, 52), M.DiamondPlate, self.Props)
+	m.CanCollide = false
+end
+
+function MapKit:Cone(pos: Vector3)
+	self:Part(Vector3.new(1.4, 0.2, 1.4), CFrame.new(pos + Vector3.new(0, 0.1, 0)), rgb(30, 30, 30), M.Plastic, self.Props)
+	self:Pillar(pos + Vector3.new(0, 0.2, 0), 1.8, 0.7, rgb(255, 120, 20), M.Plastic, self.Props)
+	self:Cylinder(0.3, 0.75, CFrame.new(pos + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(240, 240, 240), M.Plastic, self.Props)
+end
+
+function MapKit:Planter(pos: Vector3)
+	self:Part(Vector3.new(5, 2, 5), CFrame.new(pos + Vector3.new(0, 1, 0)), P.ConcreteDark, M.Concrete, self.Geo)
+	self:Bush(pos + Vector3.new(0, 1.6, 0), 0.8)
+end
+
+function MapKit:BusStop(cf: CFrame)
+	self:Part(Vector3.new(10, 0.3, 4), cf * CFrame.new(0, 8, 0), P.MetalDark, M.Metal, self.Props)
+	for _, x in { -4.8, 4.8 } do
+		self:Part(Vector3.new(0.3, 8, 0.3), cf * CFrame.new(x, 4, 1.6), P.MetalDark, M.Metal, self.Props)
+	end
+	self:Glass(Vector3.new(10, 6.5, 0.2), cf * CFrame.new(0, 4.5, 1.8))
+	local ad = self:Neon(Vector3.new(0.2, 5, 3), cf * CFrame.new(4.9, 4.2, 0), rgb(255, 200, 80), self.Props)
+	ad.Name = "BusAd"
+	self:Bench(cf * CFrame.new(0, 0, 0.8))
+end
+
+function MapKit:NewsBox(cf: CFrame)
+	self:Part(Vector3.new(1.8, 3, 1.6), cf * CFrame.new(0, 1.5, 0), rgb(30, 80, 160), M.Metal, self.Props)
+	self:Glass(Vector3.new(1.4, 0.9, 0.1), cf * CFrame.new(0, 2.3, -0.82))
+end
+
+function MapKit:StreetSign(pos: Vector3, rot: number?)
+	self:Pillar(pos, 10, 0.3, P.MetalDark, M.Metal, self.Props)
+	self:Part(Vector3.new(4, 0.9, 0.1), CFrame.new(pos + Vector3.new(0, 9.2, 0)) * CFrame.Angles(0, rot or 0, 0), rgb(20, 110, 60), M.SmoothPlastic, self.Props)
+	self:Part(Vector3.new(0.1, 0.9, 4), CFrame.new(pos + Vector3.new(0, 8.2, 0)) * CFrame.Angles(0, rot or 0, 0), rgb(20, 110, 60), M.SmoothPlastic, self.Props)
+end
+
+function MapKit:PowerBox(cf: CFrame)
+	self:Part(Vector3.new(3, 4, 1.8), cf * CFrame.new(0, 2, 0), rgb(120, 126, 110), M.Metal, self.Geo)
+	self:Deco(Vector3.new(2.6, 0.5, 0.1), cf * CFrame.new(0, 3.2, -0.92), rgb(240, 200, 30), M.SmoothPlastic)
+end
+
+-- Team spawn base at one end of the map: spawn markers behind a line of cover.
+function MapKit:SpawnBase(center: Vector3, toward: Vector3, team: string, width: number?)
+	local w = width or 60
+	local dir = Vector3.new(toward.X - center.X, 0, toward.Z - center.Z).Unit
+	local right = Vector3.new(-dir.Z, 0, dir.X)
+	local color = team == "A" and rgb(40, 120, 255) or rgb(255, 60, 60)
+	for i = -4, 4 do
+		if i ~= 0 then -- the middle is kept free (tunnel entrances / roads)
+			self:Spawn(center + right * (i * w / 9) + Vector3.new(0, 3, 0), center + dir * 100, team)
+		end
+	end
+	-- cover line in front of the spawn
+	local front = center + dir * 14
+	for i = -2, 2 do
+		if i ~= 0 then
+			local cf = CFrame.lookAt(front + right * (i * w / 5), front + right * (i * w / 5) + dir)
+			self:Sandbags(cf, w / 6, 3)
+		end
+	end
+	-- team flag
+	local pole = center - dir * 6
+	self:Pillar(pole, 16, 0.5, P.MetalDark, M.Metal, self.Props)
+	local flag = self:Part(Vector3.new(0.2, 3.5, 5.5), CFrame.lookAt(pole + Vector3.new(0, 14, 0) + right * 2.9, pole + Vector3.new(0, 14, 0) + right * 3.9), color, M.Fabric, self.Props)
+	flag.CanCollide = false
+	local glow = self:Neon(Vector3.new(1.2, 0.08, w * 0.9), CFrame.lookAt(center + Vector3.new(0, 0.06, 0) + dir * 4, center + Vector3.new(0, 0.06, 0) + dir * 4 + right), color, self.Props)
+	glow.Name = "SpawnLine"
+end
+
+-- Free-for-all spawn points scattered around the map.
+function MapKit:FFASpawns(points)
+	for _, p in points do
+		self:Spawn(Vector3.new(p.X, (p.Y ~= 0 and p.Y or 3), p.Z), Vector3.new(0, 3, 0), "FFA")
+	end
+end
+
+--[[ Big terrain mountains all around the map (outside the invisible boundary walls,
+so they look real but can't be reached). Also lays a grass plain out to the horizon.
+opts = { Margin = 40, SkipSide = "N" (water side, +Z), GroundY = -0.5 } ]]
+function MapKit:Mountains(halfX: number, halfZ: number, opts)
+	opts = opts or {}
+	local rng = self.Rng
+	local margin = opts.Margin or 40
+	local gy = opts.GroundY or -0.5
+	local ext = 650
+	local inX, inZ = halfX + 12, halfZ + 12
+	-- grass plains from just outside the map to the horizon
+	local plains = {
+		S = { CFrame.new(0, gy - 4, -inZ - ext / 2), Vector3.new((inX + ext) * 2, 8, ext) },
+		N = { CFrame.new(0, gy - 4, inZ + ext / 2), Vector3.new((inX + ext) * 2, 8, ext) },
+		W = { CFrame.new(-inX - ext / 2, gy - 4, 0), Vector3.new(ext, 8, inZ * 2) },
+		E = { CFrame.new(inX + ext / 2, gy - 4, 0), Vector3.new(ext, 8, inZ * 2) },
+	}
+	for side, pl in plains do
+		if side ~= opts.SkipSide then
+			self:Fill(M.Grass, pl[1], pl[2])
+		end
+	end
+	-- two rows of peaks per side; snow caps on the tall ones
+	local function peak(center: Vector3, r: number)
+		self:FillBall(M.Rock, center, r)
+		self:FillBall(M.Grass, center + Vector3.new(0, -r * 0.22, 0), r * 1.0) -- green lower slopes, rocky peaks
+		if r > 95 then
+			self:FillBall(M.Snow, center + Vector3.new(0, r * 0.62, 0), r * 0.32)
+		end
+	end
+	local sides = {
+		{ "S", Vector3.new(1, 0, 0), Vector3.new(0, 0, -1), halfX, halfZ },
+		{ "N", Vector3.new(1, 0, 0), Vector3.new(0, 0, 1), halfX, halfZ },
+		{ "W", Vector3.new(0, 0, 1), Vector3.new(-1, 0, 0), halfZ, halfX },
+		{ "E", Vector3.new(0, 0, 1), Vector3.new(1, 0, 0), halfZ, halfX },
+	}
+	for _, sd in sides do
+		if sd[1] ~= opts.SkipSide then
+			local along, out, len, edge = sd[2], sd[3], sd[4], sd[5]
+			for row = 1, 2 do
+				local spacing = row == 1 and 80 or 120
+				for d = -len - 120, len + 120, spacing do
+					local r = row == 1 and rng:NextNumber(60, 95) or rng:NextNumber(95, 140)
+					local dist = edge + margin + r * 0.95 + (row - 1) * 70
+					local center = along * (d + rng:NextNumber(-20, 20)) + out * dist + Vector3.new(0, -r * 0.35, 0)
+					peak(center, r)
+				end
+			end
+		end
+	end
+end
+
 return MapKit
 ]]></string>
           </Properties>
@@ -5719,7 +6573,7 @@ local Map = {
 	},
 }
 
-local HALF = 200
+local HALF = 160
 
 local function riverX(z: number): number
 	return 38 * math.sin(z / 70)
@@ -5734,13 +6588,21 @@ function Map.Build()
 	local avoid = {} -- circles {x, z, r} kept flat & free of trees
 
 	local structures = {
-		{ "Cabin", -100, -60 }, { "Cabin", -125, 75 }, { "Cabin", 105, -95 }, { "Cabin", 130, 65 },
-		{ "Tower", -60, 140 }, { "Tower", 75, -150 }, { "Tower", 155, -10 },
-		{ "Camp", -45, -140 }, { "Lumber", 115, 140 },
+		{ "Cabin", -100, -60 }, { "Cabin", -128, 60 }, { "Cabin", 98, -62 }, { "Cabin", 128, 58 },
+		{ "Tower", -60, 105 }, { "Tower", 42, -60 }, { "Tower", 140, -8 },
+		{ "Camp", -80, -12 }, { "Lumber", 75, -108 },
 	}
 	for _, s in structures do
-		table.insert(avoid, { s[2], s[3], s[1] == "Lumber" and 34 or 24 })
+		table.insert(avoid, { s[2], s[3], s[1] == "Lumber" and 30 or 24 })
 	end
+	-- keep tunnel entrances and both spawn bases clear
+	for _, tx in { -112, 112 } do
+		for _, tz in { -108, -20, 20, 108 } do
+			table.insert(avoid, { tx, tz, 16 })
+		end
+	end
+	table.insert(avoid, { -90, -135, 40 })
+	table.insert(avoid, { 90, 135, 40 })
 
 	local function blocked(x: number, z: number, pad: number): boolean
 		if math.abs(x - riverX(z)) < 24 + pad then
@@ -5769,7 +6631,7 @@ function Map.Build()
 	for i = 0, 35 do
 		local a = i / 36 * math.pi * 2
 		local r = rng:NextNumber(45, 60)
-		local d = HALF + 25
+		local d = HALF + 45
 		kit:FillBall(i % 3 == 0 and M.Rock or M.Grass, Vector3.new(math.cos(a) * d, -10, math.sin(a) * d), r)
 	end
 
@@ -5812,7 +6674,7 @@ function Map.Build()
 				Name = "Cabin", Origin = CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rng:NextInteger(0, 3) * 90), 0),
 				W = 24, D = 18, Floors = 1, FloorH = 11, Color = P.Wood, Material = M.WoodPlanks, Trim = P.WoodDark,
 				Floor = P.WoodLight, Roof = "Gable", RoofColor = rgb(70, 50, 40), RoofAccess = false,
-				Doors = { Front = true, Back = true }, Awning = P.WoodDark,
+				Doors = { Front = true, Back = true }, Awning = P.WoodDark, OpenWindows = 0.6, Pilasters = false, AC = false,
 			})
 			kit:HealthPack(Vector3.new(x + 15, 0, z))
 			for i = 1, 3 do
@@ -5828,7 +6690,7 @@ function Map.Build()
 				kit:Cylinder(5, 1.2, CFrame.new(x + math.cos(a + 1) * 5, 0.6, z + math.sin(a + 1) * 5) * CFrame.Angles(0, -a, 0), P.Trunk, M.Wood)
 			end
 		elseif kind == "Lumber" then
-			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(60, 1.2, 50))
+			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(50, 1.2, 44))
 			-- open sawmill shed
 			for _, px in { -14, 0, 14 } do
 				for _, pz in { -9, 9 } do
@@ -5883,16 +6745,56 @@ function Map.Build()
 	kit:VehicleSpot(CFrame.new(120, 1, 120) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
 	kit:VehicleSpot(CFrame.new(-80, 1, -8) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(60, 80, 100))
 
-	-- spawns in a ring (east & west banks)
+	-- MINE TUNNELS on both sides of the river (spawn to spawn)
+	for _, tx in { -112, 112 } do
+		kit:Tunnel({
+			Axis = "Z", Cross = tx, From = -122, To = 122, Floor = -14, Width = 14, Height = 9, Style = "Mine", Terrain = true,
+			Entrances = { { At = -118, Dir = 1 }, { At = -10, Dir = -1 }, { At = 10, Dir = 1 }, { At = 118, Dir = -1 } },
+		})
+	end
+
+	-- cover: sandbags at both ends of every bridge, log walls, hiding bushes
+	for _, z in { -110, 0, 110 } do
+		local x = riverX(z)
+		for _, side in { -1, 1 } do
+			kit:Sandbags(CFrame.new(x + side * 26, 0, z + 9) * CFrame.Angles(0, math.rad(90), 0), 8, 3)
+		end
+	end
+	for _ = 1, 10 do
+		local x, z = rng:NextNumber(-140, 140), rng:NextNumber(-120, 120)
+		if not blocked(x, z, 4) then
+			for row = 0, 1 do
+				kit:Cylinder(10, 1.6, CFrame.new(x, 0.8 + row * 1.5, z) * CFrame.Angles(0, rng:NextNumber(0, 3), 0), P.Trunk, M.Wood)
+			end
+		end
+	end
+	for _ = 1, 40 do
+		local x, z = rng:NextNumber(-145, 145), rng:NextNumber(-140, 140)
+		if not blocked(x, z, 2) then
+			kit:HideBush(Vector3.new(x, 0, z), rng:NextNumber(0.9, 1.2))
+		end
+	end
+	kit:Ladder(Vector3.new(75 + 16.5, 0, -108), 16)
+
+	-- TEAM SPAWNS at both ends (clear of the river)
+	kit:SpawnBase(Vector3.new(-90, 0, -135), Vector3.new(-60, 0, 0), "A", 70)
+	kit:SpawnBase(Vector3.new(90, 0, 135), Vector3.new(60, 0, 0), "B", 70)
+	-- TRIPLE TEAM base (east) + FREE FOR ALL spawns spread through the forest
+	kit:SpawnBase(Vector3.new(140, 0, -55), Vector3.new(0, 0, 0), "C", 55)
+	local ffa = {}
 	for i = 0, 15 do
 		local a = i / 16 * math.pi * 2
-		local x, z = math.cos(a) * 140, math.sin(a) * 140
-		if math.abs(x - riverX(z)) < 30 then
-			x += 40
+		for _, r in { 105, 75, 130 } do
+			local x, z = math.cos(a) * r, math.sin(a) * r
+			if not blocked(x, z, 3) then
+				table.insert(ffa, Vector3.new(x, 0, z))
+				break
+			end
 		end
-		kit:Spawn(Vector3.new(x, 6, z))
 	end
-	kit:Boundary(HALF, HALF, 200)
+	kit:FFASpawns(ffa)
+	kit:Mountains(HALF + 18, HALF + 18, { Margin = 95, GroundY = -0.5 })
+	kit:Boundary(HALF, HALF, 260)
 	return kit
 end
 
@@ -6023,7 +6925,7 @@ return MonetizationService
       <Item class="ModuleScript" referent="27">
         <Properties>
           <string name="Name">RoundService</string>
-          <string name="Source"><![CDATA[-- Match loop: WARMUP -> LIVE MATCH -> RESULTS -> repeat.
+          <string name="Source"><![CDATA[-- Match loop: WARMUP -> LIVE MATCH -> RESULTS (map + mode vote) -> repeat.
 -- State is replicated through attributes on ReplicatedStorage:
 --   MatchState ("Intermission" | "Active" | "Results"), MatchEnd (server time),
 --   Leader / LeaderScore.
@@ -6034,6 +6936,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local RoundService = {}
 RoundService.State = "Intermission"
@@ -6073,8 +6976,19 @@ function RoundService.OnDeath(entity)
 	RoundService.OnEntityDied(entity)
 end
 
+local function killsToWin(): number
+	return TeamService.ModeDef().KillsToWin
+end
+
 function RoundService.OnKill(killer)
-	if RoundService.State == "Active" and (killer.Holder:GetAttribute("Kills") or 0) >= Config.KillsToWin then
+	if RoundService.State ~= "Active" then
+		return
+	end
+	if TeamService.IsTeamMode() then
+		if killer.Team and TeamService.Score(killer.Team) >= killsToWin() then
+			RoundService.EndMatch(killer)
+		end
+	elseif (killer.Holder:GetAttribute("Kills") or 0) >= killsToWin() then
 		RoundService.EndMatch(killer)
 	end
 end
@@ -6088,6 +7002,7 @@ local function ranking()
 			IsBot = h.IsBot,
 			Player = h.Player,
 			VIP = holder:GetAttribute("Pass_VIP") == true,
+			Team = holder:GetAttribute("Team"),
 			Kills = holder:GetAttribute("Kills") or 0,
 			Deaths = holder:GetAttribute("Deaths") or 0,
 			Score = holder:GetAttribute("Score") or 0,
@@ -6126,7 +7041,17 @@ function RoundService.EndMatch(winnerEntity)
 
 	local publicRows = {}
 	for i, row in list do
-		publicRows[i] = { Name = row.Name, IsBot = row.IsBot, VIP = row.VIP, Kills = row.Kills, Deaths = row.Deaths, Score = row.Score }
+		publicRows[i] = { Name = row.Name, IsBot = row.IsBot, VIP = row.VIP, Kills = row.Kills, Deaths = row.Deaths, Score = row.Score, Team = row.Team }
+	end
+
+	local teamMode = TeamService.IsTeamMode()
+	local winnerTeam = nil
+	if teamMode then
+		winnerTeam = (winnerEntity and winnerEntity.Team) or TeamService.Leader()
+	end
+	local scores = {}
+	for _, team in TeamService.TeamList() do
+		scores[team] = TeamService.Score(team)
 	end
 
 	for place, row in list do
@@ -6134,7 +7059,8 @@ function RoundService.EndMatch(winnerEntity)
 		if player and player.Parent then
 			AchievementService.Add(player, "Matches", 1)
 			DataService.AddXP(player, Config.MatchPlayXP)
-			if place == 1 then
+			local won = (teamMode and winnerTeam ~= nil and row.Team == winnerTeam) or (not teamMode and place == 1)
+			if won then
 				AchievementService.Add(player, "Wins", 1)
 				AchievementService.Add(player, "Wins_" .. mapId, 1)
 				DataService.AddCash(player, Config.WinCash, true, "VICTORY")
@@ -6148,7 +7074,12 @@ function RoundService.EndMatch(winnerEntity)
 				Rows = publicRows,
 				Winner = list[1] and list[1].Name or "Nobody",
 				Place = place,
-				Nuke = winnerEntity ~= nil and (winnerEntity.Holder:GetAttribute("Kills") or 0) < Config.KillsToWin,
+				Mode = TeamService.Mode,
+				WinnerTeam = winnerTeam,
+				MyTeam = row.Team,
+				Won = won,
+				Scores = scores,
+				Nuke = winnerEntity ~= nil and RoundService.NukeEnding == true,
 				Cash = player:GetAttribute("MatchCash") or 0,
 				XP = player:GetAttribute("MatchXP") or 0,
 				Kills = row.Kills,
@@ -6161,6 +7092,7 @@ function RoundService.EndMatch(winnerEntity)
 end
 
 local function resetMatchStats()
+	TeamService.ResetScores()
 	for _, h in RoundService.GetHolders() do
 		for _, attr in { "Kills", "Deaths", "Score", "Streak" } do
 			h.Holder:SetAttribute(attr, 0)
@@ -6177,6 +7109,7 @@ local function updateLeader()
 	local top = list[1]
 	ReplicatedStorage:SetAttribute("Leader", top and top.Name or "")
 	ReplicatedStorage:SetAttribute("LeaderScore", top and top.Kills or 0)
+	ReplicatedStorage:SetAttribute("KillsToWin", killsToWin())
 end
 
 function RoundService.Start()
@@ -6193,8 +7126,11 @@ function RoundService.Start()
 			resetMatchStats()
 			RoundService.FirstBlood = false
 			RoundService.ForcedWinner = nil
+			RoundService.NukeEnding = false
 			setState("Active", Config.MatchLength)
-			Remotes.Notify:FireAllClients("Announce", { Text = "MATCH STARTED", Sub = "First to " .. Config.KillsToWin .. " kills wins", Color = Config.Colors.Accent, Icon = "⚔️" })
+			local mode = TeamService.ModeDef()
+			local goal = TeamService.IsTeamMode() and ("First team to " .. mode.KillsToWin .. " kills wins") or ("First to " .. mode.KillsToWin .. " kills wins")
+			Remotes.Notify:FireAllClients("Announce", { Text = mode.Name, Sub = goal, Color = Config.Colors.Accent, Icon = "⚔️" })
 			RoundService.RespawnAll()
 			while RoundService.State == "Active" and timeLeft() > 0 do
 				updateLeader()
@@ -6209,11 +7145,15 @@ function RoundService.Start()
 				task.wait(0.25)
 			end
 			if RoundService.Map then
-				local nextMap = RoundService.Map.EndVote()
+				local nextMap, nextMode = RoundService.Map.EndVote()
+				if nextMode and nextMode ~= TeamService.Mode then
+					TeamService.SetMode(nextMode)
+				end
 				if nextMap ~= ReplicatedStorage:GetAttribute("MapId") then
 					RoundService.Map.Load(nextMap)
 				end
 			end
+			updateLeader()
 			RoundService.RespawnAll()
 		end
 	end)
@@ -6224,6 +7164,195 @@ return RoundService
         </Properties>
       </Item>
       <Item class="ModuleScript" referent="28">
+        <Properties>
+          <string name="Name">TeamService</string>
+          <string name="Source"><![CDATA[-- Game modes + teams.
+--   FFA  : everyone for themselves, spawns all over the map
+--   TDM  : ALPHA vs BRAVO, spawns at opposite ends
+--   TTDM : ALPHA vs BRAVO vs CHARLIE
+-- Team of each fighter lives in entity.Team (nil in FFA) and is mirrored to the
+-- "Team" attribute on the Player / bot holder / bot character for clients.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Teams = game:GetService("Teams")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+
+local TeamService = {}
+TeamService.Mode = Config.ModeOrder[1]
+TeamService.Fighters = {} -- set of every entity (players and bots)
+
+-- Roblox Team objects so overhead names get team colors
+local teamObjects = {}
+for _, id in { "A", "B", "C" } do
+	local info = Config.Teams[id]
+	local t = Teams:FindFirstChild(info.Name) or Instance.new("Team")
+	t.Name = info.Name
+	t.TeamColor = BrickColor.new(info.Brick)
+	t.AutoAssignable = false
+	t.Parent = Teams
+	teamObjects[id] = t
+end
+
+function TeamService.ModeDef()
+	return Config.Modes[TeamService.Mode]
+end
+
+function TeamService.TeamList()
+	return TeamService.ModeDef().Teams
+end
+
+function TeamService.IsTeamMode(): boolean
+	return #TeamService.TeamList() > 0
+end
+
+-- true when a and b should be able to hurt each other
+function TeamService.Enemies(a, b): boolean
+	if a == nil or b == nil then
+		return true -- environment / unknown attacker
+	end
+	if a == b then
+		return false
+	end
+	return a.Team == nil or a.Team ~= b.Team
+end
+
+local function apply(entity, team)
+	entity.Team = team
+	entity.Holder:SetAttribute("Team", team)
+	if entity.Character then
+		entity.Character:SetAttribute("Team", team)
+	end
+	local player = entity.Player
+	if player then
+		player:SetAttribute("Team", team)
+		if team then
+			player.Neutral = false
+			player.Team = teamObjects[team]
+		else
+			player.Team = nil
+			player.Neutral = true
+		end
+	end
+end
+
+function TeamService.Count(team: string): number
+	local n = 0
+	for entity in TeamService.Fighters do
+		if entity.Team == team then
+			n += 1
+		end
+	end
+	return n
+end
+
+function TeamService.Smallest(): string?
+	local best, bestCount = nil, math.huge
+	for _, team in TeamService.TeamList() do
+		local c = TeamService.Count(team)
+		if c < bestCount then
+			best, bestCount = team, c
+		end
+	end
+	return best
+end
+
+function TeamService.Largest(): string?
+	local best, bestCount = nil, -1
+	for _, team in TeamService.TeamList() do
+		local c = TeamService.Count(team)
+		if c > bestCount then
+			best, bestCount = team, c
+		end
+	end
+	return best
+end
+
+function TeamService.Register(entity)
+	TeamService.Fighters[entity] = true
+	apply(entity, nil)
+	apply(entity, TeamService.Smallest())
+end
+
+function TeamService.Unregister(entity)
+	TeamService.Fighters[entity] = nil
+end
+
+-- Re-deal every fighter onto balanced teams (players first, then bots).
+function TeamService.Rebalance()
+	local players, bots = {}, {}
+	for entity in TeamService.Fighters do
+		apply(entity, nil)
+		table.insert(entity.Player and players or bots, entity)
+	end
+	for _, list in { players, bots } do
+		for i = #list, 2, -1 do
+			local j = math.random(1, i)
+			list[i], list[j] = list[j], list[i]
+		end
+		for _, entity in list do
+			apply(entity, TeamService.Smallest())
+		end
+	end
+end
+
+function TeamService.SetMode(mode: string)
+	if not Config.Modes[mode] then
+		return
+	end
+	TeamService.Mode = mode
+	ReplicatedStorage:SetAttribute("Mode", mode)
+	TeamService.Rebalance()
+	TeamService.ResetScores()
+end
+
+function TeamService.ResetScores()
+	for _, id in { "A", "B", "C" } do
+		ReplicatedStorage:SetAttribute("Score_" .. id, 0)
+	end
+end
+
+function TeamService.AddScore(team: string?, amount: number)
+	if team then
+		ReplicatedStorage:SetAttribute("Score_" .. team, (ReplicatedStorage:GetAttribute("Score_" .. team) or 0) + amount)
+	end
+end
+
+function TeamService.Score(team: string): number
+	return ReplicatedStorage:GetAttribute("Score_" .. team) or 0
+end
+
+-- Winning team by score (nil on a draw or in FFA)
+function TeamService.Leader(): string?
+	local best, bestScore, tie = nil, -1, false
+	for _, team in TeamService.TeamList() do
+		local s = TeamService.Score(team)
+		if s > bestScore then
+			best, bestScore, tie = team, s, false
+		elseif s == bestScore then
+			tie = true
+		end
+	end
+	return (not tie) and best or nil
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	for entity in TeamService.Fighters do
+		if entity.Player == player then
+			TeamService.Fighters[entity] = nil
+		end
+	end
+end)
+
+ReplicatedStorage:SetAttribute("Mode", TeamService.Mode)
+TeamService.ResetScores()
+
+return TeamService
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="29">
         <Properties>
           <string name="Name">VehicleService</string>
           <string name="Source"><![CDATA[-- Cars: spawning per map, network ownership for the driver, roadkills,
@@ -6237,6 +7366,7 @@ local CarBuilder = require(Shared.CarBuilder)
 local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local VehicleService = {}
 VehicleService.Cars = {} -- [Model] = record
@@ -6412,8 +7542,11 @@ local function setupDriving(car: Model)
 		if os.clock() - (lastHit[victim] or 0) < 1 then
 			return
 		end
-		lastHit[victim] = os.clock()
 		local driver = driverEntity(car)
+		if driver and not TeamService.Enemies(driver, victim) then
+			return -- don't run over teammates
+		end
+		lastHit[victim] = os.clock()
 		local killed = Combat.Damage(driver, victim, 60 + speed * 1.6, { Weapon = "Car", WeaponName = "ROADKILL", Kind = "Roadkill", Position = victim.Root.Position, Distance = 0 })
 		if killed and driver and driver.Player then
 			AchievementService.Add(driver.Player, "Roadkills", 1)
@@ -6491,15 +7624,15 @@ return VehicleService
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="29">
+  <Item class="StarterPlayer" referent="30">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterCharacterScripts" referent="30">
+    <Item class="StarterCharacterScripts" referent="31">
       <Properties>
         <string name="Name">StarterCharacterScripts</string>
       </Properties>
-      <Item class="Script" referent="31">
+      <Item class="Script" referent="32">
         <Properties>
           <string name="Name">Health</string>
           <token name="RunContext">0</token>
@@ -6509,15 +7642,15 @@ return VehicleService
         </Properties>
       </Item>
     </Item>
-    <Item class="StarterPlayerScripts" referent="32">
+    <Item class="StarterPlayerScripts" referent="33">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="33">
+      <Item class="Folder" referent="34">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="LocalScript" referent="34">
+        <Item class="LocalScript" referent="35">
           <Properties>
             <string name="Name">ClientMain</string>
             <string name="Source"><![CDATA[-- Client entry point: builds the UI, starts the controllers and routes
@@ -6633,6 +7766,65 @@ RunService.RenderStepped:Connect(function(dt)
 	UserInputService.MouseIconEnabled = freeMouse
 end)
 
+-- SELF REVIVE (hold F while downed) ---------------------------------------------------
+local Config = require(Shared.Config)
+local holdingRevive = false
+local holdStart = 0
+local function startRevive()
+	if player:GetAttribute("Downed") and not player:GetAttribute("SelfReviveUsed") then
+		holdingRevive = true
+		holdStart = os.clock()
+	end
+end
+local function stopRevive()
+	holdingRevive = false
+	HUD.SelfReviveProgress = 0
+end
+RunService.RenderStepped:Connect(function()
+	if not holdingRevive then
+		return
+	end
+	if not player:GetAttribute("Downed") then
+		stopRevive()
+		return
+	end
+	local progress = (os.clock() - holdStart) / Config.SelfReviveTime
+	HUD.SelfReviveProgress = progress
+	if progress >= 1 then
+		holdingRevive = false
+		Remotes.SelfRevive:FireServer()
+	end
+end)
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not processed and (input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonY) then
+		startRevive()
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonY then
+		stopRevive()
+	end
+end)
+if UserInputService.TouchEnabled then
+	local ContextActionService = game:GetService("ContextActionService")
+	player:GetAttributeChangedSignal("Downed"):Connect(function()
+		if player:GetAttribute("Downed") then
+			ContextActionService:BindAction("NS_SelfRevive", function(_, state)
+				if state == Enum.UserInputState.Begin then
+					startRevive()
+				elseif state == Enum.UserInputState.End then
+					stopRevive()
+				end
+				return Enum.ContextActionResult.Sink
+			end, true)
+			ContextActionService:SetTitle("NS_SelfRevive", "REVIVE")
+			ContextActionService:SetPosition("NS_SelfRevive", UDim2.new(1, -170, 1, -210))
+		else
+			ContextActionService:UnbindAction("NS_SelfRevive")
+		end
+	end)
+end
+
 -- HOTKEYS ---------------------------------------------------------------------------------
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then
@@ -6663,6 +7855,11 @@ end)
 Remotes.Notify.OnClientEvent:Connect(function(kind, payload)
 	if kind == "Kill" then
 		HUD.Kill(payload)
+	elseif kind == "Downed" then
+		HUD.Announce({ Text = "KNOCKED DOWN", Sub = "by " .. tostring(payload.By), Color = Color3.fromRGB(255, 80, 60), Icon = "⬇" })
+	elseif kind == "Revived" then
+		HUD.Message(payload.By and ("REVIVED BY " .. string.upper(payload.By)) or "SELF-REVIVED", Color3.fromRGB(80, 230, 120))
+		HUD.SelfReviveProgress = 0
 	elseif kind == "KOStreak" then
 		HUD.KOStreak()
 		Effects.Shake(1.2)
@@ -6769,7 +7966,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="35">
+        <Item class="ModuleScript" referent="36">
           <Properties>
             <string name="Name">ClientState</string>
             <string name="Source"><![CDATA[-- Shared client-side state that every controller / UI module can read.
@@ -6798,6 +7995,24 @@ function State.HasPass(key: string): boolean
 	return player:GetAttribute("Pass_" .. key) == true
 end
 
+-- Team of any character (players or bots); nil in free-for-all
+function State.TeamOf(char: Instance?)
+	if not char then
+		return nil
+	end
+	local p = Players:GetPlayerFromCharacter(char)
+	if p then
+		return p:GetAttribute("Team")
+	end
+	return char:GetAttribute("Team")
+end
+
+-- true when this character is on my team (never in FFA)
+function State.IsAlly(char: Instance?): boolean
+	local mine = player:GetAttribute("Team")
+	return mine ~= nil and char ~= player.Character and State.TeamOf(char) == mine
+end
+
 function State.Overdrive(): boolean
 	return (player:GetAttribute("OverdriveUntil") or 0) > workspace:GetServerTimeNow()
 end
@@ -6822,7 +8037,7 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="36">
+        <Item class="ModuleScript" referent="37">
           <Properties>
             <string name="Name">Effects</string>
             <string name="Source"><![CDATA[-- Client-side visual effects: tracers, muzzle flashes, explosions, shake, UAV.
@@ -7106,7 +8321,13 @@ function Effects.UAV(duration: number)
 					table.insert(targets, b)
 				end
 			end
+			local myTeam = player:GetAttribute("Team")
 			for _, char in targets do
+				local p = Players:GetPlayerFromCharacter(char)
+				local team = p and p:GetAttribute("Team") or char:GetAttribute("Team")
+				if myTeam and team == myTeam then
+					continue -- UAV only shows enemies
+				end
 				local h = Instance.new("Highlight")
 				h.FillColor = Config.Colors.Red
 				h.FillTransparency = 0.6
@@ -7126,7 +8347,7 @@ return Effects
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="37">
+        <Item class="ModuleScript" referent="38">
           <Properties>
             <string name="Name">HUD</string>
             <string name="Source"><![CDATA[-- In-game HUD in the style of the big shooters:
@@ -7173,8 +8394,9 @@ local function buildTopBar()
 		return f
 	end
 	local you = box(0, 104, Color3.fromRGB(0, 90, 130), "You")
-	new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Accent2, BorderSizePixel = 0, Parent = you })
-	Label({ Text = "YOU", Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, TextColor3 = T.Accent2, Font = T.Black, Parent = you })
+	refs.YouBox = you
+	refs.YouLine = new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Accent2, BorderSizePixel = 0, Parent = you })
+	refs.YouTitle = Label({ Text = "YOU", Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, TextColor3 = T.Accent2, Font = T.Black, Parent = you })
 	refs.YouKills = Label({ Text = "0", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 22), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = you })
 
 	local mid = box(110, 200, T.Panel, "Timer")
@@ -7182,9 +8404,18 @@ local function buildTopBar()
 	refs.Mode = Label({ Text = Config.ModeName .. " · FIRST TO " .. Config.KillsToWin, Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 40), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 11, TextColor3 = T.Sub, Font = T.Bold, Parent = mid })
 
 	local lead = box(316, 104, Color3.fromRGB(130, 20, 30), "Leader")
-	new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Red, BorderSizePixel = 0, Parent = lead })
+	refs.LeadBox = lead
+	refs.LeadLine = new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Red, BorderSizePixel = 0, Parent = lead })
 	refs.LeaderName = Label({ Text = "LEADER", Size = UDim2.new(1, -8, 0, 16), Position = UDim2.fromOffset(4, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, TextColor3 = Color3.fromRGB(255, 140, 140), Font = T.Black, TextTruncate = Enum.TextTruncate.AtEnd, Parent = lead })
 	refs.LeaderKills = Label({ Text = "0", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 22), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = lead })
+	-- third team (triple team deathmatch)
+	local extra = box(426, 90, Color3.fromRGB(20, 110, 40), "Extra")
+	refs.ExtraBox = extra
+	refs.ExtraLine = new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Green, BorderSizePixel = 0, Parent = extra })
+	refs.ExtraName = Label({ Text = "", Size = UDim2.new(1, -8, 0, 16), Position = UDim2.fromOffset(4, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Black, Parent = extra })
+	refs.ExtraKills = Label({ Text = "0", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 22), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = extra })
+	extra.Visible = false
+	refs.TopBar = bar
 
 	refs.Banner = shadowText({
 		Text = "", Size = UDim2.fromOffset(500, 22), Position = UDim2.new(0.5, 0, 0, 76), AnchorPoint = Vector2.new(0.5, 0),
@@ -7251,24 +8482,32 @@ local feedOrder = 0
 function HUD.Feed(entry)
 	feedOrder += 1
 	local me = player.Name
-	local function colorName(name, vip)
+	local function hex(c: Color3)
+		return string.format("#%02X%02X%02X", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
+	end
+	local function colorName(name, vip, team)
 		if not name then
 			return ""
 		end
 		local color = "#FFFFFF"
+		if team and Config.Teams[team] then
+			color = hex(Config.Teams[team].Color)
+		end
 		if name == me then
 			color = "#FFC61A"
-		elseif vip then
+		elseif vip and not team then
 			color = "#FFD34A"
 		end
 		local prefix = vip and "👑 " or ""
 		return string.format('<font color="%s">%s%s</font>', color, prefix, name)
 	end
 	local text
-	if entry.Killer then
-		text = string.format('%s  <font color="#9AA2B4">[%s]</font>%s  %s', colorName(entry.Killer, entry.KillerVIP), entry.Weapon, entry.Headshot and " 💀" or "", colorName(entry.Victim, entry.VictimVIP))
+	if entry.Knock then
+		text = string.format('%s  <font color="#9AA2B4">[%s]</font>  <font color="#FF9A3C">⬇ KNOCKED</font>  %s', colorName(entry.Killer, entry.KillerVIP, entry.KillerTeam), entry.Weapon, colorName(entry.Victim, entry.VictimVIP, entry.VictimTeam))
+	elseif entry.Killer then
+		text = string.format('%s  <font color="#9AA2B4">[%s]</font>%s  %s', colorName(entry.Killer, entry.KillerVIP, entry.KillerTeam), entry.Weapon, entry.Headshot and " 💀" or "", colorName(entry.Victim, entry.VictimVIP, entry.VictimTeam))
 	else
-		text = string.format('%s  <font color="#9AA2B4">[%s]</font>', colorName(entry.Victim, entry.VictimVIP), entry.Weapon)
+		text = string.format('%s  <font color="#9AA2B4">[%s]</font>', colorName(entry.Victim, entry.VictimVIP, entry.VictimTeam), entry.Weapon)
 	end
 	local involved = entry.Killer == me or entry.Victim == me
 	local row = UIKit.Panel({
@@ -7690,6 +8929,20 @@ function HUD.Death(info)
 	refs.DeathUpsell.Visible = not ClientState.HasPass("InstantRespawn")
 end
 
+local function buildDowned()
+	local d = UIKit.Panel({ Name = "Downed", Size = UDim2.fromOffset(440, 120), Position = UDim2.new(0.5, 0, 0.62, 0), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = Color3.fromRGB(40, 8, 8), BackgroundTransparency = 0.15, Visible = false, ZIndex = 25, Parent = gui })
+	UIKit.Stroke(T.Red, 2, 0).Parent = d
+	Label({ Text = "⬇ YOU'RE DOWN", Size = UDim2.new(1, 0, 0, 32), Position = UDim2.fromOffset(0, 8), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 28, Font = T.Black, TextColor3 = T.Red, ZIndex = 26, Parent = d })
+	refs.DownBleed = Label({ Text = "", Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 42), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 14, Font = T.Black, ZIndex = 26, Parent = d })
+	refs.DownHint = Label({ Text = "", Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(10, 64), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Bold, TextColor3 = T.Sub, ZIndex = 26, Parent = d })
+	local bar, fill = UIKit.Bar({ Size = UDim2.new(1, -40, 0, 10), Position = UDim2.new(0, 20, 0, 92), Color = T.Green, Value = 0, Parent = d })
+	bar.ZIndex = 26
+	fill.ZIndex = 27
+	refs.DownBar = bar
+	refs.DownFill = fill
+	refs.Down = d
+end
+
 function HUD.HideDeath()
 	if refs.Death then
 		refs.Death.Visible = false
@@ -7780,7 +9033,10 @@ local function update(dt: number)
 	local left = math.max(0, (ReplicatedStorage:GetAttribute("MatchEnd") or 0) - now)
 
 	refs.Timer.Text = Util.Time(left)
-	refs.Mode.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. " · FFA · FIRST TO " .. Config.KillsToWin
+	local modeId = ReplicatedStorage:GetAttribute("Mode") or "TDM"
+	local modeDef = Config.Modes[modeId] or Config.Modes.TDM
+	local goal = ReplicatedStorage:GetAttribute("KillsToWin") or modeDef.KillsToWin
+	refs.Mode.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. " · " .. modeDef.Short .. " · FIRST TO " .. goal
 	refs.Timer.TextColor3 = (state == "Active" and left < 30) and T.Red or T.Text
 	if state == "Intermission" then
 		refs.Banner.Text = "WARMUP  ·  MATCH STARTS IN " .. math.ceil(left)
@@ -7789,10 +9045,64 @@ local function update(dt: number)
 	else
 		refs.Banner.Text = ""
 	end
-	refs.YouKills.Text = tostring(player:GetAttribute("Kills") or 0)
-	local leader = ReplicatedStorage:GetAttribute("Leader") or ""
-	refs.LeaderName.Text = leader ~= "" and string.upper(leader) or "LEADER"
-	refs.LeaderKills.Text = tostring(ReplicatedStorage:GetAttribute("LeaderScore") or 0)
+	local myTeam = player:GetAttribute("Team")
+	local function paint(boxFrame, line, title, team)
+		local c = Config.Teams[team].Color
+		boxFrame.BackgroundColor3 = c:Lerp(Color3.new(), 0.55)
+		line.BackgroundColor3 = c
+		title.TextColor3 = c:Lerp(Color3.new(1, 1, 1), 0.4)
+	end
+	if #modeDef.Teams == 0 or not myTeam then
+		refs.YouTitle.Text = "YOU"
+		refs.YouTitle.TextColor3 = T.Accent2
+		refs.YouBox.BackgroundColor3 = Color3.fromRGB(0, 90, 130)
+		refs.YouLine.BackgroundColor3 = T.Accent2
+		refs.YouKills.Text = tostring(player:GetAttribute("Kills") or 0)
+		local leader = ReplicatedStorage:GetAttribute("Leader") or ""
+		refs.LeaderName.Text = leader ~= "" and string.upper(leader) or "LEADER"
+		refs.LeaderName.TextColor3 = Color3.fromRGB(255, 140, 140)
+		refs.LeadBox.BackgroundColor3 = Color3.fromRGB(130, 20, 30)
+		refs.LeadLine.BackgroundColor3 = T.Red
+		refs.LeaderKills.Text = tostring(ReplicatedStorage:GetAttribute("LeaderScore") or 0)
+		refs.ExtraBox.Visible = false
+	else
+		local others = {}
+		for _, t in modeDef.Teams do
+			if t ~= myTeam then
+				table.insert(others, t)
+			end
+		end
+		refs.YouTitle.Text = Config.Teams[myTeam].Name .. " (YOU)"
+		refs.YouKills.Text = tostring(ReplicatedStorage:GetAttribute("Score_" .. myTeam) or 0)
+		paint(refs.YouBox, refs.YouLine, refs.YouTitle, myTeam)
+		local o1 = others[1]
+		refs.LeaderName.Text = Config.Teams[o1].Name
+		refs.LeaderKills.Text = tostring(ReplicatedStorage:GetAttribute("Score_" .. o1) or 0)
+		paint(refs.LeadBox, refs.LeadLine, refs.LeaderName, o1)
+		local o2 = others[2]
+		refs.ExtraBox.Visible = o2 ~= nil
+		if o2 then
+			refs.ExtraName.Text = Config.Teams[o2].Name
+			refs.ExtraKills.Text = tostring(ReplicatedStorage:GetAttribute("Score_" .. o2) or 0)
+			paint(refs.ExtraBox, refs.ExtraLine, refs.ExtraName, o2)
+		end
+	end
+	refs.TopBar.Size = UDim2.fromOffset(refs.ExtraBox.Visible and 516 or 420, 62)
+
+	-- downed overlay
+	local downed = player:GetAttribute("Downed") == true
+	refs.Down.Visible = downed
+	if downed then
+		local char = player.Character
+		local h = char and char:FindFirstChildOfClass("Humanoid")
+		local bleed = h and math.max(0, h.Health / Config.BleedRate) or 0
+		refs.DownBleed.Text = string.format("BLEEDING OUT IN %ds", math.ceil(bleed))
+		local used = player:GetAttribute("SelfReviveUsed") == true
+		local progress = HUD.SelfReviveProgress or 0
+		refs.DownFill.Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1)
+		refs.DownHint.Text = used and "Self-revive used · wait for a teammate (they hold E)" or ("HOLD [F] TO SELF-REVIVE" .. (myTeam and " · or a teammate can revive you" or ""))
+		refs.DownBar.Visible = not used
+	end
 
 	-- profile
 	refs.Level.Text = tostring(player:GetAttribute("Level") or 1)
@@ -7923,6 +9233,7 @@ function HUD.Init(playerGui: PlayerGui)
 	buildAbilities()
 	buildCrosshair()
 	buildDeath()
+	buildDowned()
 	HUD.Gui = gui
 	HUD.Extras = require(script.Parent.HUDExtras)
 	HUD.Extras.Init(gui)
@@ -7933,7 +9244,7 @@ return HUD
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="38">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">HUDExtras</string>
             <string name="Source"><![CDATA[-- Extra HUD widgets: minimap radar, damage direction arrows, aimed-target info,
@@ -7957,6 +9268,7 @@ local refs = {}
 local RADAR_RANGE = 160
 local RADAR_SIZE = 170
 
+-- every other fighter (allies included; check ClientState.IsAlly)
 local function enemies()
 	local list = {}
 	for _, p in Players:GetPlayers() do
@@ -8027,12 +9339,13 @@ local function updateRadar()
 	for _, enemy in enemies() do
 		local r = enemy:FindFirstChild("HumanoidRootPart")
 		local hum = enemy:FindFirstChildOfClass("Humanoid")
-		if r and hum and hum.Health > 0 and (uav or now - (Effects.LastFired[enemy] or -10) < 2.5) then
+		local ally = ClientState.IsAlly(enemy)
+		if r and hum and hum.Health > 0 and (ally or uav or now - (Effects.LastFired[enemy] or -10) < 2.5) then
 			local x, y, dist = toRadar(r.Position)
 			if dist < RADAR_RANGE then
 				n += 1
 				local d = dot(n)
-				d.BackgroundColor3 = T.Red
+				d.BackgroundColor3 = ally and Color3.fromRGB(70, 160, 255) or T.Red
 				d.Size = UDim2.fromOffset(8, 8)
 				d.Position = UDim2.new(0.5, x, 0.5, y)
 			end
@@ -8123,7 +9436,10 @@ local function updateTarget()
 	end
 	if hum and hum.Health > 0 and ClientState.Deployed and not ClientState.Dead then
 		local isBot = model:GetAttribute("BotName") ~= nil
-		refs.TargetName.Text = string.upper(model.Name) .. (isBot and "  [BOT]" or "")
+		local ally = ClientState.IsAlly(model)
+		refs.TargetName.Text = (ally and "ALLY · " or "") .. string.upper(model.Name) .. (isBot and "  [BOT]" or "")
+		refs.TargetName.TextColor3 = ally and Color3.fromRGB(90, 170, 255) or T.Red
+		refs.TargetFill.BackgroundColor3 = ally and Color3.fromRGB(90, 170, 255) or T.Red
 		refs.TargetFill.Size = UDim2.fromScale(math.clamp(hum.Health / hum.MaxHealth, 0, 1), 1)
 		refs.Target.Visible = true
 	else
@@ -8173,6 +9489,45 @@ local function updateVehicle()
 	refs.SpinFill.Size = UDim2.fromScale(spin, 1)
 end
 
+-- TEAMMATE MARKERS + REVIVE PROMPTS ---------------------------------------------------------
+local markers = {} -- [character] = BillboardGui
+local function updateTeammates()
+	local seen = {}
+	for _, char in enemies() do
+		local ally = ClientState.IsAlly(char)
+		local downed = char:GetAttribute("Downed") == true
+		local head = char:FindFirstChild("Head")
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		-- only teammates may see / use a downed player's revive prompt
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local prompt = root and root:FindFirstChild("RevivePrompt")
+		if prompt then
+			prompt.Enabled = ally and downed and not ClientState.Dead and player:GetAttribute("Downed") ~= true
+		end
+		if ally and head and hum and hum.Health > 0 then
+			seen[char] = true
+			local bb = markers[char]
+			if not bb then
+				bb = new("BillboardGui", { Size = UDim2.fromOffset(160, 40), StudsOffset = Vector3.new(0, 2.6, 0), AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 600, Adornee = head, Parent = refs.Gui })
+				local l = Label({ Name = "NameLabel", Text = "", Size = UDim2.fromScale(1, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = Color3.fromRGB(110, 180, 255), Parent = bb })
+				UIKit.TextStroke(0.3).Parent = l
+				local r = Label({ Name = "ReviveLabel", Text = "✚ REVIVE", Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 15, Font = T.Black, TextColor3 = Color3.fromRGB(255, 120, 60), Parent = bb })
+				UIKit.TextStroke(0.2).Parent = r
+				markers[char] = bb
+			end
+			bb.Adornee = head
+			bb:FindFirstChild("NameLabel").Text = "▼ " .. char.Name
+			bb:FindFirstChild("ReviveLabel").Visible = downed
+		end
+	end
+	for char, bb in markers do
+		if not seen[char] then
+			bb:Destroy()
+			markers[char] = nil
+		end
+	end
+end
+
 function Extras.Init(gui: ScreenGui)
 	refs.Gui = gui
 	buildRadar(gui)
@@ -8187,6 +9542,7 @@ function Extras.Init(gui: ScreenGui)
 			acc = 0
 			updateRadar()
 			updateTarget()
+			updateTeammates()
 		end
 	end)
 end
@@ -8195,7 +9551,7 @@ return Extras
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="39">
+        <Item class="ModuleScript" referent="40">
           <Properties>
             <string name="Name">Menus</string>
             <string name="Source"><![CDATA[-- Full-screen menus: Main Menu, Armory, Store (Robux), Achievements,
@@ -8636,13 +9992,13 @@ end
 
 -- SCOREBOARD -------------------------------------------------------------------------
 local function buildScoreboard()
-	scoreboard = UIKit.Panel({ Name = "Scoreboard", Size = UDim2.fromOffset(620, 460), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.Bg, BackgroundTransparency = 0.1, Visible = false, ZIndex = 4, Parent = gui })
-	Label({ Text = Config.ModeName, Size = UDim2.new(1, -32, 0, 30), Position = UDim2.fromOffset(16, 10), TextSize = 22, Font = T.Black, ZIndex = 5, Parent = scoreboard })
+	scoreboard = UIKit.Panel({ Name = "Scoreboard", Size = UDim2.fromOffset(620, 560), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.Bg, BackgroundTransparency = 0.1, Visible = false, ZIndex = 4, Parent = gui })
+	Label({ Name = "Title", Text = Config.ModeName, Size = UDim2.new(1, -32, 0, 30), Position = UDim2.fromOffset(16, 10), TextSize = 22, Font = T.Black, ZIndex = 5, Parent = scoreboard })
 	local header = new("Frame", { Size = UDim2.new(1, -32, 0, 20), Position = UDim2.fromOffset(16, 46), BackgroundTransparency = 1, ZIndex = 5, Parent = scoreboard })
 	for _, col in { { "#", 0, 30 }, { "PLAYER", 36, 250 }, { "KILLS", 330, 70 }, { "DEATHS", 400, 70 }, { "SCORE", 480, 100 } } do
 		Label({ Text = col[1], Size = UDim2.fromOffset(col[3], 20), Position = UDim2.fromOffset(col[2], 0), TextSize = 11, Font = T.Black, TextColor3 = T.Sub, ZIndex = 5, Parent = header })
 	end
-	new("Frame", { Name = "Rows", Size = UDim2.new(1, -32, 1, -80), Position = UDim2.fromOffset(16, 70), BackgroundTransparency = 1, ZIndex = 5, Parent = scoreboard }, { UIKit.List(3) })
+	new("ScrollingFrame", { Name = "Rows", Size = UDim2.new(1, -32, 1, -80), Position = UDim2.fromOffset(16, 70), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 5, Parent = scoreboard }, { UIKit.List(3) })
 end
 
 local function renderScoreboard()
@@ -8654,24 +10010,48 @@ local function renderScoreboard()
 	end
 	local rows = {}
 	for _, p in Players:GetPlayers() do
-		table.insert(rows, { Name = p.Name, VIP = p:GetAttribute("Pass_VIP"), Level = p:GetAttribute("Level") or 1, Kills = p:GetAttribute("Kills") or 0, Deaths = p:GetAttribute("Deaths") or 0, Score = p:GetAttribute("Score") or 0, Me = p == player })
+		local char = p.Character
+		table.insert(rows, { Name = p.Name, VIP = p:GetAttribute("Pass_VIP"), Level = p:GetAttribute("Level") or 1, Kills = p:GetAttribute("Kills") or 0, Deaths = p:GetAttribute("Deaths") or 0, Score = p:GetAttribute("Score") or 0, Me = p == player, Team = p:GetAttribute("Team"), Downed = char and char:GetAttribute("Downed") })
 	end
 	local bots = ReplicatedStorage:FindFirstChild("BotStats")
 	if bots then
 		for _, b in bots:GetChildren() do
-			table.insert(rows, { Name = b.Name, Bot = true, Kills = b:GetAttribute("Kills") or 0, Deaths = b:GetAttribute("Deaths") or 0, Score = b:GetAttribute("Score") or 0 })
+			table.insert(rows, { Name = b.Name, Bot = true, Kills = b:GetAttribute("Kills") or 0, Deaths = b:GetAttribute("Deaths") or 0, Score = b:GetAttribute("Score") or 0, Team = b:GetAttribute("Team") })
 		end
 	end
+	local modeDef = Config.Modes[ReplicatedStorage:GetAttribute("Mode") or "TDM"] or Config.Modes.TDM
+	scoreboard.Title.Text = modeDef.Name .. "  ·  " .. (ReplicatedStorage:GetAttribute("MapName") or "")
+	-- team modes: my team first, then the others, each sorted by score
+	local myTeam = player:GetAttribute("Team")
+	local order = {}
+	for i, t in modeDef.Teams do
+		order[t] = (t == myTeam) and 0 or i
+	end
 	table.sort(rows, function(a, b)
+		local ta, tb = order[a.Team] or 9, order[b.Team] or 9
+		if ta ~= tb then
+			return ta < tb
+		end
 		return a.Score > b.Score
 	end)
-	for i, r in rows do
-		if i > 12 then
-			break
+	local layout = 0
+	local lastTeam = false
+	local place = 0
+	for _, r in rows do
+		if #modeDef.Teams > 0 and r.Team ~= lastTeam then
+			lastTeam = r.Team
+			place = 0
+			layout += 1
+			local info = Config.Teams[r.Team or ""]
+			local header = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 24), BackgroundColor3 = info and info.Color:Lerp(Color3.new(), 0.45) or T.Panel3, BackgroundTransparency = 0.1, LayoutOrder = layout, ZIndex = 5, Parent = rowsFrame })
+			Label({ Text = (info and info.Name or "NO TEAM") .. (r.Team == myTeam and "  (YOUR TEAM)" or "") .. "   " .. tostring(ReplicatedStorage:GetAttribute("Score_" .. tostring(r.Team)) or 0) .. " KILLS", Size = UDim2.new(1, -12, 1, 0), Position = UDim2.fromOffset(8, 0), TextSize = 13, Font = T.Black, ZIndex = 6, Parent = header })
 		end
-		local row = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 26), BackgroundColor3 = r.Me and Color3.fromRGB(80, 66, 14) or T.Panel2, BackgroundTransparency = 0.2, LayoutOrder = i, ZIndex = 5, Parent = rowsFrame })
+		place += 1
+		layout += 1
+		local i = place
+		local row = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 24), BackgroundColor3 = r.Me and Color3.fromRGB(80, 66, 14) or T.Panel2, BackgroundTransparency = 0.2, LayoutOrder = layout, ZIndex = 5, Parent = rowsFrame })
 		local nameColor = r.VIP and T.Gold or (r.Bot and T.Sub or T.Text)
-		local name = (r.VIP and "👑 " or "") .. r.Name .. (r.Bot and "  [BOT]" or ("  · LVL " .. (r.Level or 1)))
+		local name = (r.VIP and "👑 " or "") .. r.Name .. (r.Bot and "  [BOT]" or ("  · LVL " .. (r.Level or 1))) .. (r.Downed and "  ⬇" or "")
 		for _, col in { { tostring(i), 6, 30, T.Sub }, { name, 36, 290, nameColor }, { tostring(r.Kills), 330, 70, T.Text }, { tostring(r.Deaths), 400, 70, T.Text }, { Util.Comma(r.Score), 480, 100, T.Accent } } do
 			Label({ Text = col[1], Size = UDim2.fromOffset(col[3], 26), Position = UDim2.fromOffset(col[2], 0), TextSize = 13, Font = T.Black, TextColor3 = col[4], ZIndex = 6, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
 		end
@@ -8688,6 +10068,8 @@ end
 -- RESULTS ------------------------------------------------------------------------------
 local voteCards = {}
 local myVote = nil
+local modeCards = {}
+local myModeVote = nil
 
 local function buildResults()
 	results = new("TextButton", { Name = "Results", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.25, Text = "", AutoButtonColor = false, Modal = true, Visible = false, ZIndex = 8, Parent = gui })
@@ -8696,14 +10078,34 @@ end
 function Menus.ShowResults(info)
 	clear(results)
 	results.Visible = true
-	local won = info.Place == 1
-	local title = won and "VICTORY" or (info.Place <= 3 and ("#" .. info.Place .. " PLACE") or "MATCH OVER")
-	local color = won and T.Gold or (info.Place <= 3 and T.Accent2 or T.Red)
+	local teamMode = info.Mode ~= nil and Config.Modes[info.Mode] and #Config.Modes[info.Mode].Teams > 0
+	local won = info.Won == true or (not teamMode and info.Place == 1)
+	local title, color
+	if teamMode then
+		if info.WinnerTeam == nil then
+			title, color = "DRAW", T.Accent2
+		elseif won then
+			title, color = "VICTORY", T.Gold
+		else
+			title, color = "DEFEAT", T.Red
+		end
+	else
+		title = won and "VICTORY" or (info.Place <= 3 and ("#" .. info.Place .. " PLACE") or "MATCH OVER")
+		color = won and T.Gold or (info.Place <= 3 and T.Accent2 or T.Red)
+	end
 	local t = Label({ Text = title, Size = UDim2.new(1, 0, 0, 80), Position = UDim2.fromScale(0, 0.08), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 72, Font = T.Black, TextColor3 = color, ZIndex = 9, Parent = results })
 	UIKit.TextStroke(0.3).Parent = t
 	local sc = new("UIScale", { Scale = 0.5, Parent = t })
 	UIKit.Tween(sc, 0.5, { Scale = 1 }, Enum.EasingStyle.Back)
-	Label({ Text = (info.Nuke and "☢️ TACTICAL NUKE · " or "") .. "WINNER: " .. string.upper(info.Winner), Size = UDim2.new(1, 0, 0, 24), Position = UDim2.new(0, 0, 0.08, 84), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 20, Font = T.Black, ZIndex = 9, Parent = results })
+	local winnerText = "WINNER: " .. string.upper(info.Winner)
+	if teamMode then
+		local parts = {}
+		for _, t in Config.Modes[info.Mode].Teams do
+			table.insert(parts, Config.Teams[t].Name .. " " .. tostring(info.Scores and info.Scores[t] or 0))
+		end
+		winnerText = (info.WinnerTeam and (Config.Teams[info.WinnerTeam].Name .. " WINS  ·  ") or "") .. table.concat(parts, "  –  ")
+	end
+	Label({ Text = (info.Nuke and "☢️ TACTICAL NUKE · " or "") .. winnerText, Size = UDim2.new(1, 0, 0, 24), Position = UDim2.new(0, 0, 0.08, 84), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 20, Font = T.Black, ZIndex = 9, Parent = results })
 
 	-- podium
 	local podium = new("Frame", { Size = UDim2.fromOffset(600, 170), Position = UDim2.fromScale(0.5, 0.32), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, ZIndex = 9, Parent = results })
@@ -8719,7 +10121,7 @@ function Menus.ShowResults(info)
 	end
 
 	-- your summary
-	local mine = UIKit.Panel({ Size = UDim2.fromOffset(600, 120), Position = UDim2.fromScale(0.5, 0.62), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = T.Panel, ZIndex = 9, Parent = results })
+	local mine = UIKit.Panel({ Size = UDim2.fromOffset(600, 120), Position = UDim2.fromScale(0.5, 0.55), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = T.Panel, ZIndex = 9, Parent = results })
 	local kd = info.Deaths > 0 and (info.Kills / info.Deaths) or info.Kills
 	local cells = {
 		{ "PLACE", "#" .. info.Place, color }, { "KILLS", tostring(info.Kills), T.Text }, { "K/D", string.format("%.2f", kd), T.Text },
@@ -8744,6 +10146,22 @@ function Menus.ShowResults(info)
 			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 		})
 		voteCards = {}
+		modeCards = {}
+		local modeRow = new("Frame", { Size = UDim2.new(1, 0, 0, 46), Position = UDim2.fromOffset(0, -54), BackgroundTransparency = 1, ZIndex = 9, Parent = vote }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		Label({ Text = "VOTE FOR THE NEXT MODE", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.fromOffset(0, -72), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Black, TextColor3 = T.Accent2, ZIndex = 10, Parent = vote })
+		for i, id in Config.ModeOrder do
+			local m = Config.Modes[id]
+			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 46), Color = T.Panel2, LayoutOrder = i, Parent = modeRow }, function()
+				myModeVote = id
+				Remotes.Vote:FireServer(id)
+			end)
+			card.ZIndex = 10
+			Label({ Text = m.Name, Size = UDim2.new(1, -12, 0, 18), Position = UDim2.fromOffset(8, 5), TextSize = 12, Font = T.Black, ZIndex = 11, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+			local count = Label({ Text = "0 VOTES", Size = UDim2.new(1, -12, 0, 14), Position = UDim2.fromOffset(8, 25), TextSize = 11, Font = T.Black, TextColor3 = T.Accent, ZIndex = 11, Parent = card })
+			modeCards[id] = { Card = card, Count = count }
+		end
 		for i, id in options do
 			local info = Config.Maps[id] or { Name = id, Icon = "🗺️", Desc = "" }
 			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 74), Color = T.Panel2, LayoutOrder = i, Parent = row }, function()
@@ -8761,6 +10179,17 @@ function Menus.ShowResults(info)
 end
 
 local function updateVotes()
+	for id, c in modeCards do
+		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
+		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
+		local mine = id == myModeVote
+		UIKit.SetButtonColor(c.Card, mine and T.Accent2 or T.Panel2)
+		for _, l in c.Card:GetChildren() do
+			if l:IsA("TextLabel") then
+				l.TextColor3 = mine and Color3.new(0, 0, 0) or (l == c.Count and T.Accent or T.Text)
+			end
+		end
+	end
 	for id, c in voteCards do
 		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
 		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
@@ -8946,6 +10375,7 @@ function Menus.Init(playerGui: PlayerGui)
 		if results.Visible and ReplicatedStorage:GetAttribute("MatchState") ~= "Results" then
 			Menus.HideResults()
 			myVote = nil
+			myModeVote = nil
 		elseif results.Visible then
 			updateVotes()
 		end
@@ -8956,7 +10386,7 @@ return Menus
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">MovementController</string>
             <string name="Source"><![CDATA[-- Advanced movement: sprint, slide, dash, double/triple jump, ground slam, jump pads.
@@ -9072,7 +10502,7 @@ local function endSlide()
 end
 
 function Movement.Dash()
-	if not root or ClientState.MenuOpen or ClientState.Driving or (humanoid and humanoid.Sit) then
+	if not root or ClientState.MenuOpen or ClientState.Driving or (humanoid and humanoid.Sit) or player:GetAttribute("Downed") then
 		return
 	end
 	if os.clock() - S.LastDash < Movement.DashCooldown() then
@@ -9106,7 +10536,7 @@ end
 
 -- C / Ctrl: slide on the ground, slam in the air
 function Movement.Crouch()
-	if ClientState.Driving or (humanoid and humanoid.Sit) then
+	if ClientState.Driving or (humanoid and humanoid.Sit) or player:GetAttribute("Downed") then
 		return
 	end
 	if grounded() then
@@ -9117,7 +10547,7 @@ function Movement.Crouch()
 end
 
 local function airJump()
-	if not humanoid or grounded() or ClientState.MenuOpen or humanoid.Sit then
+	if not humanoid or grounded() or ClientState.MenuOpen or humanoid.Sit or player:GetAttribute("Downed") then
 		return
 	end
 	if os.clock() - leftGround < 0.15 then
@@ -9169,11 +10599,28 @@ local function bindCharacter(char: Model)
 	end)
 end
 
+local wasDowned = false
 local function step(_dt: number)
 	if not humanoid or humanoid.Health <= 0 or not root then
 		return
 	end
 	local now = os.clock()
+
+	-- downed: crawl slowly, no jumping or abilities
+	local downed = player:GetAttribute("Downed") == true
+	if downed ~= wasDowned then
+		wasDowned = downed
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, not downed)
+		TweenService:Create(humanoid, TweenInfo.new(0.3), { CameraOffset = Vector3.new(0, downed and -2.4 or 0, 0) }):Play()
+		if downed then
+			S.Sliding = false
+		end
+	end
+	if downed then
+		humanoid.WalkSpeed = 5
+		S.Sprinting = false
+		return
+	end
 
 	-- walk speed
 	local base = Config.BaseWalkSpeed
@@ -9286,7 +10733,7 @@ return Movement
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">UIKit</string>
             <string name="Source"><![CDATA[-- Tiny UI helper library + the game's visual theme.
@@ -9506,7 +10953,7 @@ return UIKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">VehicleController</string>
             <string name="Source"><![CDATA[-- Arcade car handling. The server gives the driver network ownership,
@@ -9776,7 +11223,7 @@ return Vehicle
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">WeaponController</string>
             <string name="Source"><![CDATA[-- First-person gunplay: viewmodel, ADS, recoil, spread, reloads, knife, grenades.
@@ -9869,7 +11316,7 @@ local function alive(): boolean
 end
 
 local function canAct(): boolean
-	return alive() and not ClientState.MenuOpen and not ClientState.Driving
+	return alive() and not ClientState.MenuOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
 end
 
 -- VIEWMODEL --------------------------------------------------------------------

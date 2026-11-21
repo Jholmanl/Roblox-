@@ -1247,7 +1247,7 @@ function MapKit:Mountains(halfX: number, halfZ: number, opts)
 	-- two rows of peaks per side; snow caps on the tall ones
 	local function peak(center: Vector3, r: number)
 		self:FillBall(M.Rock, center, r)
-		self:FillBall(M.Grass, center + Vector3.new(0, -r * 0.32, 0), r * 0.98)
+		self:FillBall(M.Grass, center + Vector3.new(0, -r * 0.22, 0), r * 1.0) -- green lower slopes, rocky peaks
 		if r > 95 then
 			self:FillBall(M.Snow, center + Vector3.new(0, r * 0.62, 0), r * 0.32)
 		end

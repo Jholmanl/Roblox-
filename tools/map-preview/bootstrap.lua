@@ -465,7 +465,7 @@ for _, op in terrainOps do
 end
 local spawns = {}
 for _, s in kit.Spawns:GetChildren() do
-	table.insert(spawns, string.format("[%s,%s,%s]", num(s.CFrame.p.X), num(s.CFrame.p.Y), num(s.CFrame.p.Z)))
+	table.insert(spawns, string.format('[%s,%s,%s,"%s"]', num(s.CFrame.p.X), num(s.CFrame.p.Y), num(s.CFrame.p.Z), tostring(s:GetAttribute("Team") or "")))
 end
 local L = map.Lighting or {}
 local lighting = string.format('{"clock":%s}', num(L.ClockTime or 14))

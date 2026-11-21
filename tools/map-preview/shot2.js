@@ -12,8 +12,8 @@ const { chromium } = require('playwright');
   const shots = JSON.parse(a[4]);
   for (const s of shots) {
     await page.evaluate(c => window.preview.look(...c), s.cam);
-    await page.waitForTimeout(1200);
-    await page.screenshot({ path: s.out });
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: s.out, timeout: 180000 });
   }
   await browser.close();
 })();

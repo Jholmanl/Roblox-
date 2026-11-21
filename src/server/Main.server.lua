@@ -196,7 +196,7 @@ Remotes.SetLoadout.OnServerEvent:Connect(function(player, slot, weaponId)
 	DataService.Sync(player)
 	-- swap right away if you haven't been in a fight in the last few seconds
 	local entity = Combat.ByPlayer[player]
-	if Combat.IsAlive(entity) and os.clock() - entity.LastDamaged > 4 then
+	if Combat.IsAlive(entity) and not entity.Downed and os.clock() - entity.LastDamaged > 4 then
 		Combat.ResetAmmo(entity, weaponId)
 		Combat.GiveLoadout(player, data.Loadout)
 	else
@@ -220,13 +220,16 @@ Remotes.SaveSettings.OnServerEvent:Connect(function(player, settings)
 		return
 	end
 	local s = data.Settings
-	if typeof(settings.FOV) == "number" then
+	local function num(v)
+		return typeof(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
+	end
+	if num(settings.FOV) then
 		s.FOV = math.clamp(math.floor(settings.FOV), 60, 100)
 	end
-	if typeof(settings.Shake) == "number" then
+	if num(settings.Shake) then
 		s.Shake = math.clamp(settings.Shake, 0, 1)
 	end
-	if typeof(settings.AdsSens) == "number" then
+	if num(settings.AdsSens) then
 		s.AdsSens = math.clamp(settings.AdsSens, 0.2, 1.5)
 	end
 	if typeof(settings.Crosshair) == "string" and CROSSHAIRS[settings.Crosshair] then
