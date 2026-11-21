@@ -1,13 +1,20 @@
 <roblox version="4">
-  <Item class="ReplicatedStorage" referent="0">
+  <Item class="Players" referent="0">
+    <Properties>
+      <string name="Name">Players</string>
+      <bool name="CharacterAutoLoads">false</bool>
+      <int name="MaxPlayersInternal">20</int>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="1">
     <Properties>
       <string name="Name">ReplicatedStorage</string>
     </Properties>
-    <Item class="Folder" referent="1">
+    <Item class="Folder" referent="2">
       <Properties>
         <string name="Name">Shared</string>
       </Properties>
-      <Item class="ModuleScript" referent="2">
+      <Item class="ModuleScript" referent="3">
         <Properties>
           <string name="Name">Achievements</string>
           <string name="Source"><![CDATA[-- Every achievement is "Stat reaches Goal". Stats are tracked by AchievementService.
@@ -141,7 +148,7 @@ return Achievements
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="3">
+      <Item class="ModuleScript" referent="4">
         <Properties>
           <string name="Name">CarBuilder</string>
           <string name="Source"><![CDATA[-- Builds detailed, drivable cars out of parts. Styles: Sedan, Sports, Jeep, Truck.
@@ -541,7 +548,7 @@ return CarBuilder
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="4">
+      <Item class="ModuleScript" referent="5">
         <Properties>
           <string name="Name">Config</string>
           <string name="Source"><![CDATA[-- Global game tuning. Change numbers here to rebalance the whole game.
@@ -679,7 +686,7 @@ return Config
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="5">
+      <Item class="ModuleScript" referent="6">
         <Properties>
           <string name="Name">GunBuilder</string>
           <string name="Source"><![CDATA[-- Builds detailed gun models out of parts, modeled after real-world firearm
@@ -1689,7 +1696,7 @@ return GunBuilder
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="6">
+      <Item class="ModuleScript" referent="7">
         <Properties>
           <string name="Name">Monetization</string>
           <string name="Source"><![CDATA[-- ROBUX STORE
@@ -1805,7 +1812,7 @@ return Monetization
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="7">
+      <Item class="ModuleScript" referent="8">
         <Properties>
           <string name="Name">Remotes</string>
           <string name="Source"><![CDATA[-- Creates (server) or finds (client) every RemoteEvent / RemoteFunction.
@@ -1861,7 +1868,7 @@ return setmetatable({}, {
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="8">
+      <Item class="ModuleScript" referent="9">
         <Properties>
           <string name="Name">Sounds</string>
           <string name="Source"><![CDATA[-- Sound ids. These use sounds that ship with Roblox so the game works out of
@@ -1887,7 +1894,7 @@ return {
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="9">
+      <Item class="ModuleScript" referent="10">
         <Properties>
           <string name="Name">Util</string>
           <string name="Source"><![CDATA[local Util = {}
@@ -1946,7 +1953,7 @@ return Util
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="10">
+      <Item class="ModuleScript" referent="11">
         <Properties>
           <string name="Name">Weapons</string>
           <string name="Source"><![CDATA[-- Weapon definitions. Every gun in the game is data-driven from this table.
@@ -2240,15 +2247,15 @@ return Weapons
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="11">
+  <Item class="ServerScriptService" referent="12">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="12">
+    <Item class="Folder" referent="13">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="ModuleScript" referent="13">
+      <Item class="ModuleScript" referent="14">
         <Properties>
           <string name="Name">AchievementService</string>
           <string name="Source"><![CDATA[-- Tracks stats and unlocks achievements (with a toast + cash reward).
@@ -2358,7 +2365,7 @@ return AchievementService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="14">
+      <Item class="ModuleScript" referent="15">
         <Properties>
           <string name="Name">BotService</string>
           <string name="Source"><![CDATA[-- AI bots that fill empty servers so there's always someone to fight.
@@ -2462,6 +2469,12 @@ local function runAI(record, model: Model)
 		end
 		local now = os.clock()
 		local myPos = root.Position
+		local state = Combat.Hooks.Round and Combat.Hooks.Round.State
+		if state == "Results" or state == "Voting" then
+			-- match is over: stand around instead of shooting into the void
+			humanoid:Move(Vector3.zero, false)
+			continue
+		end
 
 		-- pick the closest visible enemy, otherwise head for the closest one
 		local best, bestDist, bestVisible = nil, math.huge, false
@@ -2684,7 +2697,7 @@ return BotService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="15">
+      <Item class="ModuleScript" referent="16">
         <Properties>
           <string name="Name">CombatService</string>
           <string name="Source"><![CDATA[-- Server-authoritative combat: hitscan validation, damage, kills, medals,
@@ -3637,6 +3650,17 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 			end
 		end
 	end
+	-- no knifing through walls
+	if best then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { entity.Character, best.Character, workspace:FindFirstChild("Effects") }
+		local from = entity.Root.Position + Vector3.new(0, 1, 0)
+		local to = best.Root.Position + Vector3.new(0, 1, 0)
+		if workspace:Raycast(from, to - from, params) then
+			best = nil
+		end
+	end
 	if best then
 		Combat.Damage(entity, best, Config.KnifeDamage, {
 			Weapon = "Knife", WeaponName = "KNIFE", Kind = "Knife",
@@ -3736,6 +3760,7 @@ function Combat.SetupPickups(folder: Instance)
 	for _, pad in folder:GetDescendants() do
 		if pad:IsA("BasePart") and pad:GetAttribute("HealthPack") then
 			local ready = true
+			local baseTransparency = pad.Transparency
 			pad.Touched:Connect(function(hit)
 				if not ready then
 					return
@@ -3758,7 +3783,7 @@ function Combat.SetupPickups(folder: Instance)
 				end
 				pad.Transparency = 0.85
 				task.delay(15, function()
-					pad.Transparency = 0
+					pad.Transparency = baseTransparency
 					ready = true
 				end)
 			end)
@@ -3777,7 +3802,10 @@ RunService.Heartbeat:Connect(function(dt)
 	accum = 0
 	local now = os.clock()
 	for _, entity in Combat.Entities do
-		if Combat.IsAlive(entity) and entity.Downed then
+		local paused = Combat.Hooks.Round and (Combat.Hooks.Round.State == "Results" or Combat.Hooks.Round.State == "Voting")
+		if Combat.IsAlive(entity) and entity.Downed and paused then
+			continue -- no bleeding out while the match is over / voting
+		elseif Combat.IsAlive(entity) and entity.Downed then
 			local hum = entity.Humanoid
 			local left = hum.Health - Config.BleedRate * step
 			if left <= 0.5 then
@@ -3806,7 +3834,7 @@ return Combat
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="16">
+      <Item class="ModuleScript" referent="17">
         <Properties>
           <string name="Name">DataService</string>
           <string name="Source"><![CDATA[-- Persistent player data (cash, XP, owned guns, stats, achievements...).
@@ -4057,7 +4085,7 @@ return DataService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="17">
+      <Item class="ModuleScript" referent="18">
         <Properties>
           <string name="Name">KillstreakService</string>
           <string name="Source"><![CDATA[-- Killstreak rewards: UAV, Overdrive, Airstrike and the match-ending Tactical Nuke.
@@ -4247,7 +4275,7 @@ return KillstreakService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Script" referent="18">
+      <Item class="Script" referent="19">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -4508,7 +4536,7 @@ print("[" .. Config.GameName .. "] server ready")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="19">
+      <Item class="ModuleScript" referent="20">
         <Properties>
           <string name="Name">MapService</string>
           <string name="Source"><![CDATA[-- Loads maps (with per-map lighting), runs map voting, and picks safe spawns.
@@ -4791,11 +4819,14 @@ function MapService.PickSpawn(forEntity): CFrame
 				nearest = math.min(nearest, (other.Root.Position - cf.Position).Magnitude)
 			end
 		end
-		table.insert(scored, { cf = cf, score = math.min(nearest, 400) + math.random() * 25 })
+		-- spread people out: avoid points someone just spawned on
+		local recent = sp.LastUsed and (os.clock() - sp.LastUsed) < 3 and 250 or 0
+		table.insert(scored, { sp = sp, cf = cf, score = math.min(nearest, 400) + math.random() * 25 - recent })
 	end
 	table.sort(scored, function(a, b)
 		return a.score > b.score
 	end)
+	scored[1].sp.LastUsed = os.clock()
 	return scored[1].cf
 end
 
@@ -4809,11 +4840,11 @@ return MapService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="20">
+      <Item class="Folder" referent="21">
         <Properties>
           <string name="Name">Maps</string>
         </Properties>
-        <Item class="ModuleScript" referent="21">
+        <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">Arena</string>
             <string name="Source"><![CDATA[-- NEON ARENA: the original symmetrical arena (fast, close-quarters).
@@ -4964,7 +4995,7 @@ return Map
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">Downtown</string>
             <string name="Source"><![CDATA[-- DOWNTOWN: city blocks, subway tunnel, fire escapes, open-window buildings,
@@ -5223,7 +5254,7 @@ return Map
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">Harbor</string>
             <string name="Source"><![CDATA[-- HARBOR: container maze, cranes, warehouses, a boardable cargo ship and a
@@ -5403,7 +5434,7 @@ return Map
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">MapKit</string>
             <string name="Source"><![CDATA[-- MapKit: procedural building blocks for maps.
@@ -7254,7 +7285,7 @@ return MapKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">Timberline</string>
             <string name="Source"><![CDATA[-- TIMBERLINE: forest valley with a river, bridges, cabins, watchtowers and jeeps.
@@ -7516,7 +7547,7 @@ return Map
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="26">
+      <Item class="ModuleScript" referent="27">
         <Properties>
           <string name="Name">MonetizationService</string>
           <string name="Source"><![CDATA[-- Game passes + developer products (Robux store).
@@ -7635,7 +7666,7 @@ return MonetizationService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="27">
+      <Item class="ModuleScript" referent="28">
         <Properties>
           <string name="Name">RoundService</string>
           <string name="Source"><![CDATA[-- Match loop: VOTE (map + mode) -> WARMUP -> LIVE MATCH -> RESULTS -> repeat.
@@ -7885,7 +7916,7 @@ return RoundService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="28">
+      <Item class="ModuleScript" referent="29">
         <Properties>
           <string name="Name">TeamService</string>
           <string name="Source"><![CDATA[-- Game modes + teams.
@@ -8074,7 +8105,7 @@ return TeamService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="29">
+      <Item class="ModuleScript" referent="30">
         <Properties>
           <string name="Name">VehicleService</string>
           <string name="Source"><![CDATA[-- Cars: spawning per map, network ownership for the driver, roadkills,
@@ -8346,15 +8377,15 @@ return VehicleService
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="30">
+  <Item class="StarterPlayer" referent="31">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterCharacterScripts" referent="31">
+    <Item class="StarterCharacterScripts" referent="32">
       <Properties>
         <string name="Name">StarterCharacterScripts</string>
       </Properties>
-      <Item class="Script" referent="32">
+      <Item class="Script" referent="33">
         <Properties>
           <string name="Name">Health</string>
           <token name="RunContext">0</token>
@@ -8364,15 +8395,15 @@ return VehicleService
         </Properties>
       </Item>
     </Item>
-    <Item class="StarterPlayerScripts" referent="33">
+    <Item class="StarterPlayerScripts" referent="34">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="34">
+      <Item class="Folder" referent="35">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="LocalScript" referent="35">
+        <Item class="LocalScript" referent="36">
           <Properties>
             <string name="Name">ClientMain</string>
             <string name="Source"><![CDATA[-- Client entry point: builds the UI, starts the controllers and routes
@@ -8699,7 +8730,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="36">
+        <Item class="ModuleScript" referent="37">
           <Properties>
             <string name="Name">ClientState</string>
             <string name="Source"><![CDATA[-- Shared client-side state that every controller / UI module can read.
@@ -8773,7 +8804,7 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="37">
+        <Item class="ModuleScript" referent="38">
           <Properties>
             <string name="Name">Effects</string>
             <string name="Source"><![CDATA[-- Client-side visual effects: tracers, muzzle flashes, explosions, shake, UAV.
@@ -9083,7 +9114,7 @@ return Effects
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="38">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">HUD</string>
             <string name="Source"><![CDATA[-- In-game HUD in the style of the big shooters:
@@ -9313,6 +9344,11 @@ local function buildAmmo()
 	refs.Mag = shadowText({ Text = "0", Size = UDim2.fromOffset(140, 56), Position = UDim2.new(1, -236, 0, 16), TextXAlignment = Enum.TextXAlignment.Right, TextSize = 56, Font = T.Black, Parent = f })
 	local _, magFill = UIKit.Bar({ Size = UDim2.fromOffset(230, 4), Position = UDim2.new(1, -230, 0, 74), Color = T.Text, Parent = f })
 	refs.MagFill = magFill
+	-- low-ammo hint under the crosshair
+	refs.ReloadHint = shadowText({
+		Text = "", Size = UDim2.fromOffset(240, 18), Position = UDim2.new(0.5, 0, 0.5, 46), AnchorPoint = Vector2.new(0.5, 0),
+		TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = T.Accent, Parent = gui,
+	})
 	refs.Equip = new("Frame", { Size = UDim2.new(1, 0, 0, 22), Position = UDim2.fromOffset(0, 84), BackgroundTransparency = 1, Parent = f }, {
 		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
@@ -9333,6 +9369,20 @@ function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: bool
 	end
 	refs.WeaponName.Text = name
 	refs.Reserve.Text = unlimited and "/ ∞" or ("/ " .. reserve)
+	if unlimited then
+		refs.ReloadHint.Text = ""
+	elseif reloading then
+		refs.ReloadHint.Text = "RELOADING…"
+		refs.ReloadHint.TextColor3 = T.Sub
+	elseif mag <= 0 and reserve <= 0 then
+		refs.ReloadHint.Text = "NO AMMO · SWAP WEAPON [1/2]"
+		refs.ReloadHint.TextColor3 = T.Red
+	elseif mag / math.max(1, magSize) <= 0.25 and reserve > 0 then
+		refs.ReloadHint.Text = "RELOAD [R]"
+		refs.ReloadHint.TextColor3 = mag <= 0 and T.Red or T.Accent
+	else
+		refs.ReloadHint.Text = ""
+	end
 	if unlimited then
 		refs.Mag.Text = "∞"
 		refs.Mag.TextColor3 = T.Accent
@@ -9999,7 +10049,7 @@ return HUD
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="39">
+        <Item class="ModuleScript" referent="40">
           <Properties>
             <string name="Name">HUDExtras</string>
             <string name="Source"><![CDATA[-- Extra HUD widgets: minimap radar, damage direction arrows, aimed-target info,
@@ -10306,7 +10356,7 @@ return Extras
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">Menus</string>
             <string name="Source"><![CDATA[-- Full-screen menus: Main Menu, Armory, Store (Robux), Achievements,
@@ -11069,7 +11119,7 @@ return Menus
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">MovementController</string>
             <string name="Source"><![CDATA[-- Advanced movement: sprint, slide, dash, double/triple jump, ground slam, jump pads.
@@ -11432,7 +11482,7 @@ return Movement
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">OfferToast</string>
             <string name="Source"><![CDATA[-- Subtle, contextual Robux offers.
@@ -11615,7 +11665,7 @@ return OfferToast
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">PassSpotlight</string>
             <string name="Source"><![CDATA[-- Featured pass spotlight: a big, good-looking card for one random game pass the
@@ -11788,7 +11838,7 @@ return Spotlight
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="44">
+        <Item class="ModuleScript" referent="45">
           <Properties>
             <string name="Name">UIKit</string>
             <string name="Source"><![CDATA[-- Tiny UI helper library + the game's visual theme.
@@ -12043,7 +12093,7 @@ return UIKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="45">
+        <Item class="ModuleScript" referent="46">
           <Properties>
             <string name="Name">VehicleController</string>
             <string name="Source"><![CDATA[-- Arcade car handling. The server gives the driver network ownership,
@@ -12313,7 +12363,7 @@ return Vehicle
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="46">
+        <Item class="ModuleScript" referent="47">
           <Properties>
             <string name="Name">VoteScreen</string>
             <string name="Source"><![CDATA[-- Pre-match vote screen: 3 rotating map choices + the 3 game modes.
@@ -12570,7 +12620,7 @@ return VoteScreen
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="47">
+        <Item class="ModuleScript" referent="48">
           <Properties>
             <string name="Name">WeaponController</string>
             <string name="Source"><![CDATA[-- First-person gunplay: viewmodel, ADS, recoil, spread, reloads, knife, grenades.

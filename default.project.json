@@ -21,6 +21,12 @@
       "StarterCharacterScripts": {
         "$path": "src/character"
       }
+    },
+    "Players": {
+      "$properties": {
+        "MaxPlayers": 20,
+        "CharacterAutoLoads": false
+      }
     }
   }
 }

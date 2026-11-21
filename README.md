@@ -5,6 +5,8 @@ A fast, movement-heavy free-for-all shooter for Roblox. The HUD and menus follow
 Everything is built from code, so no uploaded assets are required. That includes the map, the guns (built from parts, with 3D previews in the Armory), and all of the UI.
 
 ## Quick start
+> **Server size:** in Studio open **Game Settings → Places → (your place) → Server Size** (or Creator Dashboard → Places → Configure → Max Players) and set it to **20**. The place file already has `Players.MaxPlayers = 20`, but Roblox uses the place setting for live servers.
+
 
 1. Open **`NeonStrike.rbxlx`** in Roblox Studio. It's already built.
 2. Go to **Game Settings → Security** and turn on **Enable Studio Access to API Services** so DataStores (saving) work.
@@ -73,7 +75,7 @@ Without a 5-kill streak you die and respawn automatically as normal.
 - Softer hit sounds: hits make a crisp click (higher-pitched on headshots), and taking damage gives a muted tick instead of a grunt.
 
 ## Battle-royale style maps
-Every map is sized for 30 players. Each has team bases at the ends, free-for-all spawns everywhere, and mountains all around (beyond the invisible boundary, so you can't reach them). They also have:
+Servers hold **20 players** (bots fill empty slots), and every map is sized so 20 players find each other fast. Each has team bases at the ends, free-for-all spawns everywhere, and mountains all around (beyond the invisible boundary, so you can't reach them). They also have:
 - Underground tunnels: a subway, a storm drain, mine shafts and arena tunnels.
 - Ladders and fire escapes up to the rooftops.
 - Buildings with open windows you can climb through.

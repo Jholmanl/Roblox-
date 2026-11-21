@@ -225,6 +225,11 @@ local function buildAmmo()
 	refs.Mag = shadowText({ Text = "0", Size = UDim2.fromOffset(140, 56), Position = UDim2.new(1, -236, 0, 16), TextXAlignment = Enum.TextXAlignment.Right, TextSize = 56, Font = T.Black, Parent = f })
 	local _, magFill = UIKit.Bar({ Size = UDim2.fromOffset(230, 4), Position = UDim2.new(1, -230, 0, 74), Color = T.Text, Parent = f })
 	refs.MagFill = magFill
+	-- low-ammo hint under the crosshair
+	refs.ReloadHint = shadowText({
+		Text = "", Size = UDim2.fromOffset(240, 18), Position = UDim2.new(0.5, 0, 0.5, 46), AnchorPoint = Vector2.new(0.5, 0),
+		TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = T.Accent, Parent = gui,
+	})
 	refs.Equip = new("Frame", { Size = UDim2.new(1, 0, 0, 22), Position = UDim2.fromOffset(0, 84), BackgroundTransparency = 1, Parent = f }, {
 		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
@@ -245,6 +250,20 @@ function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: bool
 	end
 	refs.WeaponName.Text = name
 	refs.Reserve.Text = unlimited and "/ ∞" or ("/ " .. reserve)
+	if unlimited then
+		refs.ReloadHint.Text = ""
+	elseif reloading then
+		refs.ReloadHint.Text = "RELOADING…"
+		refs.ReloadHint.TextColor3 = T.Sub
+	elseif mag <= 0 and reserve <= 0 then
+		refs.ReloadHint.Text = "NO AMMO · SWAP WEAPON [1/2]"
+		refs.ReloadHint.TextColor3 = T.Red
+	elseif mag / math.max(1, magSize) <= 0.25 and reserve > 0 then
+		refs.ReloadHint.Text = "RELOAD [R]"
+		refs.ReloadHint.TextColor3 = mag <= 0 and T.Red or T.Accent
+	else
+		refs.ReloadHint.Text = ""
+	end
 	if unlimited then
 		refs.Mag.Text = "∞"
 		refs.Mag.TextColor3 = T.Accent

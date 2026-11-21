@@ -948,6 +948,17 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 			end
 		end
 	end
+	-- no knifing through walls
+	if best then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { entity.Character, best.Character, workspace:FindFirstChild("Effects") }
+		local from = entity.Root.Position + Vector3.new(0, 1, 0)
+		local to = best.Root.Position + Vector3.new(0, 1, 0)
+		if workspace:Raycast(from, to - from, params) then
+			best = nil
+		end
+	end
 	if best then
 		Combat.Damage(entity, best, Config.KnifeDamage, {
 			Weapon = "Knife", WeaponName = "KNIFE", Kind = "Knife",
@@ -1047,6 +1058,7 @@ function Combat.SetupPickups(folder: Instance)
 	for _, pad in folder:GetDescendants() do
 		if pad:IsA("BasePart") and pad:GetAttribute("HealthPack") then
 			local ready = true
+			local baseTransparency = pad.Transparency
 			pad.Touched:Connect(function(hit)
 				if not ready then
 					return
@@ -1069,7 +1081,7 @@ function Combat.SetupPickups(folder: Instance)
 				end
 				pad.Transparency = 0.85
 				task.delay(15, function()
-					pad.Transparency = 0
+					pad.Transparency = baseTransparency
 					ready = true
 				end)
 			end)
@@ -1088,7 +1100,10 @@ RunService.Heartbeat:Connect(function(dt)
 	accum = 0
 	local now = os.clock()
 	for _, entity in Combat.Entities do
-		if Combat.IsAlive(entity) and entity.Downed then
+		local paused = Combat.Hooks.Round and (Combat.Hooks.Round.State == "Results" or Combat.Hooks.Round.State == "Voting")
+		if Combat.IsAlive(entity) and entity.Downed and paused then
+			continue -- no bleeding out while the match is over / voting
+		elseif Combat.IsAlive(entity) and entity.Downed then
 			local hum = entity.Humanoid
 			local left = hum.Health - Config.BleedRate * step
 			if left <= 0.5 then

@@ -99,6 +99,12 @@ local function runAI(record, model: Model)
 		end
 		local now = os.clock()
 		local myPos = root.Position
+		local state = Combat.Hooks.Round and Combat.Hooks.Round.State
+		if state == "Results" or state == "Voting" then
+			-- match is over: stand around instead of shooting into the void
+			humanoid:Move(Vector3.zero, false)
+			continue
+		end
 
 		-- pick the closest visible enemy, otherwise head for the closest one
 		local best, bestDist, bestVisible = nil, math.huge, false

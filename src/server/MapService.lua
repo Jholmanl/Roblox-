@@ -278,11 +278,14 @@ function MapService.PickSpawn(forEntity): CFrame
 				nearest = math.min(nearest, (other.Root.Position - cf.Position).Magnitude)
 			end
 		end
-		table.insert(scored, { cf = cf, score = math.min(nearest, 400) + math.random() * 25 })
+		-- spread people out: avoid points someone just spawned on
+		local recent = sp.LastUsed and (os.clock() - sp.LastUsed) < 3 and 250 or 0
+		table.insert(scored, { sp = sp, cf = cf, score = math.min(nearest, 400) + math.random() * 25 - recent })
 	end
 	table.sort(scored, function(a, b)
 		return a.score > b.score
 	end)
+	scored[1].sp.LastUsed = os.clock()
 	return scored[1].cf
 end
 
