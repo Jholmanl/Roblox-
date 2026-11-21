@@ -17,7 +17,7 @@ local Map = {
 	},
 }
 
-local HALF = 200
+local HALF = 160
 
 local function riverX(z: number): number
 	return 38 * math.sin(z / 70)
@@ -32,13 +32,21 @@ function Map.Build()
 	local avoid = {} -- circles {x, z, r} kept flat & free of trees
 
 	local structures = {
-		{ "Cabin", -100, -60 }, { "Cabin", -125, 75 }, { "Cabin", 105, -95 }, { "Cabin", 130, 65 },
-		{ "Tower", -60, 140 }, { "Tower", 75, -150 }, { "Tower", 155, -10 },
-		{ "Camp", -45, -140 }, { "Lumber", 115, 140 },
+		{ "Cabin", -100, -60 }, { "Cabin", -128, 60 }, { "Cabin", 98, -62 }, { "Cabin", 128, 58 },
+		{ "Tower", -60, 105 }, { "Tower", 42, -60 }, { "Tower", 140, -8 },
+		{ "Camp", -80, -12 }, { "Lumber", 75, -108 },
 	}
 	for _, s in structures do
-		table.insert(avoid, { s[2], s[3], s[1] == "Lumber" and 34 or 24 })
+		table.insert(avoid, { s[2], s[3], s[1] == "Lumber" and 30 or 24 })
 	end
+	-- keep tunnel entrances and both spawn bases clear
+	for _, tx in { -112, 112 } do
+		for _, tz in { -108, -20, 20, 108 } do
+			table.insert(avoid, { tx, tz, 16 })
+		end
+	end
+	table.insert(avoid, { -90, -135, 40 })
+	table.insert(avoid, { 90, 135, 40 })
 
 	local function blocked(x: number, z: number, pad: number): boolean
 		if math.abs(x - riverX(z)) < 24 + pad then
@@ -67,7 +75,7 @@ function Map.Build()
 	for i = 0, 35 do
 		local a = i / 36 * math.pi * 2
 		local r = rng:NextNumber(45, 60)
-		local d = HALF + 25
+		local d = HALF + 45
 		kit:FillBall(i % 3 == 0 and M.Rock or M.Grass, Vector3.new(math.cos(a) * d, -10, math.sin(a) * d), r)
 	end
 
@@ -110,7 +118,7 @@ function Map.Build()
 				Name = "Cabin", Origin = CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rng:NextInteger(0, 3) * 90), 0),
 				W = 24, D = 18, Floors = 1, FloorH = 11, Color = P.Wood, Material = M.WoodPlanks, Trim = P.WoodDark,
 				Floor = P.WoodLight, Roof = "Gable", RoofColor = rgb(70, 50, 40), RoofAccess = false,
-				Doors = { Front = true, Back = true }, Awning = P.WoodDark,
+				Doors = { Front = true, Back = true }, Awning = P.WoodDark, OpenWindows = 0.6, Pilasters = false, AC = false,
 			})
 			kit:HealthPack(Vector3.new(x + 15, 0, z))
 			for i = 1, 3 do
@@ -126,7 +134,7 @@ function Map.Build()
 				kit:Cylinder(5, 1.2, CFrame.new(x + math.cos(a + 1) * 5, 0.6, z + math.sin(a + 1) * 5) * CFrame.Angles(0, -a, 0), P.Trunk, M.Wood)
 			end
 		elseif kind == "Lumber" then
-			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(60, 1.2, 50))
+			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(50, 1.2, 44))
 			-- open sawmill shed
 			for _, px in { -14, 0, 14 } do
 				for _, pz in { -9, 9 } do
@@ -181,15 +189,40 @@ function Map.Build()
 	kit:VehicleSpot(CFrame.new(120, 1, 120) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
 	kit:VehicleSpot(CFrame.new(-80, 1, -8) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(60, 80, 100))
 
-	-- spawns in a ring (east & west banks)
-	for i = 0, 15 do
-		local a = i / 16 * math.pi * 2
-		local x, z = math.cos(a) * 140, math.sin(a) * 140
-		if math.abs(x - riverX(z)) < 30 then
-			x += 40
-		end
-		kit:Spawn(Vector3.new(x, 6, z))
+	-- MINE TUNNELS on both sides of the river (spawn to spawn)
+	for _, tx in { -112, 112 } do
+		kit:Tunnel({
+			Axis = "Z", Cross = tx, From = -122, To = 122, Floor = -14, Width = 14, Height = 9, Style = "Mine", Terrain = true,
+			Entrances = { { At = -118, Dir = 1 }, { At = -10, Dir = -1 }, { At = 10, Dir = 1 }, { At = 118, Dir = -1 } },
+		})
 	end
+
+	-- cover: sandbags at both ends of every bridge, log walls, hiding bushes
+	for _, z in { -110, 0, 110 } do
+		local x = riverX(z)
+		for _, side in { -1, 1 } do
+			kit:Sandbags(CFrame.new(x + side * 26, 0, z + 9) * CFrame.Angles(0, math.rad(90), 0), 8, 3)
+		end
+	end
+	for _ = 1, 10 do
+		local x, z = rng:NextNumber(-140, 140), rng:NextNumber(-120, 120)
+		if not blocked(x, z, 4) then
+			for row = 0, 1 do
+				kit:Cylinder(10, 1.6, CFrame.new(x, 0.8 + row * 1.5, z) * CFrame.Angles(0, rng:NextNumber(0, 3), 0), P.Trunk, M.Wood)
+			end
+		end
+	end
+	for _ = 1, 40 do
+		local x, z = rng:NextNumber(-145, 145), rng:NextNumber(-140, 140)
+		if not blocked(x, z, 2) then
+			kit:HideBush(Vector3.new(x, 0, z), rng:NextNumber(0.9, 1.2))
+		end
+	end
+	kit:Ladder(Vector3.new(75 + 16.5, 0, -108), 16)
+
+	-- TEAM SPAWNS at both ends (clear of the river)
+	kit:SpawnBase(Vector3.new(-90, 0, -135), Vector3.new(-60, 0, 0), "A", 70)
+	kit:SpawnBase(Vector3.new(90, 0, 135), Vector3.new(60, 0, 0), "B", 70)
 	kit:Boundary(HALF, HALF, 200)
 	return kit
 end

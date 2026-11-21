@@ -65,6 +65,10 @@ local list = {
 	{ Id = "JumpPad", Name = "Frequent Flyer", Desc = "Use jump pads 100 times", Stat = "JumpPads", Goal = 100, Reward = 500, Icon = "🚀", Category = "Style" },
 
 	-- Rivalry
+	{ Id = "Revive1", Name = "Combat Medic", Desc = "Revive a downed teammate", Stat = "Revives", Goal = 1, Reward = 300, Icon = "✚", Category = "Rivalry" },
+	{ Id = "Revive50", Name = "Guardian Angel", Desc = "Revive 50 teammates", Stat = "Revives", Goal = 50, Reward = 4000, Icon = "😇", Category = "Rivalry" },
+	{ Id = "Knock25", Name = "Knockout Puncher", Desc = "Knock down 25 enemies on a streak", Stat = "Knockdowns", Goal = 25, Reward = 2000, Icon = "⬇️", Category = "Rivalry" },
+	{ Id = "SelfRevive", Name = "Not Today", Desc = "Self-revive while downed", Stat = "SelfRevives", Goal = 1, Reward = 400, Icon = "💪", Category = "Rivalry" },
 	{ Id = "Revenge", Name = "Payback", Desc = "Kill the player who last killed you", Stat = "Revenges", Goal = 1, Reward = 150, Icon = "😤", Category = "Rivalry" },
 	{ Id = "Revenge50", Name = "Grudge Holder", Desc = "Get 50 revenge kills", Stat = "Revenges", Goal = 50, Reward = 2000, Icon = "📒", Category = "Rivalry" },
 	{ Id = "Bounty", Name = "Bounty Hunter", Desc = "End an enemy's 5+ kill streak", Stat = "Bounties", Goal = 1, Reward = 300, Icon = "💰", Category = "Rivalry" },

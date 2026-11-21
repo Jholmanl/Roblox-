@@ -2,18 +2,34 @@
 local Config = {}
 
 Config.GameName = "NEON STRIKE"
-Config.ModeName = "FREE FOR ALL"
+Config.ModeName = "TEAM DEATHMATCH"
 
 -- Match flow
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
 Config.MatchLength = 300 -- 5 minute matches
 Config.ResultsLength = 16 -- includes map voting
-Config.KillsToWin = 30
+Config.KillsToWin = 30 -- (unused in team mode)
+Config.TeamKillsToWin = 75 -- first team to this many kills wins
+Config.MaxPlayers = 30 -- set the same number in Game Settings > Places
 
 -- Bots fill the server up to this many combatants so it is never empty
-Config.BotFill = 8
+Config.BotFill = 12 -- bots keep both teams filled up to this many fighters total
 Config.BotDamageMultiplier = 0.45
 Config.BotAccuracy = 0.38
+
+-- Teams (spawns are at opposite ends of every map)
+Config.Teams = {
+	A = { Name = "ALPHA", Color = Color3.fromRGB(40, 140, 255) },
+	B = { Name = "BRAVO", Color = Color3.fromRGB(255, 70, 70) },
+}
+
+-- Downed / revive: only players on a 5+ kill streak get knocked down instead of dying
+Config.DownStreak = 5
+Config.DownedHealth = 60 -- downed players bleed this much HP
+Config.BleedRate = 3 -- HP per second (about 20 seconds to bleed out)
+Config.ReviveTime = 2.5 -- seconds a teammate holds E
+Config.SelfReviveTime = 4 -- seconds to hold F for a self revive (once per down)
+Config.ReviveHealth = 0.5 -- share of max HP after a revive
 
 -- Players
 Config.BaseHealth = 100

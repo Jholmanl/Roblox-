@@ -26,7 +26,19 @@ local CRATE = rgb(176, 128, 66)
 function Map.Build()
 	local kit = MapKit.new(3)
 	local HALF = 125
-	kit:Part(Vector3.new(HALF * 2 + 10, 2, HALF * 2 + 10), CFrame.new(0, -1, 0), DARK, M.Concrete)
+	local holes = kit:Tunnel({
+		Axis = "Z", Cross = 0, From = -118, To = 118, Floor = -14, Width = 14, Height = 9, Style = "Subway",
+		Entrances = { { At = -104, Dir = 1 }, { At = 104, Dir = -1 } },
+	})
+	-- a deeper cross tunnel passes under the first one
+	local crossHoles = kit:Tunnel({
+		Axis = "X", Cross = 0, From = -118, To = 118, Floor = -26, Width = 14, Height = 9, Style = "Sewer",
+		Entrances = { { At = -110, Dir = 1 }, { At = 110, Dir = -1 } },
+	})
+	for _, h in crossHoles do
+		table.insert(holes, h)
+	end
+	kit:Ground(0, -HALF - 5, HALF + 5, -HALF - 5, HALF + 5, 2, holes, DARK, M.Concrete)
 	for i = -HALF + 25, HALF - 25, 25 do
 		kit:Neon(Vector3.new(0.25, 0.05, HALF * 2), CFrame.new(i, 0.03, 0), ACCENT2).Transparency = 0.75
 		kit:Neon(Vector3.new(HALF * 2, 0.05, 0.25), CFrame.new(0, 0.03, i), ACCENT2).Transparency = 0.75
@@ -83,12 +95,18 @@ function Map.Build()
 	for _, pos in { Vector3.new(70, 0, 0), Vector3.new(-70, 0, 0), Vector3.new(0, 0, 70), Vector3.new(0, 0, -70) } do
 		kit:JumpPad(pos, 115)
 	end
-	for _, along in { -60, -20, 20, 60 } do
-		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-			local pos = edge[1] ~= 0 and Vector3.new(edge[1] * 115, 3, along) or Vector3.new(along, 3, edge[2] * 115)
-			kit:Spawn(pos)
+	-- ladders up the corner bases + sandbag cover in the lanes
+	for _, sx in { 1, -1 } do
+		for _, sz in { 1, -1 } do
+			kit:Ladder(Vector3.new(88 * sx - 19 * sx, 0, 88 * sz + 8 * sz), 12)
 		end
 	end
+	for _, s in { { 40, 0, 0 }, { -40, 0, 0 }, { 0, 40, 90 }, { 0, -40, 90 } } do
+		kit:Sandbags(CFrame.new(s[1], 0, s[2]) * CFrame.Angles(0, math.rad(s[3]), 0), 10, 3)
+	end
+	-- TEAM SPAWNS at both ends
+	kit:SpawnBase(Vector3.new(0, 0, -114), Vector3.new(0, 0, 0), "A", 110)
+	kit:SpawnBase(Vector3.new(0, 0, 114), Vector3.new(0, 0, 0), "B", 110)
 	return kit
 end
 
