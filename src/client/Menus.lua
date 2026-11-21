@@ -436,13 +436,13 @@ end
 
 -- SCOREBOARD -------------------------------------------------------------------------
 local function buildScoreboard()
-	scoreboard = UIKit.Panel({ Name = "Scoreboard", Size = UDim2.fromOffset(620, 460), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.Bg, BackgroundTransparency = 0.1, Visible = false, ZIndex = 4, Parent = gui })
-	Label({ Text = Config.ModeName, Size = UDim2.new(1, -32, 0, 30), Position = UDim2.fromOffset(16, 10), TextSize = 22, Font = T.Black, ZIndex = 5, Parent = scoreboard })
+	scoreboard = UIKit.Panel({ Name = "Scoreboard", Size = UDim2.fromOffset(620, 560), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.Bg, BackgroundTransparency = 0.1, Visible = false, ZIndex = 4, Parent = gui })
+	Label({ Name = "Title", Text = Config.ModeName, Size = UDim2.new(1, -32, 0, 30), Position = UDim2.fromOffset(16, 10), TextSize = 22, Font = T.Black, ZIndex = 5, Parent = scoreboard })
 	local header = new("Frame", { Size = UDim2.new(1, -32, 0, 20), Position = UDim2.fromOffset(16, 46), BackgroundTransparency = 1, ZIndex = 5, Parent = scoreboard })
 	for _, col in { { "#", 0, 30 }, { "PLAYER", 36, 250 }, { "KILLS", 330, 70 }, { "DEATHS", 400, 70 }, { "SCORE", 480, 100 } } do
 		Label({ Text = col[1], Size = UDim2.fromOffset(col[3], 20), Position = UDim2.fromOffset(col[2], 0), TextSize = 11, Font = T.Black, TextColor3 = T.Sub, ZIndex = 5, Parent = header })
 	end
-	new("Frame", { Name = "Rows", Size = UDim2.new(1, -32, 1, -80), Position = UDim2.fromOffset(16, 70), BackgroundTransparency = 1, ZIndex = 5, Parent = scoreboard }, { UIKit.List(3) })
+	new("ScrollingFrame", { Name = "Rows", Size = UDim2.new(1, -32, 1, -80), Position = UDim2.fromOffset(16, 70), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 5, Parent = scoreboard }, { UIKit.List(3) })
 end
 
 local function renderScoreboard()
@@ -454,24 +454,48 @@ local function renderScoreboard()
 	end
 	local rows = {}
 	for _, p in Players:GetPlayers() do
-		table.insert(rows, { Name = p.Name, VIP = p:GetAttribute("Pass_VIP"), Level = p:GetAttribute("Level") or 1, Kills = p:GetAttribute("Kills") or 0, Deaths = p:GetAttribute("Deaths") or 0, Score = p:GetAttribute("Score") or 0, Me = p == player })
+		local char = p.Character
+		table.insert(rows, { Name = p.Name, VIP = p:GetAttribute("Pass_VIP"), Level = p:GetAttribute("Level") or 1, Kills = p:GetAttribute("Kills") or 0, Deaths = p:GetAttribute("Deaths") or 0, Score = p:GetAttribute("Score") or 0, Me = p == player, Team = p:GetAttribute("Team"), Downed = char and char:GetAttribute("Downed") })
 	end
 	local bots = ReplicatedStorage:FindFirstChild("BotStats")
 	if bots then
 		for _, b in bots:GetChildren() do
-			table.insert(rows, { Name = b.Name, Bot = true, Kills = b:GetAttribute("Kills") or 0, Deaths = b:GetAttribute("Deaths") or 0, Score = b:GetAttribute("Score") or 0 })
+			table.insert(rows, { Name = b.Name, Bot = true, Kills = b:GetAttribute("Kills") or 0, Deaths = b:GetAttribute("Deaths") or 0, Score = b:GetAttribute("Score") or 0, Team = b:GetAttribute("Team") })
 		end
 	end
+	local modeDef = Config.Modes[ReplicatedStorage:GetAttribute("Mode") or "TDM"] or Config.Modes.TDM
+	scoreboard.Title.Text = modeDef.Name .. "  ·  " .. (ReplicatedStorage:GetAttribute("MapName") or "")
+	-- team modes: my team first, then the others, each sorted by score
+	local myTeam = player:GetAttribute("Team")
+	local order = {}
+	for i, t in modeDef.Teams do
+		order[t] = (t == myTeam) and 0 or i
+	end
 	table.sort(rows, function(a, b)
+		local ta, tb = order[a.Team] or 9, order[b.Team] or 9
+		if ta ~= tb then
+			return ta < tb
+		end
 		return a.Score > b.Score
 	end)
-	for i, r in rows do
-		if i > 12 then
-			break
+	local layout = 0
+	local lastTeam = false
+	local place = 0
+	for _, r in rows do
+		if #modeDef.Teams > 0 and r.Team ~= lastTeam then
+			lastTeam = r.Team
+			place = 0
+			layout += 1
+			local info = Config.Teams[r.Team or ""]
+			local header = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 24), BackgroundColor3 = info and info.Color:Lerp(Color3.new(), 0.45) or T.Panel3, BackgroundTransparency = 0.1, LayoutOrder = layout, ZIndex = 5, Parent = rowsFrame })
+			Label({ Text = (info and info.Name or "NO TEAM") .. (r.Team == myTeam and "  (YOUR TEAM)" or "") .. "   " .. tostring(ReplicatedStorage:GetAttribute("Score_" .. tostring(r.Team)) or 0) .. " KILLS", Size = UDim2.new(1, -12, 1, 0), Position = UDim2.fromOffset(8, 0), TextSize = 13, Font = T.Black, ZIndex = 6, Parent = header })
 		end
-		local row = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 26), BackgroundColor3 = r.Me and Color3.fromRGB(80, 66, 14) or T.Panel2, BackgroundTransparency = 0.2, LayoutOrder = i, ZIndex = 5, Parent = rowsFrame })
+		place += 1
+		layout += 1
+		local i = place
+		local row = UIKit.Panel({ Size = UDim2.new(1, 0, 0, 24), BackgroundColor3 = r.Me and Color3.fromRGB(80, 66, 14) or T.Panel2, BackgroundTransparency = 0.2, LayoutOrder = layout, ZIndex = 5, Parent = rowsFrame })
 		local nameColor = r.VIP and T.Gold or (r.Bot and T.Sub or T.Text)
-		local name = (r.VIP and "👑 " or "") .. r.Name .. (r.Bot and "  [BOT]" or ("  · LVL " .. (r.Level or 1)))
+		local name = (r.VIP and "👑 " or "") .. r.Name .. (r.Bot and "  [BOT]" or ("  · LVL " .. (r.Level or 1))) .. (r.Downed and "  ⬇" or "")
 		for _, col in { { tostring(i), 6, 30, T.Sub }, { name, 36, 290, nameColor }, { tostring(r.Kills), 330, 70, T.Text }, { tostring(r.Deaths), 400, 70, T.Text }, { Util.Comma(r.Score), 480, 100, T.Accent } } do
 			Label({ Text = col[1], Size = UDim2.fromOffset(col[3], 26), Position = UDim2.fromOffset(col[2], 0), TextSize = 13, Font = T.Black, TextColor3 = col[4], ZIndex = 6, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
 		end
@@ -488,6 +512,8 @@ end
 -- RESULTS ------------------------------------------------------------------------------
 local voteCards = {}
 local myVote = nil
+local modeCards = {}
+local myModeVote = nil
 
 local function buildResults()
 	results = new("TextButton", { Name = "Results", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.25, Text = "", AutoButtonColor = false, Modal = true, Visible = false, ZIndex = 8, Parent = gui })
@@ -496,14 +522,34 @@ end
 function Menus.ShowResults(info)
 	clear(results)
 	results.Visible = true
-	local won = info.Place == 1
-	local title = won and "VICTORY" or (info.Place <= 3 and ("#" .. info.Place .. " PLACE") or "MATCH OVER")
-	local color = won and T.Gold or (info.Place <= 3 and T.Accent2 or T.Red)
+	local teamMode = info.Mode ~= nil and Config.Modes[info.Mode] and #Config.Modes[info.Mode].Teams > 0
+	local won = info.Won == true or (not teamMode and info.Place == 1)
+	local title, color
+	if teamMode then
+		if info.WinnerTeam == nil then
+			title, color = "DRAW", T.Accent2
+		elseif won then
+			title, color = "VICTORY", T.Gold
+		else
+			title, color = "DEFEAT", T.Red
+		end
+	else
+		title = won and "VICTORY" or (info.Place <= 3 and ("#" .. info.Place .. " PLACE") or "MATCH OVER")
+		color = won and T.Gold or (info.Place <= 3 and T.Accent2 or T.Red)
+	end
 	local t = Label({ Text = title, Size = UDim2.new(1, 0, 0, 80), Position = UDim2.fromScale(0, 0.08), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 72, Font = T.Black, TextColor3 = color, ZIndex = 9, Parent = results })
 	UIKit.TextStroke(0.3).Parent = t
 	local sc = new("UIScale", { Scale = 0.5, Parent = t })
 	UIKit.Tween(sc, 0.5, { Scale = 1 }, Enum.EasingStyle.Back)
-	Label({ Text = (info.Nuke and "☢️ TACTICAL NUKE · " or "") .. "WINNER: " .. string.upper(info.Winner), Size = UDim2.new(1, 0, 0, 24), Position = UDim2.new(0, 0, 0.08, 84), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 20, Font = T.Black, ZIndex = 9, Parent = results })
+	local winnerText = "WINNER: " .. string.upper(info.Winner)
+	if teamMode then
+		local parts = {}
+		for _, t in Config.Modes[info.Mode].Teams do
+			table.insert(parts, Config.Teams[t].Name .. " " .. tostring(info.Scores and info.Scores[t] or 0))
+		end
+		winnerText = (info.WinnerTeam and (Config.Teams[info.WinnerTeam].Name .. " WINS  ·  ") or "") .. table.concat(parts, "  –  ")
+	end
+	Label({ Text = (info.Nuke and "☢️ TACTICAL NUKE · " or "") .. winnerText, Size = UDim2.new(1, 0, 0, 24), Position = UDim2.new(0, 0, 0.08, 84), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 20, Font = T.Black, ZIndex = 9, Parent = results })
 
 	-- podium
 	local podium = new("Frame", { Size = UDim2.fromOffset(600, 170), Position = UDim2.fromScale(0.5, 0.32), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, ZIndex = 9, Parent = results })
@@ -519,7 +565,7 @@ function Menus.ShowResults(info)
 	end
 
 	-- your summary
-	local mine = UIKit.Panel({ Size = UDim2.fromOffset(600, 120), Position = UDim2.fromScale(0.5, 0.62), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = T.Panel, ZIndex = 9, Parent = results })
+	local mine = UIKit.Panel({ Size = UDim2.fromOffset(600, 120), Position = UDim2.fromScale(0.5, 0.55), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = T.Panel, ZIndex = 9, Parent = results })
 	local kd = info.Deaths > 0 and (info.Kills / info.Deaths) or info.Kills
 	local cells = {
 		{ "PLACE", "#" .. info.Place, color }, { "KILLS", tostring(info.Kills), T.Text }, { "K/D", string.format("%.2f", kd), T.Text },
@@ -544,6 +590,22 @@ function Menus.ShowResults(info)
 			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 		})
 		voteCards = {}
+		modeCards = {}
+		local modeRow = new("Frame", { Size = UDim2.new(1, 0, 0, 46), Position = UDim2.fromOffset(0, -54), BackgroundTransparency = 1, ZIndex = 9, Parent = vote }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		Label({ Text = "VOTE FOR THE NEXT MODE", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.fromOffset(0, -72), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Black, TextColor3 = T.Accent2, ZIndex = 10, Parent = vote })
+		for i, id in Config.ModeOrder do
+			local m = Config.Modes[id]
+			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 46), Color = T.Panel2, LayoutOrder = i, Parent = modeRow }, function()
+				myModeVote = id
+				Remotes.Vote:FireServer(id)
+			end)
+			card.ZIndex = 10
+			Label({ Text = m.Name, Size = UDim2.new(1, -12, 0, 18), Position = UDim2.fromOffset(8, 5), TextSize = 12, Font = T.Black, ZIndex = 11, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+			local count = Label({ Text = "0 VOTES", Size = UDim2.new(1, -12, 0, 14), Position = UDim2.fromOffset(8, 25), TextSize = 11, Font = T.Black, TextColor3 = T.Accent, ZIndex = 11, Parent = card })
+			modeCards[id] = { Card = card, Count = count }
+		end
 		for i, id in options do
 			local info = Config.Maps[id] or { Name = id, Icon = "🗺️", Desc = "" }
 			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 74), Color = T.Panel2, LayoutOrder = i, Parent = row }, function()
@@ -561,6 +623,17 @@ function Menus.ShowResults(info)
 end
 
 local function updateVotes()
+	for id, c in modeCards do
+		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
+		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
+		local mine = id == myModeVote
+		UIKit.SetButtonColor(c.Card, mine and T.Accent2 or T.Panel2)
+		for _, l in c.Card:GetChildren() do
+			if l:IsA("TextLabel") then
+				l.TextColor3 = mine and Color3.new(0, 0, 0) or (l == c.Count and T.Accent or T.Text)
+			end
+		end
+	end
 	for id, c in voteCards do
 		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
 		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
@@ -746,6 +819,7 @@ function Menus.Init(playerGui: PlayerGui)
 		if results.Visible and ReplicatedStorage:GetAttribute("MatchState") ~= "Results" then
 			Menus.HideResults()
 			myVote = nil
+			myModeVote = nil
 		elseif results.Visible then
 			updateVotes()
 		end

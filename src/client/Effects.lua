@@ -279,7 +279,13 @@ function Effects.UAV(duration: number)
 					table.insert(targets, b)
 				end
 			end
+			local myTeam = player:GetAttribute("Team")
 			for _, char in targets do
+				local p = Players:GetPlayerFromCharacter(char)
+				local team = p and p:GetAttribute("Team") or char:GetAttribute("Team")
+				if myTeam and team == myTeam then
+					continue -- UAV only shows enemies
+				end
 				local h = Instance.new("Highlight")
 				h.FillColor = Config.Colors.Red
 				h.FillTransparency = 0.6

@@ -111,7 +111,7 @@ local function endSlide()
 end
 
 function Movement.Dash()
-	if not root or ClientState.MenuOpen or ClientState.Driving or (humanoid and humanoid.Sit) then
+	if not root or ClientState.MenuOpen or ClientState.Driving or (humanoid and humanoid.Sit) or player:GetAttribute("Downed") then
 		return
 	end
 	if os.clock() - S.LastDash < Movement.DashCooldown() then
@@ -145,7 +145,7 @@ end
 
 -- C / Ctrl: slide on the ground, slam in the air
 function Movement.Crouch()
-	if ClientState.Driving or (humanoid and humanoid.Sit) then
+	if ClientState.Driving or (humanoid and humanoid.Sit) or player:GetAttribute("Downed") then
 		return
 	end
 	if grounded() then
@@ -156,7 +156,7 @@ function Movement.Crouch()
 end
 
 local function airJump()
-	if not humanoid or grounded() or ClientState.MenuOpen or humanoid.Sit then
+	if not humanoid or grounded() or ClientState.MenuOpen or humanoid.Sit or player:GetAttribute("Downed") then
 		return
 	end
 	if os.clock() - leftGround < 0.15 then
@@ -208,11 +208,28 @@ local function bindCharacter(char: Model)
 	end)
 end
 
+local wasDowned = false
 local function step(_dt: number)
 	if not humanoid or humanoid.Health <= 0 or not root then
 		return
 	end
 	local now = os.clock()
+
+	-- downed: crawl slowly, no jumping or abilities
+	local downed = player:GetAttribute("Downed") == true
+	if downed ~= wasDowned then
+		wasDowned = downed
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, not downed)
+		TweenService:Create(humanoid, TweenInfo.new(0.3), { CameraOffset = Vector3.new(0, downed and -2.4 or 0, 0) }):Play()
+		if downed then
+			S.Sliding = false
+		end
+	end
+	if downed then
+		humanoid.WalkSpeed = 5
+		S.Sprinting = false
+		return
+	end
 
 	-- walk speed
 	local base = Config.BaseWalkSpeed

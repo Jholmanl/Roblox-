@@ -19,6 +19,7 @@ local refs = {}
 local RADAR_RANGE = 160
 local RADAR_SIZE = 170
 
+-- every other fighter (allies included; check ClientState.IsAlly)
 local function enemies()
 	local list = {}
 	for _, p in Players:GetPlayers() do
@@ -89,12 +90,13 @@ local function updateRadar()
 	for _, enemy in enemies() do
 		local r = enemy:FindFirstChild("HumanoidRootPart")
 		local hum = enemy:FindFirstChildOfClass("Humanoid")
-		if r and hum and hum.Health > 0 and (uav or now - (Effects.LastFired[enemy] or -10) < 2.5) then
+		local ally = ClientState.IsAlly(enemy)
+		if r and hum and hum.Health > 0 and (ally or uav or now - (Effects.LastFired[enemy] or -10) < 2.5) then
 			local x, y, dist = toRadar(r.Position)
 			if dist < RADAR_RANGE then
 				n += 1
 				local d = dot(n)
-				d.BackgroundColor3 = T.Red
+				d.BackgroundColor3 = ally and Color3.fromRGB(70, 160, 255) or T.Red
 				d.Size = UDim2.fromOffset(8, 8)
 				d.Position = UDim2.new(0.5, x, 0.5, y)
 			end
@@ -185,7 +187,10 @@ local function updateTarget()
 	end
 	if hum and hum.Health > 0 and ClientState.Deployed and not ClientState.Dead then
 		local isBot = model:GetAttribute("BotName") ~= nil
-		refs.TargetName.Text = string.upper(model.Name) .. (isBot and "  [BOT]" or "")
+		local ally = ClientState.IsAlly(model)
+		refs.TargetName.Text = (ally and "ALLY · " or "") .. string.upper(model.Name) .. (isBot and "  [BOT]" or "")
+		refs.TargetName.TextColor3 = ally and Color3.fromRGB(90, 170, 255) or T.Red
+		refs.TargetFill.BackgroundColor3 = ally and Color3.fromRGB(90, 170, 255) or T.Red
 		refs.TargetFill.Size = UDim2.fromScale(math.clamp(hum.Health / hum.MaxHealth, 0, 1), 1)
 		refs.Target.Visible = true
 	else
@@ -235,6 +240,45 @@ local function updateVehicle()
 	refs.SpinFill.Size = UDim2.fromScale(spin, 1)
 end
 
+-- TEAMMATE MARKERS + REVIVE PROMPTS ---------------------------------------------------------
+local markers = {} -- [character] = BillboardGui
+local function updateTeammates()
+	local seen = {}
+	for _, char in enemies() do
+		local ally = ClientState.IsAlly(char)
+		local downed = char:GetAttribute("Downed") == true
+		local head = char:FindFirstChild("Head")
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		-- only teammates may see / use a downed player's revive prompt
+		local root = char:FindFirstChild("HumanoidRootPart")
+		local prompt = root and root:FindFirstChild("RevivePrompt")
+		if prompt then
+			prompt.Enabled = ally and downed and not ClientState.Dead and player:GetAttribute("Downed") ~= true
+		end
+		if ally and head and hum and hum.Health > 0 then
+			seen[char] = true
+			local bb = markers[char]
+			if not bb then
+				bb = new("BillboardGui", { Size = UDim2.fromOffset(160, 40), StudsOffset = Vector3.new(0, 2.6, 0), AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 600, Adornee = head, Parent = refs.Gui })
+				local l = Label({ Name = "NameLabel", Text = "", Size = UDim2.fromScale(1, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = Color3.fromRGB(110, 180, 255), Parent = bb })
+				UIKit.TextStroke(0.3).Parent = l
+				local r = Label({ Name = "ReviveLabel", Text = "✚ REVIVE", Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 15, Font = T.Black, TextColor3 = Color3.fromRGB(255, 120, 60), Parent = bb })
+				UIKit.TextStroke(0.2).Parent = r
+				markers[char] = bb
+			end
+			bb.Adornee = head
+			bb:FindFirstChild("NameLabel").Text = "▼ " .. char.Name
+			bb:FindFirstChild("ReviveLabel").Visible = downed
+		end
+	end
+	for char, bb in markers do
+		if not seen[char] then
+			bb:Destroy()
+			markers[char] = nil
+		end
+	end
+end
+
 function Extras.Init(gui: ScreenGui)
 	refs.Gui = gui
 	buildRadar(gui)
@@ -249,6 +293,7 @@ function Extras.Init(gui: ScreenGui)
 			acc = 0
 			updateRadar()
 			updateTarget()
+			updateTeammates()
 		end
 	end)
 end

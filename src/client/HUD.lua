@@ -42,8 +42,9 @@ local function buildTopBar()
 		return f
 	end
 	local you = box(0, 104, Color3.fromRGB(0, 90, 130), "You")
-	new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Accent2, BorderSizePixel = 0, Parent = you })
-	Label({ Text = "YOU", Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, TextColor3 = T.Accent2, Font = T.Black, Parent = you })
+	refs.YouBox = you
+	refs.YouLine = new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Accent2, BorderSizePixel = 0, Parent = you })
+	refs.YouTitle = Label({ Text = "YOU", Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, TextColor3 = T.Accent2, Font = T.Black, Parent = you })
 	refs.YouKills = Label({ Text = "0", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 22), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = you })
 
 	local mid = box(110, 200, T.Panel, "Timer")
@@ -51,9 +52,18 @@ local function buildTopBar()
 	refs.Mode = Label({ Text = Config.ModeName .. " · FIRST TO " .. Config.KillsToWin, Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 40), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 11, TextColor3 = T.Sub, Font = T.Bold, Parent = mid })
 
 	local lead = box(316, 104, Color3.fromRGB(130, 20, 30), "Leader")
-	new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Red, BorderSizePixel = 0, Parent = lead })
+	refs.LeadBox = lead
+	refs.LeadLine = new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Red, BorderSizePixel = 0, Parent = lead })
 	refs.LeaderName = Label({ Text = "LEADER", Size = UDim2.new(1, -8, 0, 16), Position = UDim2.fromOffset(4, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, TextColor3 = Color3.fromRGB(255, 140, 140), Font = T.Black, TextTruncate = Enum.TextTruncate.AtEnd, Parent = lead })
 	refs.LeaderKills = Label({ Text = "0", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 22), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = lead })
+	-- third team (triple team deathmatch)
+	local extra = box(426, 90, Color3.fromRGB(20, 110, 40), "Extra")
+	refs.ExtraBox = extra
+	refs.ExtraLine = new("Frame", { Size = UDim2.new(1, 0, 0, 3), Position = UDim2.new(0, 0, 1, -3), BackgroundColor3 = T.Green, BorderSizePixel = 0, Parent = extra })
+	refs.ExtraName = Label({ Text = "", Size = UDim2.new(1, -8, 0, 16), Position = UDim2.fromOffset(4, 6), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Black, Parent = extra })
+	refs.ExtraKills = Label({ Text = "0", Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(0, 22), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = extra })
+	extra.Visible = false
+	refs.TopBar = bar
 
 	refs.Banner = shadowText({
 		Text = "", Size = UDim2.fromOffset(500, 22), Position = UDim2.new(0.5, 0, 0, 76), AnchorPoint = Vector2.new(0.5, 0),
@@ -120,24 +130,32 @@ local feedOrder = 0
 function HUD.Feed(entry)
 	feedOrder += 1
 	local me = player.Name
-	local function colorName(name, vip)
+	local function hex(c: Color3)
+		return string.format("#%02X%02X%02X", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
+	end
+	local function colorName(name, vip, team)
 		if not name then
 			return ""
 		end
 		local color = "#FFFFFF"
+		if team and Config.Teams[team] then
+			color = hex(Config.Teams[team].Color)
+		end
 		if name == me then
 			color = "#FFC61A"
-		elseif vip then
+		elseif vip and not team then
 			color = "#FFD34A"
 		end
 		local prefix = vip and "👑 " or ""
 		return string.format('<font color="%s">%s%s</font>', color, prefix, name)
 	end
 	local text
-	if entry.Killer then
-		text = string.format('%s  <font color="#9AA2B4">[%s]</font>%s  %s', colorName(entry.Killer, entry.KillerVIP), entry.Weapon, entry.Headshot and " 💀" or "", colorName(entry.Victim, entry.VictimVIP))
+	if entry.Knock then
+		text = string.format('%s  <font color="#9AA2B4">[%s]</font>  <font color="#FF9A3C">⬇ KNOCKED</font>  %s', colorName(entry.Killer, entry.KillerVIP, entry.KillerTeam), entry.Weapon, colorName(entry.Victim, entry.VictimVIP, entry.VictimTeam))
+	elseif entry.Killer then
+		text = string.format('%s  <font color="#9AA2B4">[%s]</font>%s  %s', colorName(entry.Killer, entry.KillerVIP, entry.KillerTeam), entry.Weapon, entry.Headshot and " 💀" or "", colorName(entry.Victim, entry.VictimVIP, entry.VictimTeam))
 	else
-		text = string.format('%s  <font color="#9AA2B4">[%s]</font>', colorName(entry.Victim, entry.VictimVIP), entry.Weapon)
+		text = string.format('%s  <font color="#9AA2B4">[%s]</font>', colorName(entry.Victim, entry.VictimVIP, entry.VictimTeam), entry.Weapon)
 	end
 	local involved = entry.Killer == me or entry.Victim == me
 	local row = UIKit.Panel({
@@ -559,6 +577,20 @@ function HUD.Death(info)
 	refs.DeathUpsell.Visible = not ClientState.HasPass("InstantRespawn")
 end
 
+local function buildDowned()
+	local d = UIKit.Panel({ Name = "Downed", Size = UDim2.fromOffset(440, 120), Position = UDim2.new(0.5, 0, 0.62, 0), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = Color3.fromRGB(40, 8, 8), BackgroundTransparency = 0.15, Visible = false, ZIndex = 25, Parent = gui })
+	UIKit.Stroke(T.Red, 2, 0).Parent = d
+	Label({ Text = "⬇ YOU'RE DOWN", Size = UDim2.new(1, 0, 0, 32), Position = UDim2.fromOffset(0, 8), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 28, Font = T.Black, TextColor3 = T.Red, ZIndex = 26, Parent = d })
+	refs.DownBleed = Label({ Text = "", Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 42), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 14, Font = T.Black, ZIndex = 26, Parent = d })
+	refs.DownHint = Label({ Text = "", Size = UDim2.new(1, -20, 0, 16), Position = UDim2.fromOffset(10, 64), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Bold, TextColor3 = T.Sub, ZIndex = 26, Parent = d })
+	local bar, fill = UIKit.Bar({ Size = UDim2.new(1, -40, 0, 10), Position = UDim2.new(0, 20, 0, 92), Color = T.Green, Value = 0, Parent = d })
+	bar.ZIndex = 26
+	fill.ZIndex = 27
+	refs.DownBar = bar
+	refs.DownFill = fill
+	refs.Down = d
+end
+
 function HUD.HideDeath()
 	if refs.Death then
 		refs.Death.Visible = false
@@ -649,7 +681,10 @@ local function update(dt: number)
 	local left = math.max(0, (ReplicatedStorage:GetAttribute("MatchEnd") or 0) - now)
 
 	refs.Timer.Text = Util.Time(left)
-	refs.Mode.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. " · FFA · FIRST TO " .. Config.KillsToWin
+	local modeId = ReplicatedStorage:GetAttribute("Mode") or "TDM"
+	local modeDef = Config.Modes[modeId] or Config.Modes.TDM
+	local goal = ReplicatedStorage:GetAttribute("KillsToWin") or modeDef.KillsToWin
+	refs.Mode.Text = (ReplicatedStorage:GetAttribute("MapName") or "") .. " · " .. modeDef.Short .. " · FIRST TO " .. goal
 	refs.Timer.TextColor3 = (state == "Active" and left < 30) and T.Red or T.Text
 	if state == "Intermission" then
 		refs.Banner.Text = "WARMUP  ·  MATCH STARTS IN " .. math.ceil(left)
@@ -658,10 +693,64 @@ local function update(dt: number)
 	else
 		refs.Banner.Text = ""
 	end
-	refs.YouKills.Text = tostring(player:GetAttribute("Kills") or 0)
-	local leader = ReplicatedStorage:GetAttribute("Leader") or ""
-	refs.LeaderName.Text = leader ~= "" and string.upper(leader) or "LEADER"
-	refs.LeaderKills.Text = tostring(ReplicatedStorage:GetAttribute("LeaderScore") or 0)
+	local myTeam = player:GetAttribute("Team")
+	local function paint(boxFrame, line, title, team)
+		local c = Config.Teams[team].Color
+		boxFrame.BackgroundColor3 = c:Lerp(Color3.new(), 0.55)
+		line.BackgroundColor3 = c
+		title.TextColor3 = c:Lerp(Color3.new(1, 1, 1), 0.4)
+	end
+	if #modeDef.Teams == 0 or not myTeam then
+		refs.YouTitle.Text = "YOU"
+		refs.YouTitle.TextColor3 = T.Accent2
+		refs.YouBox.BackgroundColor3 = Color3.fromRGB(0, 90, 130)
+		refs.YouLine.BackgroundColor3 = T.Accent2
+		refs.YouKills.Text = tostring(player:GetAttribute("Kills") or 0)
+		local leader = ReplicatedStorage:GetAttribute("Leader") or ""
+		refs.LeaderName.Text = leader ~= "" and string.upper(leader) or "LEADER"
+		refs.LeaderName.TextColor3 = Color3.fromRGB(255, 140, 140)
+		refs.LeadBox.BackgroundColor3 = Color3.fromRGB(130, 20, 30)
+		refs.LeadLine.BackgroundColor3 = T.Red
+		refs.LeaderKills.Text = tostring(ReplicatedStorage:GetAttribute("LeaderScore") or 0)
+		refs.ExtraBox.Visible = false
+	else
+		local others = {}
+		for _, t in modeDef.Teams do
+			if t ~= myTeam then
+				table.insert(others, t)
+			end
+		end
+		refs.YouTitle.Text = Config.Teams[myTeam].Name .. " (YOU)"
+		refs.YouKills.Text = tostring(ReplicatedStorage:GetAttribute("Score_" .. myTeam) or 0)
+		paint(refs.YouBox, refs.YouLine, refs.YouTitle, myTeam)
+		local o1 = others[1]
+		refs.LeaderName.Text = Config.Teams[o1].Name
+		refs.LeaderKills.Text = tostring(ReplicatedStorage:GetAttribute("Score_" .. o1) or 0)
+		paint(refs.LeadBox, refs.LeadLine, refs.LeaderName, o1)
+		local o2 = others[2]
+		refs.ExtraBox.Visible = o2 ~= nil
+		if o2 then
+			refs.ExtraName.Text = Config.Teams[o2].Name
+			refs.ExtraKills.Text = tostring(ReplicatedStorage:GetAttribute("Score_" .. o2) or 0)
+			paint(refs.ExtraBox, refs.ExtraLine, refs.ExtraName, o2)
+		end
+	end
+	refs.TopBar.Size = UDim2.fromOffset(refs.ExtraBox.Visible and 516 or 420, 62)
+
+	-- downed overlay
+	local downed = player:GetAttribute("Downed") == true
+	refs.Down.Visible = downed
+	if downed then
+		local char = player.Character
+		local h = char and char:FindFirstChildOfClass("Humanoid")
+		local bleed = h and math.max(0, h.Health / Config.BleedRate) or 0
+		refs.DownBleed.Text = string.format("BLEEDING OUT IN %ds", math.ceil(bleed))
+		local used = player:GetAttribute("SelfReviveUsed") == true
+		local progress = HUD.SelfReviveProgress or 0
+		refs.DownFill.Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1)
+		refs.DownHint.Text = used and "Self-revive used · wait for a teammate (they hold E)" or ("HOLD [F] TO SELF-REVIVE" .. (myTeam and " · or a teammate can revive you" or ""))
+		refs.DownBar.Visible = not used
+	end
 
 	-- profile
 	refs.Level.Text = tostring(player:GetAttribute("Level") or 1)
@@ -792,6 +881,7 @@ function HUD.Init(playerGui: PlayerGui)
 	buildAbilities()
 	buildCrosshair()
 	buildDeath()
+	buildDowned()
 	HUD.Gui = gui
 	HUD.Extras = require(script.Parent.HUDExtras)
 	HUD.Extras.Init(gui)

@@ -111,6 +111,65 @@ RunService.RenderStepped:Connect(function(dt)
 	UserInputService.MouseIconEnabled = freeMouse
 end)
 
+-- SELF REVIVE (hold F while downed) ---------------------------------------------------
+local Config = require(Shared.Config)
+local holdingRevive = false
+local holdStart = 0
+local function startRevive()
+	if player:GetAttribute("Downed") and not player:GetAttribute("SelfReviveUsed") then
+		holdingRevive = true
+		holdStart = os.clock()
+	end
+end
+local function stopRevive()
+	holdingRevive = false
+	HUD.SelfReviveProgress = 0
+end
+RunService.RenderStepped:Connect(function()
+	if not holdingRevive then
+		return
+	end
+	if not player:GetAttribute("Downed") then
+		stopRevive()
+		return
+	end
+	local progress = (os.clock() - holdStart) / Config.SelfReviveTime
+	HUD.SelfReviveProgress = progress
+	if progress >= 1 then
+		holdingRevive = false
+		Remotes.SelfRevive:FireServer()
+	end
+end)
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not processed and (input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonY) then
+		startRevive()
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.F or input.KeyCode == Enum.KeyCode.ButtonY then
+		stopRevive()
+	end
+end)
+if UserInputService.TouchEnabled then
+	local ContextActionService = game:GetService("ContextActionService")
+	player:GetAttributeChangedSignal("Downed"):Connect(function()
+		if player:GetAttribute("Downed") then
+			ContextActionService:BindAction("NS_SelfRevive", function(_, state)
+				if state == Enum.UserInputState.Begin then
+					startRevive()
+				elseif state == Enum.UserInputState.End then
+					stopRevive()
+				end
+				return Enum.ContextActionResult.Sink
+			end, true)
+			ContextActionService:SetTitle("NS_SelfRevive", "REVIVE")
+			ContextActionService:SetPosition("NS_SelfRevive", UDim2.new(1, -170, 1, -210))
+		else
+			ContextActionService:UnbindAction("NS_SelfRevive")
+		end
+	end)
+end
+
 -- HOTKEYS ---------------------------------------------------------------------------------
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then
@@ -141,6 +200,11 @@ end)
 Remotes.Notify.OnClientEvent:Connect(function(kind, payload)
 	if kind == "Kill" then
 		HUD.Kill(payload)
+	elseif kind == "Downed" then
+		HUD.Announce({ Text = "KNOCKED DOWN", Sub = "by " .. tostring(payload.By), Color = Color3.fromRGB(255, 80, 60), Icon = "⬇" })
+	elseif kind == "Revived" then
+		HUD.Message(payload.By and ("REVIVED BY " .. string.upper(payload.By)) or "SELF-REVIVED", Color3.fromRGB(80, 230, 120))
+		HUD.SelfReviveProgress = 0
 	elseif kind == "KOStreak" then
 		HUD.KOStreak()
 		Effects.Shake(1.2)

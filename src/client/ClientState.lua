@@ -24,6 +24,24 @@ function State.HasPass(key: string): boolean
 	return player:GetAttribute("Pass_" .. key) == true
 end
 
+-- Team of any character (players or bots); nil in free-for-all
+function State.TeamOf(char: Instance?)
+	if not char then
+		return nil
+	end
+	local p = Players:GetPlayerFromCharacter(char)
+	if p then
+		return p:GetAttribute("Team")
+	end
+	return char:GetAttribute("Team")
+end
+
+-- true when this character is on my team (never in FFA)
+function State.IsAlly(char: Instance?): boolean
+	local mine = player:GetAttribute("Team")
+	return mine ~= nil and char ~= player.Character and State.TeamOf(char) == mine
+end
+
 function State.Overdrive(): boolean
 	return (player:GetAttribute("OverdriveUntil") or 0) > workspace:GetServerTimeNow()
 end
