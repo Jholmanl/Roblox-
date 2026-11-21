@@ -259,7 +259,7 @@ local function updateTeammates()
 			seen[char] = true
 			local bb = markers[char]
 			if not bb then
-				bb = new("BillboardGui", { Size = UDim2.fromOffset(160, 40), StudsOffset = Vector3.new(0, 2.6, 0), AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 600, Adornee = head, Parent = refs.Gui })
+				bb = new("BillboardGui", { Size = UDim2.fromOffset(160, 40), StudsOffset = Vector3.new(0, 2.6, 0), AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 600, Adornee = head, Parent = player:FindFirstChildOfClass("PlayerGui") })
 				local l = Label({ Name = "NameLabel", Text = "", Size = UDim2.fromScale(1, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = Color3.fromRGB(110, 180, 255), Parent = bb })
 				UIKit.TextStroke(0.3).Parent = l
 				local r = Label({ Name = "ReviveLabel", Text = "✚ REVIVE", Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.5), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 15, Font = T.Black, TextColor3 = Color3.fromRGB(255, 120, 60), Parent = bb })
