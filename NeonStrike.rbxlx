@@ -9369,20 +9369,16 @@ function HUD.SetAmmo(mag: number, reserve: number, name: string, reloading: bool
 	end
 	refs.WeaponName.Text = name
 	refs.Reserve.Text = unlimited and "/ ∞" or ("/ " .. reserve)
-	if unlimited then
-		refs.ReloadHint.Text = ""
-	elseif reloading then
-		refs.ReloadHint.Text = "RELOADING…"
-		refs.ReloadHint.TextColor3 = T.Sub
-	elseif mag <= 0 and reserve <= 0 then
-		refs.ReloadHint.Text = "NO AMMO · SWAP WEAPON [1/2]"
-		refs.ReloadHint.TextColor3 = T.Red
-	elseif mag / math.max(1, magSize) <= 0.25 and reserve > 0 then
-		refs.ReloadHint.Text = "RELOAD [R]"
-		refs.ReloadHint.TextColor3 = mag <= 0 and T.Red or T.Accent
-	else
-		refs.ReloadHint.Text = ""
+	local hint, hintColor = "", T.Accent
+	if not unlimited and reloading then
+		hint, hintColor = "RELOADING…", T.Sub
+	elseif not unlimited and mag <= 0 and reserve <= 0 then
+		hint, hintColor = "NO AMMO · SWAP WEAPON [1/2]", T.Red
+	elseif not unlimited and mag / math.max(1, magSize) <= 0.25 and reserve > 0 then
+		hint, hintColor = "RELOAD [R]", mag <= 0 and T.Red or T.Accent
 	end
+	refs.ReloadHint.Text = hint
+	refs.ReloadHint.TextColor3 = hintColor
 	if unlimited then
 		refs.Mag.Text = "∞"
 		refs.Mag.TextColor3 = T.Accent
