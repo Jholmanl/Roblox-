@@ -28,6 +28,14 @@ return {
 			gun:PivotTo(CFrame.new(x, 4.4, z) * CFrame.Angles(0, math.rad(-90), 0))
 			gun.Parent = kit.Props
 		end
+		local Knives = require({ __module = ROOT .. "/src/shared/Knives.lua" })
+		for i, id in Knives.Order do
+			local x = -20 + (i - 1) * 8
+			kit:Part(Vector3.new(5, 3, 3), CFrame.new(x, 1.5, 9), Color3.fromRGB(200, 202, 208), M.SmoothPlastic)
+			local k = Knives.Build(id)
+			k:PivotTo(CFrame.new(x, 3.6, 9) * CFrame.Angles(0, math.rad(-90), math.rad(90)))
+			k.Parent = kit.Props
+		end
 		local styles = { "Sedan", "Sports", "Jeep", "Truck" }
 		for i, st in styles do
 			local car = CarBuilder.Build(st, nil, true)

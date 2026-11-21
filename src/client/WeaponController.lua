@@ -11,6 +11,8 @@ local Weapons = require(Shared.Weapons)
 local GunBuilder = require(Shared.GunBuilder)
 local Remotes = require(Shared.Remotes)
 local ClientState = require(script.Parent.ClientState)
+local GunAudio = require(script.Parent.GunAudio)
+local Knives = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Knives"))
 local Effects = require(script.Parent.Effects)
 local UIKit = require(script.Parent.UIKit)
 local Movement = require(script.Parent.MovementController)
@@ -54,6 +56,7 @@ local knifeTime = -10
 local throwTime = -10
 local viewmodel = nil
 local knifeModel = nil
+local reloadPath = nil -- support-hand keyframes for the current gun's reload
 local character, humanoid
 
 local function extended()
@@ -135,8 +138,27 @@ local function buildViewmodel(id: string)
 	local f = foreA and foreA.Position or Vector3.new(0, -0.25, -L * 0.3)
 	arm(model, "RightHand", Vector3.new(0.38, 0.42, 0.42), cf * CFrame.new(g + Vector3.new(0.04, 0.02, 0)), skin)
 	arm(model, "RightSleeve", Vector3.new(0.5, 0.5, 1.9), cf * CFrame.new(g + Vector3.new(0.3, -0.25, 1.05)) * CFrame.Angles(math.rad(14), math.rad(8), 0), sleeve)
-	arm(model, "LeftHand", Vector3.new(0.38, 0.38, 0.48), cf * CFrame.new(f + Vector3.new(-0.04, -0.06, 0)), skin)
-	arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.1), cf * CFrame.new(f + Vector3.new(-0.55, -0.32, 1.0)) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
+	local lh = arm(model, "LeftHand", Vector3.new(0.38, 0.38, 0.48), cf * CFrame.new(f + Vector3.new(-0.04, -0.06, 0)), skin)
+	local ls = arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.1), cf * CFrame.new(f + Vector3.new(-0.55, -0.32, 1.0)) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
+	lh:SetAttribute("Anim", "LeftArm")
+	ls:SetAttribute("Anim", "LeftArm")
+	-- reload path for the support hand: fore grip -> mag -> pouch -> mag -> charging handle
+	local magPart = model:FindFirstChild("Mag", true)
+	local magPos = magPart and handle.CFrame:PointToObjectSpace(magPart.Position) or Vector3.new(0, -0.6, g.Z - 0.5)
+	local magwell = Vector3.new(magPos.X + 0.05, magPos.Y + 0.15, magPos.Z) - f
+	local charge = Vector3.new(-0.12, 0.32, g.Z + 0.15) - f
+	reloadPath = {
+		{ 0, Vector3.zero },
+		{ 0.14, magwell },
+		{ 0.3, magwell + Vector3.new(0, -1.5, 0.15) },
+		{ 0.44, Vector3.new(-0.7, -1.9, 0.9) },
+		{ 0.6, magwell + Vector3.new(0, -1.1, 0.1) },
+		{ 0.7, magwell },
+		{ 0.8, charge },
+		{ 0.88, charge + Vector3.new(0, 0, 0.4) },
+		{ 0.94, charge },
+		{ 1, Vector3.zero },
+	}
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			setVMPart(p)
@@ -163,22 +185,25 @@ local function buildViewmodel(id: string)
 	cylAngle, cylTarget, barrelAngle = 0, 0, 0
 end
 
+local knifeBuiltFor = nil
+local function equippedKnife(): string
+	local id = ClientState.Data and ClientState.Data.Knife or "Standard"
+	local def = Knives.Defs[id]
+	if def and def.Pass and not ClientState.HasPass(def.Pass) then
+		return "Standard"
+	end
+	return def and id or "Standard"
+end
+
 local function buildKnife()
-	local model = Instance.new("Model")
-	model.Name = "Knife"
-	local handle = Instance.new("Part")
-	handle.Size = Vector3.new(0.18, 0.25, 0.7)
-	handle.Color = Color3.fromRGB(25, 25, 28)
-	setVMPart(handle)
-	handle.Parent = model
-	local blade = Instance.new("Part")
-	blade.Size = Vector3.new(0.05, 0.25, 1.1)
-	blade.Color = Color3.fromRGB(220, 225, 235)
-	blade.Material = Enum.Material.Metal
-	blade.CFrame = handle.CFrame * CFrame.new(0, 0.02, -0.9)
-	setVMPart(blade)
-	blade.Parent = model
-	model.PrimaryPart = handle
+	local id = equippedKnife()
+	local model = Knives.Build(id)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			setVMPart(p)
+		end
+	end
+	knifeBuiltFor = id
 	model.Parent = nil
 	return model
 end
@@ -371,21 +396,21 @@ local function kickRecoil(def)
 	kick = math.min(kick + 0.6 + def.Recoil * 0.08, 2)
 	bloom = math.min(bloom + def.Spread * 0.18, def.Spread * 1.2)
 	Effects.Flash(muzzlePosition(), def.Look.Neon and def.Look.Accent or nil)
-	UIKit.Sound((def.Class == "Sniper" or def.Class == "Exotic") and "ShotHeavy" or "Shot", 0.92 + math.random() * 0.16)
+	GunAudio.Shot(current.Id)
 end
 
 function WC.Reload()
 	if not current or reloading or not alive() or infinite() then
 		return
 	end
-	if gunFlags.Break then
-		task.delay(0.35, ejectShell, "Shell")
-		task.delay(0.4, ejectShell, "Shell")
-	end
 	local def = current.Def
 	local a = ammo[current.Id]
 	if a.Mag >= Weapons.MagSize(def, extended()) or a.Reserve <= 0 then
 		return
+	end
+	if gunFlags.Break then
+		task.delay(0.35, ejectShell, "Shell")
+		task.delay(0.4, ejectShell, "Shell")
 	end
 	reloading = true
 	reloadToken += 1
@@ -395,7 +420,7 @@ function WC.Reload()
 	reloadStart = os.clock()
 	reloadEnd = reloadStart + duration
 	Remotes.Reload:FireServer(id)
-	UIKit.Sound("Reload")
+	GunAudio.Reload(id, duration)
 	updateHud()
 	task.delay(duration, function()
 		if token ~= reloadToken or not current or current.Id ~= id then
@@ -406,7 +431,6 @@ function WC.Reload()
 		a.Mag += take
 		a.Reserve -= take
 		reloading = false
-		UIKit.Sound("Reload", 1.3)
 		updateHud()
 	end)
 end
@@ -430,7 +454,7 @@ local function tryShoot()
 	local a = ammo[current.Id]
 	local unlimited = infinite()
 	if a.Mag <= 0 and not unlimited then
-		UIKit.Sound("Empty")
+		GunAudio.Empty()
 		if ClientState.OnDryFire then
 			ClientState.OnDryFire()
 		end
@@ -484,7 +508,7 @@ local function tryShoot()
 end
 
 function WC.Knife()
-	if not canAct() or os.clock() - knifeTime < 0.7 then
+	if not canAct() or os.clock() - knifeTime < Knives.Get(equippedKnife()).Cooldown then
 		return
 	end
 	knifeTime = os.clock()
@@ -549,6 +573,24 @@ local function animateViewmodel(dt: number, now: number)
 		barrelAngle += dt * (1.5 + pulse * 14)
 	end
 	local glow = math.max(0, 1 - t / 0.18)
+	-- support hand + charging handle rack during a reload
+	local handOffset = Vector3.zero
+	local rack = 0
+	if reloading and reloadPath then
+		local r = math.clamp((now - reloadStart) / math.max(0.01, reloadEnd - reloadStart), 0, 1)
+		for i = 1, #reloadPath - 1 do
+			local k0, k1 = reloadPath[i], reloadPath[i + 1]
+			if r >= k0[1] and r <= k1[1] then
+				local u = (r - k0[1]) / math.max(0.001, k1[1] - k0[1])
+				u = u * u * (3 - 2 * u)
+				handOffset = k0[2]:Lerp(k1[2], u)
+				break
+			end
+		end
+		if r > 0.8 and r < 0.94 then
+			rack = math.sin((r - 0.8) / 0.14 * math.pi)
+		end
+	end
 	local function around(pivot, rot, base)
 		local p = pivot or Vector3.zero
 		return hcf * CFrame.new(p) * rot * CFrame.new(-p) * base
@@ -557,15 +599,18 @@ local function animateViewmodel(dt: number, now: number)
 		local kind = ap.Kind
 		local cf
 		if kind == "Slide" then
-			cf = hcf * CFrame.new(0, 0, empty and 0.2 or 0.22 * pulse) * ap.Base -- locks back when empty
+			cf = hcf * CFrame.new(0, 0, empty and not reloading and 0.2 or 0.22 * math.max(pulse, rack)) * ap.Base -- locks back when empty
 		elseif kind == "Bolt" then
-			cf = hcf * CFrame.new(0, 0, empty and 0.12 or 0.14 * pulse) * ap.Base
+			cf = hcf * CFrame.new(0, 0, empty and not reloading and 0.12 or 0.14 * math.max(pulse, rack)) * ap.Base
 		elseif kind == "Recoil" then
 			cf = hcf * CFrame.new(0, 0, 0.28 * pulse) * ap.Base
+		elseif kind == "LeftArm" then
+			cf = hcf * CFrame.new(handOffset) * ap.Base
 		elseif kind == "Pump" then
-			cf = hcf * CFrame.new(0, 0, 0.34 * cycle) * ap.Base
+			cf = hcf * CFrame.new(0, 0, 0.34 * math.max(cycle, rack)) * ap.Base
 		elseif kind == "BoltAction" then
-			cf = hcf * CFrame.new(0, 0.07 * cycle, 0.3 * cycle) * ap.Base
+			local c = math.max(cycle, rack)
+			cf = hcf * CFrame.new(0, 0.07 * c, 0.3 * c) * ap.Base
 		elseif kind == "Trigger" then
 			cf = hcf * CFrame.new(0, 0, (firing or pulse > 0.3) and 0.035 or 0) * ap.Base
 		elseif kind == "Hammer" then
@@ -710,6 +755,10 @@ local function render(dt: number)
 
 		-- knife swing
 		if knifeT < 1 then
+			if knifeModel and knifeBuiltFor ~= equippedKnife() then
+				knifeModel:Destroy()
+				knifeModel = nil
+			end
 			knifeModel = knifeModel or buildKnife()
 			knifeModel.Parent = camera
 			local swing = -60 + knifeT * 140

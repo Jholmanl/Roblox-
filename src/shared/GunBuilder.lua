@@ -41,7 +41,10 @@ local STYLES = {
 	Duke = "Double", Reaper = "Minigun", Havoc = "RPG", Thumper = "M32", Railgun = "Railgun",
 	Sidekick = "Pistol", Stinger = "Uzi", HandCannon = "Deagle", Judge = "Revolver", Arc = "Energy",
 	RayGun = "RayGun", PlasmaRifle = "Plasma", VoidCannon = "Void",
+	Vortex = "MachinePistol", Hellcat = "ARPistol", Phantom = "Vector",
 }
+
+GunBuilder.Styles = STYLES
 
 function GunBuilder.Build(weaponId: string, golden: boolean?)
 	local def = Weapons.Get(weaponId)
@@ -850,6 +853,144 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 		info.Fore = Vector3.new(0, -0.38, 0.3)
 		info.Shell = "None"
 		info.Sight = 0.32
+	elseif style == "MachinePistol" then
+		-- VORTEX: select-fire machine pistol (G18 pattern): ported comp, stick mag, mini dot, laser
+		local P = L
+		handle.Size = Vector3.new(0.22, 0.16, P * 0.75)
+		handle.Color = POLY
+		handle.Material = M.SmoothPlastic
+		local slideLen = P * 0.9
+		box("Slide", Vector3.new(0.24, 0.22, slideLen), at(0, 0.15, -0.04), DARK, M.Metal, "Slide")
+		box("SlideTopCut", Vector3.new(0.12, 0.03, slideLen * 0.5), at(0, 0.27, -0.12), BLACK, M.Metal, "Slide")
+		for i = 1, 6 do
+			box("Serration", Vector3.new(0.25, 0.13, 0.022), at(0, 0.16, slideLen / 2 - 0.08 - i * 0.045), BLACK, M.Metal, "Slide")
+			box("FrontSerration", Vector3.new(0.25, 0.1, 0.02), at(0, 0.16, -slideLen / 2 + 0.06 + i * 0.035), BLACK, M.Metal, "Slide")
+		end
+		box("SelectorSwitch", Vector3.new(0.27, 0.05, 0.06), at(0, 0.2, slideLen / 2 - 0.05), accent, accentMat, "Slide")
+		box("EjectionPort", Vector3.new(0.03, 0.09, 0.22), at(0.12, 0.18, -0.08), rgb(18, 18, 20), M.Metal, "Slide")
+		info.Eject = Vector3.new(0.14, 0.2, -0.08)
+		-- mini red dot on the slide
+		box("RMRBody", Vector3.new(0.18, 0.1, 0.2), at(0, 0.31, 0.06), BLACK, M.Metal, "Slide")
+		box("RMRHood", Vector3.new(0.18, 0.12, 0.03), at(0, 0.38, -0.03), BLACK, M.Metal, "Slide")
+		local glass = box("RMRGlass", Vector3.new(0.14, 0.09, 0.015), at(0, 0.38, -0.01), rgb(120, 200, 255), M.Glass, "Slide")
+		glass.Transparency = 0.45
+		box("RMRDot", Vector3.new(0.02, 0.02, 0.01), at(0, 0.38, 0.0), rgb(255, 40, 40), M.Neon, "Slide")
+		-- compensator with three top ports
+		box("Compensator", Vector3.new(0.24, 0.22, 0.26), at(0, 0.15, -slideLen / 2 - 0.15), BLACK, M.Metal)
+		for i = 1, 3 do
+			box("CompPort", Vector3.new(0.1, 0.04, 0.05), at(0, 0.265, -slideLen / 2 - 0.06 - i * 0.065), rgb(10, 10, 12))
+		end
+		info.Muzzle = Vector3.new(0, 0.15, -slideLen / 2 - 0.29)
+		box("Frame", Vector3.new(0.22, 0.14, slideLen * 0.85), at(0, -0.02, -0.08), POLY, M.SmoothPlastic)
+		-- under-rail laser module
+		box("LaserBody", Vector3.new(0.2, 0.14, 0.3), at(0, -0.14, -slideLen * 0.3), BLACK, M.Metal)
+		cyl("LaserLens", 0.04, 0.07, at(0.05, -0.14, -slideLen * 0.3 - 0.16), rgb(255, 40, 40), M.Neon, "Glow")
+		cyl("TorchLens", 0.04, 0.09, at(-0.05, -0.14, -slideLen * 0.3 - 0.16), rgb(240, 245, 255), M.Neon)
+		box("Grip", Vector3.new(0.22, 0.6, 0.32), at(0, -0.36, slideLen * 0.28) * CFrame.Angles(math.rad(-16), 0, 0), POLY, M.SmoothPlastic)
+		box("GripStipple", Vector3.new(0.23, 0.42, 0.26), at(0, -0.38, slideLen * 0.29) * CFrame.Angles(math.rad(-16), 0, 0), rgb(40, 40, 42), M.Sand)
+		box("Beavertail", Vector3.new(0.2, 0.05, 0.12), at(0, -0.05, slideLen * 0.43), POLY, M.SmoothPlastic)
+		-- 33-round stick mag sticking way out of the grip
+		box("Mag", Vector3.new(0.16, 0.9, 0.24), at(0, -0.72, slideLen * 0.36) * CFrame.Angles(math.rad(-16), 0, 0), DARK, M.Metal, "Mag")
+		for i = 1, 4 do
+			box("MagWitness", Vector3.new(0.17, 0.03, 0.03), at(0, -0.62 - i * 0.12, slideLen * 0.36 + 0.03 + i * 0.035) * CFrame.Angles(math.rad(-16), 0, 0), BLACK, M.Metal, "Mag")
+		end
+		box("MagBase", Vector3.new(0.24, 0.07, 0.3), at(0, -1.16, slideLen * 0.49) * CFrame.Angles(math.rad(-16), 0, 0), accent, accentMat, "Mag")
+		info.Grip = Vector3.new(0, -0.36, slideLen * 0.28)
+		box("TriggerGuard", Vector3.new(0.05, 0.05, 0.36), at(0, -0.26, slideLen * 0.02), POLY, M.SmoothPlastic)
+		box("TriggerGuardHook", Vector3.new(0.05, 0.1, 0.05), at(0, -0.22, -slideLen * 0.16), POLY, M.SmoothPlastic)
+		box("Trigger", Vector3.new(0.04, 0.13, 0.04), at(0, -0.17, slideLen * 0.06), CHROME, M.Metal, "Trigger")
+		box("SlideStop", Vector3.new(0.03, 0.04, 0.12), at(-0.12, 0.04, 0.0), BLACK)
+		info.Sight = 0.38
+		info.Fore = Vector3.new(0, -0.42, slideLen * 0.28 + 0.05)
+	elseif style == "ARPistol" then
+		-- HELLCAT: short-barrel AR pistol: M-LOK rail, flash can, pistol brace, AFG, holo
+		handle.Size = Vector3.new(0.28, 0.36, L * 0.32)
+		handle.Color = DARK
+		box("UpperTop", Vector3.new(0.24, 0.06, L * 0.34), at(0, 0.21, 0), DARK)
+		rail(-L * 0.17, L * 0.16, 0.25)
+		box("ForwardAssist", Vector3.new(0.1, 0.1, 0.12), at(0.17, 0.1, L * 0.1), BLACK)
+		box("ChargingHandle", Vector3.new(0.22, 0.05, 0.14), at(0, 0.23, L * 0.17 + 0.05), BLACK, M.Metal, "Bolt")
+		box("ChargingLatch", Vector3.new(0.08, 0.04, 0.06), at(-0.13, 0.23, L * 0.17 + 0.08), accent, accentMat, "Bolt")
+		ejectionPort(0.0, 0.07)
+		box("Lower", Vector3.new(0.24, 0.2, L * 0.28), at(0, -0.24, 0.02), DARK)
+		box("SelectorLever", Vector3.new(0.03, 0.05, 0.12), at(-0.14, -0.12, L * 0.1), accent, accentMat)
+		local hg = L * 0.36
+		local hz = -L * 0.16
+		box("Handguard", Vector3.new(0.3, 0.3, hg), at(0, 0.02, hz - hg / 2), BLACK, M.Metal)
+		for i = 1, 4 do
+			for _, sx in { -0.151, 0.151 } do
+				box("MLokSlot", Vector3.new(0.02, 0.06, 0.12), at(sx, 0.02, hz - 0.12 - (i - 1) * hg / 4.4), rgb(14, 14, 16))
+			end
+		end
+		rail(hz - hg, hz, 0.2)
+		box("HandguardNut", Vector3.new(0.27, 0.27, 0.06), at(0, 0.02, hz - 0.02), STEEL)
+		barrel(hz - hg + 0.05, look.Barrel + 0.08, 0.11, 0.02)
+		-- linear compensator / flash can
+		cyl("FlashCan", 0.34, 0.2, at(0, 0.02, info.Muzzle.Z - 0.17), BLACK)
+		for i = 1, 3 do
+			box("FlashCanRing", Vector3.new(0.21, 0.21, 0.03), at(0, 0.02, info.Muzzle.Z - 0.06 - i * 0.08), rgb(20, 20, 22))
+		end
+		info.Muzzle = Vector3.new(0, 0.02, info.Muzzle.Z - 0.34)
+		box("FlipSightRear", Vector3.new(0.14, 0.12, 0.06), at(0, 0.32, L * 0.13), BLACK)
+		box("FlipSightFront", Vector3.new(0.12, 0.14, 0.05), at(0, 0.3, hz - hg + 0.08), BLACK)
+		optic("Holo", -0.05, 0.25)
+		-- angled foregrip
+		box("AFG", Vector3.new(0.12, 0.14, 0.42), at(0, -0.17, hz - hg * 0.55) * CFrame.Angles(math.rad(-12), 0, 0), POLY, M.SmoothPlastic)
+		box("AFGLip", Vector3.new(0.12, 0.08, 0.08), at(0, -0.25, hz - hg * 0.55 - 0.2), POLY, M.SmoothPlastic)
+		grip(L * 0.12)
+		trigger(L * 0.12)
+		stanag(-L * 0.05, 1, false)
+		-- buffer tube + pistol stabilizing brace with strap
+		cyl("BufferTube", 0.66, 0.17, at(0, 0.02, L * 0.17 + 0.33), BLACK)
+		box("BraceBody", Vector3.new(0.18, 0.3, 0.48), at(0, -0.02, L * 0.17 + 0.48), POLY, M.SmoothPlastic)
+		box("BraceFinL", Vector3.new(0.03, 0.4, 0.42), at(-0.12, -0.05, L * 0.17 + 0.5), POLY, M.SmoothPlastic)
+		box("BraceFinR", Vector3.new(0.03, 0.4, 0.42), at(0.12, -0.05, L * 0.17 + 0.5), POLY, M.SmoothPlastic)
+		box("BraceStrap", Vector3.new(0.3, 0.05, 0.16), at(0, -0.24, L * 0.17 + 0.56), rgb(30, 30, 30), M.Fabric)
+		box("BraceBuckle", Vector3.new(0.08, 0.07, 0.06), at(0.16, -0.24, L * 0.17 + 0.56), accent, accentMat)
+		info.Fore = Vector3.new(0, -0.2, hz - hg * 0.55)
+	elseif style == "Vector" then
+		-- PHANTOM: Vector-style SMG: drop-front receiver, vented shroud, folding skeleton stock
+		handle.Size = Vector3.new(0.3, 0.5, L * 0.4)
+		handle.Color = look.Body
+		handle.Material = M.SmoothPlastic
+		box("UpperReceiver", Vector3.new(0.3, 0.16, L * 0.5), at(0, 0.28, -L * 0.02), look.Body, M.SmoothPlastic)
+		rail(-L * 0.26, L * 0.2, 0.37)
+		-- the signature low front housing (recoil mitigation system)
+		box("DropHousing", Vector3.new(0.3, 0.6, L * 0.2), at(0, -0.3, -L * 0.12), look.Body, M.SmoothPlastic)
+		box("DropHousingFace", Vector3.new(0.3, 0.42, 0.12), at(0, -0.42, -L * 0.24) * CFrame.Angles(math.rad(-25), 0, 0), look.Body, M.SmoothPlastic)
+		box("HousingAccent", Vector3.new(0.31, 0.04, L * 0.2), at(0, -0.12, -L * 0.12), accent, accentMat)
+		-- vented barrel shroud
+		local shroud = L * 0.26
+		box("Shroud", Vector3.new(0.24, 0.22, shroud), at(0, 0.18, -L * 0.25 - shroud / 2), BLACK)
+		for i = 1, 4 do
+			for _, sx in { -0.121, 0.121 } do
+				box("ShroudVent", Vector3.new(0.02, 0.1, 0.06), at(sx, 0.18, -L * 0.25 - 0.06 - (i - 1) * shroud / 4.5), rgb(12, 12, 14))
+			end
+		end
+		barrel(-L * 0.25 - shroud, look.Barrel, 0.1, 0.18)
+		brake(0.15, 0.2, false)
+		-- folding iron sights + red dot
+		box("FoldFront", Vector3.new(0.12, 0.14, 0.05), at(0, 0.45, -L * 0.24), BLACK)
+		box("FoldRear", Vector3.new(0.14, 0.12, 0.05), at(0, 0.45, L * 0.18), BLACK)
+		optic("RedDot", -0.02, 0.37)
+		-- bolt handle on the left side
+		box("BoltHandle", Vector3.new(0.12, 0.06, 0.08), at(-0.2, 0.25, -L * 0.05), BLACK, M.Metal, "Bolt")
+		ejectionPort(0.02, 0.22)
+		-- pistol-style mag well ahead of the trigger with an extended mag
+		box("Magwell", Vector3.new(0.24, 0.16, 0.3), at(0, -0.62, -L * 0.04), look.Body, M.SmoothPlastic)
+		box("Mag", Vector3.new(0.16, 0.62, 0.24), at(0, -0.98, -L * 0.04), DARK, M.Metal, "Mag")
+		box("MagBase", Vector3.new(0.22, 0.06, 0.3), at(0, -1.3, -L * 0.04), accent, accentMat, "Mag")
+		grip(L * 0.14, -10)
+		trigger(L * 0.14)
+		box("Ambi Safety", Vector3.new(0.34, 0.04, 0.06), at(0, 0.0, L * 0.12), accent, accentMat)
+		-- folding skeleton stock
+		box("StockHinge", Vector3.new(0.2, 0.2, 0.12), at(0, 0.12, L * 0.21), BLACK)
+		box("StockTopBar", Vector3.new(0.08, 0.08, 0.7), at(0, 0.15, L * 0.21 + 0.4), BLACK)
+		box("StockBottomBar", Vector3.new(0.08, 0.08, 0.6), at(0, -0.16, L * 0.21 + 0.42) * CFrame.Angles(math.rad(10), 0, 0), BLACK)
+		box("StockCheek", Vector3.new(0.14, 0.1, 0.32), at(0, 0.22, L * 0.21 + 0.42), POLY, M.SmoothPlastic)
+		box("ButtPad", Vector3.new(0.22, 0.48, 0.07), at(0, 0.0, L * 0.21 + 0.76), BLACK, M.Rubber)
+		info.Fore = Vector3.new(0, -0.5, -L * 0.15)
+		info.Sight = info.Sight or 0.6
 	elseif style == "Revolver" then
 		local fat = true
 		handle.Size = Vector3.new(0.24, 0.36, 0.55)

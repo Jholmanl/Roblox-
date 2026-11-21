@@ -732,7 +732,10 @@ local STYLES = {
 	Duke = "Double", Reaper = "Minigun", Havoc = "RPG", Thumper = "M32", Railgun = "Railgun",
 	Sidekick = "Pistol", Stinger = "Uzi", HandCannon = "Deagle", Judge = "Revolver", Arc = "Energy",
 	RayGun = "RayGun", PlasmaRifle = "Plasma", VoidCannon = "Void",
+	Vortex = "MachinePistol", Hellcat = "ARPistol", Phantom = "Vector",
 }
+
+GunBuilder.Styles = STYLES
 
 function GunBuilder.Build(weaponId: string, golden: boolean?)
 	local def = Weapons.Get(weaponId)
@@ -1541,6 +1544,144 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 		info.Fore = Vector3.new(0, -0.38, 0.3)
 		info.Shell = "None"
 		info.Sight = 0.32
+	elseif style == "MachinePistol" then
+		-- VORTEX: select-fire machine pistol (G18 pattern): ported comp, stick mag, mini dot, laser
+		local P = L
+		handle.Size = Vector3.new(0.22, 0.16, P * 0.75)
+		handle.Color = POLY
+		handle.Material = M.SmoothPlastic
+		local slideLen = P * 0.9
+		box("Slide", Vector3.new(0.24, 0.22, slideLen), at(0, 0.15, -0.04), DARK, M.Metal, "Slide")
+		box("SlideTopCut", Vector3.new(0.12, 0.03, slideLen * 0.5), at(0, 0.27, -0.12), BLACK, M.Metal, "Slide")
+		for i = 1, 6 do
+			box("Serration", Vector3.new(0.25, 0.13, 0.022), at(0, 0.16, slideLen / 2 - 0.08 - i * 0.045), BLACK, M.Metal, "Slide")
+			box("FrontSerration", Vector3.new(0.25, 0.1, 0.02), at(0, 0.16, -slideLen / 2 + 0.06 + i * 0.035), BLACK, M.Metal, "Slide")
+		end
+		box("SelectorSwitch", Vector3.new(0.27, 0.05, 0.06), at(0, 0.2, slideLen / 2 - 0.05), accent, accentMat, "Slide")
+		box("EjectionPort", Vector3.new(0.03, 0.09, 0.22), at(0.12, 0.18, -0.08), rgb(18, 18, 20), M.Metal, "Slide")
+		info.Eject = Vector3.new(0.14, 0.2, -0.08)
+		-- mini red dot on the slide
+		box("RMRBody", Vector3.new(0.18, 0.1, 0.2), at(0, 0.31, 0.06), BLACK, M.Metal, "Slide")
+		box("RMRHood", Vector3.new(0.18, 0.12, 0.03), at(0, 0.38, -0.03), BLACK, M.Metal, "Slide")
+		local glass = box("RMRGlass", Vector3.new(0.14, 0.09, 0.015), at(0, 0.38, -0.01), rgb(120, 200, 255), M.Glass, "Slide")
+		glass.Transparency = 0.45
+		box("RMRDot", Vector3.new(0.02, 0.02, 0.01), at(0, 0.38, 0.0), rgb(255, 40, 40), M.Neon, "Slide")
+		-- compensator with three top ports
+		box("Compensator", Vector3.new(0.24, 0.22, 0.26), at(0, 0.15, -slideLen / 2 - 0.15), BLACK, M.Metal)
+		for i = 1, 3 do
+			box("CompPort", Vector3.new(0.1, 0.04, 0.05), at(0, 0.265, -slideLen / 2 - 0.06 - i * 0.065), rgb(10, 10, 12))
+		end
+		info.Muzzle = Vector3.new(0, 0.15, -slideLen / 2 - 0.29)
+		box("Frame", Vector3.new(0.22, 0.14, slideLen * 0.85), at(0, -0.02, -0.08), POLY, M.SmoothPlastic)
+		-- under-rail laser module
+		box("LaserBody", Vector3.new(0.2, 0.14, 0.3), at(0, -0.14, -slideLen * 0.3), BLACK, M.Metal)
+		cyl("LaserLens", 0.04, 0.07, at(0.05, -0.14, -slideLen * 0.3 - 0.16), rgb(255, 40, 40), M.Neon, "Glow")
+		cyl("TorchLens", 0.04, 0.09, at(-0.05, -0.14, -slideLen * 0.3 - 0.16), rgb(240, 245, 255), M.Neon)
+		box("Grip", Vector3.new(0.22, 0.6, 0.32), at(0, -0.36, slideLen * 0.28) * CFrame.Angles(math.rad(-16), 0, 0), POLY, M.SmoothPlastic)
+		box("GripStipple", Vector3.new(0.23, 0.42, 0.26), at(0, -0.38, slideLen * 0.29) * CFrame.Angles(math.rad(-16), 0, 0), rgb(40, 40, 42), M.Sand)
+		box("Beavertail", Vector3.new(0.2, 0.05, 0.12), at(0, -0.05, slideLen * 0.43), POLY, M.SmoothPlastic)
+		-- 33-round stick mag sticking way out of the grip
+		box("Mag", Vector3.new(0.16, 0.9, 0.24), at(0, -0.72, slideLen * 0.36) * CFrame.Angles(math.rad(-16), 0, 0), DARK, M.Metal, "Mag")
+		for i = 1, 4 do
+			box("MagWitness", Vector3.new(0.17, 0.03, 0.03), at(0, -0.62 - i * 0.12, slideLen * 0.36 + 0.03 + i * 0.035) * CFrame.Angles(math.rad(-16), 0, 0), BLACK, M.Metal, "Mag")
+		end
+		box("MagBase", Vector3.new(0.24, 0.07, 0.3), at(0, -1.16, slideLen * 0.49) * CFrame.Angles(math.rad(-16), 0, 0), accent, accentMat, "Mag")
+		info.Grip = Vector3.new(0, -0.36, slideLen * 0.28)
+		box("TriggerGuard", Vector3.new(0.05, 0.05, 0.36), at(0, -0.26, slideLen * 0.02), POLY, M.SmoothPlastic)
+		box("TriggerGuardHook", Vector3.new(0.05, 0.1, 0.05), at(0, -0.22, -slideLen * 0.16), POLY, M.SmoothPlastic)
+		box("Trigger", Vector3.new(0.04, 0.13, 0.04), at(0, -0.17, slideLen * 0.06), CHROME, M.Metal, "Trigger")
+		box("SlideStop", Vector3.new(0.03, 0.04, 0.12), at(-0.12, 0.04, 0.0), BLACK)
+		info.Sight = 0.38
+		info.Fore = Vector3.new(0, -0.42, slideLen * 0.28 + 0.05)
+	elseif style == "ARPistol" then
+		-- HELLCAT: short-barrel AR pistol: M-LOK rail, flash can, pistol brace, AFG, holo
+		handle.Size = Vector3.new(0.28, 0.36, L * 0.32)
+		handle.Color = DARK
+		box("UpperTop", Vector3.new(0.24, 0.06, L * 0.34), at(0, 0.21, 0), DARK)
+		rail(-L * 0.17, L * 0.16, 0.25)
+		box("ForwardAssist", Vector3.new(0.1, 0.1, 0.12), at(0.17, 0.1, L * 0.1), BLACK)
+		box("ChargingHandle", Vector3.new(0.22, 0.05, 0.14), at(0, 0.23, L * 0.17 + 0.05), BLACK, M.Metal, "Bolt")
+		box("ChargingLatch", Vector3.new(0.08, 0.04, 0.06), at(-0.13, 0.23, L * 0.17 + 0.08), accent, accentMat, "Bolt")
+		ejectionPort(0.0, 0.07)
+		box("Lower", Vector3.new(0.24, 0.2, L * 0.28), at(0, -0.24, 0.02), DARK)
+		box("SelectorLever", Vector3.new(0.03, 0.05, 0.12), at(-0.14, -0.12, L * 0.1), accent, accentMat)
+		local hg = L * 0.36
+		local hz = -L * 0.16
+		box("Handguard", Vector3.new(0.3, 0.3, hg), at(0, 0.02, hz - hg / 2), BLACK, M.Metal)
+		for i = 1, 4 do
+			for _, sx in { -0.151, 0.151 } do
+				box("MLokSlot", Vector3.new(0.02, 0.06, 0.12), at(sx, 0.02, hz - 0.12 - (i - 1) * hg / 4.4), rgb(14, 14, 16))
+			end
+		end
+		rail(hz - hg, hz, 0.2)
+		box("HandguardNut", Vector3.new(0.27, 0.27, 0.06), at(0, 0.02, hz - 0.02), STEEL)
+		barrel(hz - hg + 0.05, look.Barrel + 0.08, 0.11, 0.02)
+		-- linear compensator / flash can
+		cyl("FlashCan", 0.34, 0.2, at(0, 0.02, info.Muzzle.Z - 0.17), BLACK)
+		for i = 1, 3 do
+			box("FlashCanRing", Vector3.new(0.21, 0.21, 0.03), at(0, 0.02, info.Muzzle.Z - 0.06 - i * 0.08), rgb(20, 20, 22))
+		end
+		info.Muzzle = Vector3.new(0, 0.02, info.Muzzle.Z - 0.34)
+		box("FlipSightRear", Vector3.new(0.14, 0.12, 0.06), at(0, 0.32, L * 0.13), BLACK)
+		box("FlipSightFront", Vector3.new(0.12, 0.14, 0.05), at(0, 0.3, hz - hg + 0.08), BLACK)
+		optic("Holo", -0.05, 0.25)
+		-- angled foregrip
+		box("AFG", Vector3.new(0.12, 0.14, 0.42), at(0, -0.17, hz - hg * 0.55) * CFrame.Angles(math.rad(-12), 0, 0), POLY, M.SmoothPlastic)
+		box("AFGLip", Vector3.new(0.12, 0.08, 0.08), at(0, -0.25, hz - hg * 0.55 - 0.2), POLY, M.SmoothPlastic)
+		grip(L * 0.12)
+		trigger(L * 0.12)
+		stanag(-L * 0.05, 1, false)
+		-- buffer tube + pistol stabilizing brace with strap
+		cyl("BufferTube", 0.66, 0.17, at(0, 0.02, L * 0.17 + 0.33), BLACK)
+		box("BraceBody", Vector3.new(0.18, 0.3, 0.48), at(0, -0.02, L * 0.17 + 0.48), POLY, M.SmoothPlastic)
+		box("BraceFinL", Vector3.new(0.03, 0.4, 0.42), at(-0.12, -0.05, L * 0.17 + 0.5), POLY, M.SmoothPlastic)
+		box("BraceFinR", Vector3.new(0.03, 0.4, 0.42), at(0.12, -0.05, L * 0.17 + 0.5), POLY, M.SmoothPlastic)
+		box("BraceStrap", Vector3.new(0.3, 0.05, 0.16), at(0, -0.24, L * 0.17 + 0.56), rgb(30, 30, 30), M.Fabric)
+		box("BraceBuckle", Vector3.new(0.08, 0.07, 0.06), at(0.16, -0.24, L * 0.17 + 0.56), accent, accentMat)
+		info.Fore = Vector3.new(0, -0.2, hz - hg * 0.55)
+	elseif style == "Vector" then
+		-- PHANTOM: Vector-style SMG: drop-front receiver, vented shroud, folding skeleton stock
+		handle.Size = Vector3.new(0.3, 0.5, L * 0.4)
+		handle.Color = look.Body
+		handle.Material = M.SmoothPlastic
+		box("UpperReceiver", Vector3.new(0.3, 0.16, L * 0.5), at(0, 0.28, -L * 0.02), look.Body, M.SmoothPlastic)
+		rail(-L * 0.26, L * 0.2, 0.37)
+		-- the signature low front housing (recoil mitigation system)
+		box("DropHousing", Vector3.new(0.3, 0.6, L * 0.2), at(0, -0.3, -L * 0.12), look.Body, M.SmoothPlastic)
+		box("DropHousingFace", Vector3.new(0.3, 0.42, 0.12), at(0, -0.42, -L * 0.24) * CFrame.Angles(math.rad(-25), 0, 0), look.Body, M.SmoothPlastic)
+		box("HousingAccent", Vector3.new(0.31, 0.04, L * 0.2), at(0, -0.12, -L * 0.12), accent, accentMat)
+		-- vented barrel shroud
+		local shroud = L * 0.26
+		box("Shroud", Vector3.new(0.24, 0.22, shroud), at(0, 0.18, -L * 0.25 - shroud / 2), BLACK)
+		for i = 1, 4 do
+			for _, sx in { -0.121, 0.121 } do
+				box("ShroudVent", Vector3.new(0.02, 0.1, 0.06), at(sx, 0.18, -L * 0.25 - 0.06 - (i - 1) * shroud / 4.5), rgb(12, 12, 14))
+			end
+		end
+		barrel(-L * 0.25 - shroud, look.Barrel, 0.1, 0.18)
+		brake(0.15, 0.2, false)
+		-- folding iron sights + red dot
+		box("FoldFront", Vector3.new(0.12, 0.14, 0.05), at(0, 0.45, -L * 0.24), BLACK)
+		box("FoldRear", Vector3.new(0.14, 0.12, 0.05), at(0, 0.45, L * 0.18), BLACK)
+		optic("RedDot", -0.02, 0.37)
+		-- bolt handle on the left side
+		box("BoltHandle", Vector3.new(0.12, 0.06, 0.08), at(-0.2, 0.25, -L * 0.05), BLACK, M.Metal, "Bolt")
+		ejectionPort(0.02, 0.22)
+		-- pistol-style mag well ahead of the trigger with an extended mag
+		box("Magwell", Vector3.new(0.24, 0.16, 0.3), at(0, -0.62, -L * 0.04), look.Body, M.SmoothPlastic)
+		box("Mag", Vector3.new(0.16, 0.62, 0.24), at(0, -0.98, -L * 0.04), DARK, M.Metal, "Mag")
+		box("MagBase", Vector3.new(0.22, 0.06, 0.3), at(0, -1.3, -L * 0.04), accent, accentMat, "Mag")
+		grip(L * 0.14, -10)
+		trigger(L * 0.14)
+		box("Ambi Safety", Vector3.new(0.34, 0.04, 0.06), at(0, 0.0, L * 0.12), accent, accentMat)
+		-- folding skeleton stock
+		box("StockHinge", Vector3.new(0.2, 0.2, 0.12), at(0, 0.12, L * 0.21), BLACK)
+		box("StockTopBar", Vector3.new(0.08, 0.08, 0.7), at(0, 0.15, L * 0.21 + 0.4), BLACK)
+		box("StockBottomBar", Vector3.new(0.08, 0.08, 0.6), at(0, -0.16, L * 0.21 + 0.42) * CFrame.Angles(math.rad(10), 0, 0), BLACK)
+		box("StockCheek", Vector3.new(0.14, 0.1, 0.32), at(0, 0.22, L * 0.21 + 0.42), POLY, M.SmoothPlastic)
+		box("ButtPad", Vector3.new(0.22, 0.48, 0.07), at(0, 0.0, L * 0.21 + 0.76), BLACK, M.Rubber)
+		info.Fore = Vector3.new(0, -0.5, -L * 0.15)
+		info.Sight = info.Sight or 0.6
 	elseif style == "Revolver" then
 		local fat = true
 		handle.Size = Vector3.new(0.24, 0.36, 0.55)
@@ -1698,6 +1839,168 @@ return GunBuilder
       </Item>
       <Item class="ModuleScript" referent="7">
         <Properties>
+          <string name="Name">Knives</string>
+          <string name="Source"><![CDATA[-- Melee knives. The Combat Knife is free; the rest are Robux game passes.
+-- Each has its own detailed model (KnifeBuilder below) plus a small perk.
+local Knives = {}
+
+local rgb = Color3.fromRGB
+local M = Enum.Material
+
+Knives.Defs = {
+	Standard = {
+		Name = "COMBAT KNIFE", Icon = "🔪", Pass = nil,
+		Damage = 100, Range = 8, Cooldown = 0.7,
+		Perk = "Standard issue",
+	},
+	Karambit = {
+		Name = "KARAMBIT", Icon = "🪝", Pass = "KnifeKarambit",
+		Damage = 100, Range = 8, Cooldown = 0.5,
+		Perk = "Faster swings (0.5s)",
+	},
+	Butterfly = {
+		Name = "BUTTERFLY KNIFE", Icon = "🦋", Pass = "KnifeButterfly",
+		Damage = 100, Range = 8.5, Cooldown = 0.55,
+		Perk = "Quick swings + a little extra reach",
+	},
+	Machete = {
+		Name = "JUNGLE MACHETE", Icon = "🗡️", Pass = "KnifeMachete",
+		Damage = 120, Range = 10, Cooldown = 0.75,
+		Perk = "Long reach, hits harder",
+	},
+	Katana = {
+		Name = "DRAGON KATANA", Icon = "🐉", Pass = "KnifeKatana",
+		Damage = 120, Range = 11, Cooldown = 0.6,
+		Perk = "Glowing energy blade, longest reach",
+	},
+}
+
+Knives.Order = { "Standard", "Karambit", "Butterfly", "Machete", "Katana" }
+
+function Knives.Get(id: string?)
+	return (id and Knives.Defs[id]) or Knives.Defs.Standard
+end
+
+-- Builds the knife model. The handle is the PrimaryPart; the blade points along -Z.
+function Knives.Build(id: string?)
+	local key = (id and Knives.Defs[id]) and id or "Standard"
+	local model = Instance.new("Model")
+	model.Name = key
+	local parts = {}
+	local function part(name, size, cf, color, material, shape)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = cf
+		p.Color = color
+		p.Material = material or M.Metal
+		if shape then
+			p.Shape = shape
+		end
+		p.Anchored = false
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Massless = true
+		p.CastShadow = false
+		p.Parent = model
+		table.insert(parts, p)
+		return p
+	end
+	local function wedge(name, size, cf, color, material)
+		local w = Instance.new("WedgePart")
+		w.Name = name
+		w.Size = size
+		w.CFrame = cf
+		w.Color = color
+		w.Material = material or M.Metal
+		w.CanCollide, w.CanQuery, w.CanTouch, w.Massless, w.CastShadow = false, false, false, true, false
+		w.Parent = model
+		table.insert(parts, w)
+		return w
+	end
+	local steel = rgb(200, 205, 214)
+	local edge = rgb(235, 238, 245)
+	local handle
+
+	if key == "Karambit" then
+		handle = part("Handle", Vector3.new(0.16, 0.26, 0.6), CFrame.new(), rgb(30, 30, 34), M.SmoothPlastic)
+		part("Ring", Vector3.new(0.06, 0.34, 0.34), CFrame.new(0, 0, 0.42) * CFrame.Angles(0, 0, 0), rgb(60, 60, 66), M.Metal, Enum.PartType.Cylinder)
+		part("RingHole", Vector3.new(0.065, 0.2, 0.2), CFrame.new(0, 0, 0.42), rgb(10, 10, 12), M.SmoothPlastic, Enum.PartType.Cylinder)
+		for i = 0, 4 do
+			-- curved claw blade: short segments sweeping down and forward
+			local a = math.rad(-8 - i * 14)
+			local pos = Vector3.new(0, -0.02 - i * 0.07 - i * i * 0.012, -0.36 - i * 0.16)
+			part("Blade" .. i, Vector3.new(0.04, 0.2 - i * 0.02, 0.2), CFrame.new(pos) * CFrame.Angles(a, 0, 0), i % 2 == 0 and steel or edge, M.Metal)
+		end
+		part("Accent", Vector3.new(0.17, 0.05, 0.5), CFrame.new(0, 0.1, 0), rgb(255, 70, 90), M.Neon)
+	elseif key == "Butterfly" then
+		handle = part("Handle", Vector3.new(0.12, 0.22, 0.7), CFrame.new(0.05, 0, 0), rgb(160, 120, 255), M.Metal)
+		part("HandleB", Vector3.new(0.12, 0.22, 0.7), CFrame.new(-0.07, 0, 0), rgb(120, 90, 210), M.Metal)
+		for i = -2, 2 do
+			part("Cutout", Vector3.new(0.25, 0.08, 0.06), CFrame.new(0, 0, i * 0.12), rgb(20, 18, 30), M.SmoothPlastic)
+		end
+		part("Latch", Vector3.new(0.05, 0.08, 0.16), CFrame.new(0, -0.12, 0.33), rgb(210, 210, 220), M.Metal)
+		part("Pivot", Vector3.new(0.26, 0.08, 0.08), CFrame.new(0, 0, -0.36), rgb(210, 210, 220), M.Metal, Enum.PartType.Cylinder)
+		part("Blade", Vector3.new(0.04, 0.2, 0.7), CFrame.new(0, 0.01, -0.74), steel, M.Metal)
+		wedge("Tip", Vector3.new(0.04, 0.2, 0.22), CFrame.new(0, 0.01, -1.2) * CFrame.Angles(0, math.rad(180), 0), edge, M.Metal)
+		part("Swedge", Vector3.new(0.045, 0.04, 0.6), CFrame.new(0, 0.1, -0.76), edge, M.Metal)
+	elseif key == "Machete" then
+		handle = part("Handle", Vector3.new(0.18, 0.26, 0.7), CFrame.new(), rgb(60, 40, 26), M.Wood)
+		for i = -1, 1 do
+			part("Rivet", Vector3.new(0.2, 0.05, 0.05), CFrame.new(0, 0, i * 0.22), rgb(200, 170, 80), M.Metal, Enum.PartType.Cylinder)
+		end
+		part("Guard", Vector3.new(0.2, 0.34, 0.06), CFrame.new(0, 0.02, -0.38), rgb(50, 50, 54), M.Metal)
+		part("Blade", Vector3.new(0.035, 0.3, 1.5), CFrame.new(0, 0.04, -1.15), rgb(150, 155, 160), M.Metal)
+		part("Belly", Vector3.new(0.035, 0.12, 0.9), CFrame.new(0, -0.15, -1.45), rgb(150, 155, 160), M.Metal)
+		part("Edge", Vector3.new(0.04, 0.04, 1.55), CFrame.new(0, -0.11, -1.18), edge, M.Metal)
+		wedge("Tip", Vector3.new(0.035, 0.42, 0.3), CFrame.new(0, -0.02, -2.05) * CFrame.Angles(0, math.rad(180), 0), rgb(150, 155, 160), M.Metal)
+		part("Lanyard", Vector3.new(0.05, 0.05, 0.3), CFrame.new(0, -0.1, 0.48), rgb(200, 60, 40), M.Fabric)
+	elseif key == "Katana" then
+		handle = part("Handle", Vector3.new(0.16, 0.2, 0.9), CFrame.new(), rgb(25, 22, 28), M.Fabric)
+		for i = -3, 3 do
+			part("Wrap", Vector3.new(0.17, 0.21, 0.04), CFrame.new(0, 0, i * 0.12) * CFrame.Angles(math.rad(25), 0, 0), rgb(170, 20, 40), M.Fabric)
+		end
+		part("Pommel", Vector3.new(0.18, 0.22, 0.08), CFrame.new(0, 0, 0.48), rgb(200, 160, 60), M.Metal)
+		part("Tsuba", Vector3.new(0.4, 0.06, 0.4), CFrame.new(0, 0, -0.48) * CFrame.Angles(math.rad(90), 0, 0), rgb(200, 160, 60), M.Metal, Enum.PartType.Cylinder)
+		local glow = rgb(255, 60, 40)
+		part("Core", Vector3.new(0.04, 0.12, 2.1), CFrame.new(0, 0.02, -1.55), rgb(255, 230, 200), M.Neon)
+		part("Blade", Vector3.new(0.06, 0.2, 2.1), CFrame.new(0, 0.02, -1.55), glow, M.Neon).Transparency = 0.35
+		wedge("Tip", Vector3.new(0.06, 0.2, 0.3), CFrame.new(0, 0.02, -2.75) * CFrame.Angles(0, math.rad(180), 0), glow, M.Neon)
+		local light = Instance.new("PointLight")
+		light.Color = glow
+		light.Range = 8
+		light.Brightness = 1.5
+		light.Parent = handle
+	else
+		handle = part("Handle", Vector3.new(0.18, 0.25, 0.7), CFrame.new(), rgb(25, 25, 28), M.SmoothPlastic)
+		for i = -2, 2 do
+			part("Grip", Vector3.new(0.19, 0.26, 0.04), CFrame.new(0, 0, i * 0.12), rgb(40, 40, 44), M.Rubber)
+		end
+		part("Guard", Vector3.new(0.2, 0.34, 0.05), CFrame.new(0, 0.02, -0.38), rgb(60, 60, 64), M.Metal)
+		part("Blade", Vector3.new(0.05, 0.25, 0.9), CFrame.new(0, 0.02, -0.85), steel, M.Metal)
+		part("Serrations", Vector3.new(0.055, 0.05, 0.4), CFrame.new(0, 0.13, -0.62), rgb(150, 155, 162), M.DiamondPlate)
+		wedge("Tip", Vector3.new(0.05, 0.25, 0.3), CFrame.new(0, 0.02, -1.45) * CFrame.Angles(0, math.rad(180), 0), steel, M.Metal)
+	end
+
+	model.PrimaryPart = handle
+	for _, p in parts do
+		if p ~= handle then
+			local w = Instance.new("WeldConstraint")
+			w.Part0 = handle
+			w.Part1 = p
+			w.Parent = handle
+		end
+	end
+	return model
+end
+
+return Knives
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
+        <Properties>
           <string name="Name">Monetization</string>
           <string name="Source"><![CDATA[-- ROBUX STORE
 -- 1. Create each Game Pass / Developer Product on the Creator Dashboard
@@ -1767,6 +2070,41 @@ Monetization.GamePasses = {
 		Perks = { "Heal 25 HP on every kill" },
 		Color = Color3.fromRGB(200, 30, 60),
 	},
+	Phantom = {
+		Id = 0, Price = 499, Icon = "👻", Name = "Phantom Vector",
+		Perks = { "Exclusive Vector-style SMG", "18 rounds/sec with almost no recoil", "Moves fast, built for close fights" },
+		Color = Color3.fromRGB(0, 230, 160),
+	},
+	Vortex = {
+		Id = 0, Price = 349, Icon = "🌀", Name = "Vortex Auto Pistol",
+		Perks = { "Full-auto machine pistol sidearm", "33-round extended mag", "Laser + mini red dot" },
+		Color = Color3.fromRGB(255, 120, 30),
+	},
+	Hellcat = {
+		Id = 0, Price = 449, Icon = "😈", Name = "Hellcat AR Pistol",
+		Perks = { "A full-auto AR as your sidearm", "30-round mag, rifle-class range", "Holo sight + angled grip" },
+		Color = Color3.fromRGB(255, 40, 60),
+	},
+	KnifeKarambit = {
+		Id = 0, Price = 199, Icon = "🪝", Name = "Karambit",
+		Perks = { "Curved claw knife skin", "Faster knife swings (0.5s)" },
+		Color = Color3.fromRGB(255, 70, 90),
+	},
+	KnifeButterfly = {
+		Id = 0, Price = 249, Icon = "🦋", Name = "Butterfly Knife",
+		Perks = { "Anodized butterfly knife skin", "Quick swings + extra reach" },
+		Color = Color3.fromRGB(160, 120, 255),
+	},
+	KnifeMachete = {
+		Id = 0, Price = 299, Icon = "🗡️", Name = "Jungle Machete",
+		Perks = { "Big machete skin", "Longer reach, hits harder" },
+		Color = Color3.fromRGB(150, 155, 160),
+	},
+	KnifeKatana = {
+		Id = 0, Price = 499, Icon = "🐉", Name = "Dragon Katana",
+		Perks = { "Glowing energy katana", "Longest melee reach in the game" },
+		Color = Color3.fromRGB(255, 60, 40),
+	},
 	Railgun = {
 		Id = 0, Price = 799, Icon = "⚡", Name = "Railgun",
 		Perks = { "Exclusive weapon", "Pierces through every enemy in a line", "110 damage per shot" },
@@ -1777,6 +2115,7 @@ Monetization.GamePasses = {
 Monetization.PassOrder = {
 	"VIP", "DoubleXP", "GoldenArsenal", "Juggernaut", "Railgun", "RadarPro",
 	"Vampire", "SpeedDemon", "ExtendedMags", "FastHands", "Grenadier", "InstantRespawn", "TripleJump",
+	"Phantom", "Vortex", "Hellcat", "KnifeKatana", "KnifeMachete", "KnifeButterfly", "KnifeKarambit",
 }
 
 Monetization.Products = {
@@ -1812,7 +2151,7 @@ return Monetization
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="8">
+      <Item class="ModuleScript" referent="9">
         <Properties>
           <string name="Name">Remotes</string>
           <string name="Source"><![CDATA[-- Creates (server) or finds (client) every RemoteEvent / RemoteFunction.
@@ -1823,7 +2162,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EVENTS = {
 	-- client -> server
 	"Deploy", "Fire", "Reload", "Knife", "Grenade", "Slam", "JumpPad",
-	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken", "Vote", "SaveSettings", "SelfRevive",
+	"BuyWeapon", "SetLoadout", "ClaimDaily", "UseToken", "Vote", "SaveSettings", "SelfRevive", "SetKnife",
 	-- server -> client
 	"Effect", "HitConfirm", "Damaged", "KillFeed", "Notify", "KillInfo",
 	"DataSync", "Killstreak", "MatchResults",
@@ -1868,7 +2207,7 @@ return setmetatable({}, {
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="9">
+      <Item class="ModuleScript" referent="10">
         <Properties>
           <string name="Name">Sounds</string>
           <string name="Source"><![CDATA[-- Sound ids. These use sounds that ship with Roblox so the game works out of
@@ -1890,11 +2229,16 @@ return {
 	Unlock = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.9 },
 	-- muted tick when you take damage (replaces the old "uuhhh" grunt)
 	Hurt = { Id = "rbxasset://sounds/button.wav", Volume = 0.28 },
+	-- Optional real gun samples. Paste Creator Store sound ids to replace the
+	-- built-in layered sounds, per weapon id or per profile, e.g.
+	--   GunOverrides = { Rifle = { Shot = "rbxassetid://123", Reload = "rbxassetid://456" } }
+	-- Profiles: Rifle, SMG, Pistol, Magnum, Shotgun, Sniper, LMG, Launcher, Energy
+	GunOverrides = {},
 }
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="10">
+      <Item class="ModuleScript" referent="11">
         <Properties>
           <string name="Name">Util</string>
           <string name="Source"><![CDATA[local Util = {}
@@ -1953,7 +2297,7 @@ return Util
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="11">
+      <Item class="ModuleScript" referent="12">
         <Properties>
           <string name="Name">Weapons</string>
           <string name="Source"><![CDATA[-- Weapon definitions. Every gun in the game is data-driven from this table.
@@ -2158,7 +2502,38 @@ Weapons.Defs = {
 		Look = { Body = Color3.fromRGB(26, 22, 36), Accent = Color3.fromRGB(180, 80, 255), Length = 3.2, Barrel = 0.4, Scope = false, Neon = true },
 	},
 
+	Phantom = {
+		Name = "PHANTOM VECTOR", Class = "SMG", Slot = "Primary",
+		Model = "Vector-style recoil-mitigated SMG", Kickback = 0,
+		Damage = 17, HeadMult = 1.45, FireRate = 18, Auto = true,
+		Mag = 25, Reserve = 175, Reload = 1.7,
+		Spread = 2.4, AdsSpread = 0.7, Range = 320, FalloffStart = 70,
+		Recoil = 0.35, ZoomFov = 58, Speed = 1.1,
+		Price = 0, Level = 1, Pass = "Phantom",
+		Look = { Body = Color3.fromRGB(32, 34, 40), Accent = Color3.fromRGB(0, 230, 160), Length = 2.0, Barrel = 0.35, Scope = false },
+	},
+
 	-- SECONDARIES ------------------------------------------------------
+	Vortex = {
+		Name = "VORTEX AUTO PISTOL", Class = "Machine Pistol", Slot = "Secondary",
+		Model = "Select-fire G18-pattern pistol", Kickback = 0,
+		Damage = 15, HeadMult = 1.5, FireRate = 18, Auto = true,
+		Mag = 33, Reserve = 165, Reload = 1.3,
+		Spread = 2.6, AdsSpread = 1.0, Range = 220, FalloffStart = 45,
+		Recoil = 0.55, ZoomFov = 62, Speed = 1.12,
+		Price = 0, Level = 1, Pass = "Vortex",
+		Look = { Body = Color3.fromRGB(40, 40, 44), Accent = Color3.fromRGB(255, 120, 30), Length = 1.15, Barrel = 0.2, Scope = false },
+	},
+	Hellcat = {
+		Name = "HELLCAT AR PISTOL", Class = "AR Pistol", Slot = "Secondary",
+		Model = "Short-barrel AR with pistol brace", Kickback = 0,
+		Damage = 22, HeadMult = 1.55, FireRate = 11, Auto = true,
+		Mag = 30, Reserve = 120, Reload = 1.8,
+		Spread = 2.4, AdsSpread = 0.6, Range = 420, FalloffStart = 90,
+		Recoil = 0.85, ZoomFov = 56, Speed = 1.05,
+		Price = 0, Level = 1, Pass = "Hellcat",
+		Look = { Body = Color3.fromRGB(44, 46, 50), Accent = Color3.fromRGB(255, 40, 60), Length = 1.9, Barrel = 0.25, Scope = false },
+	},
 	Sidekick = {
 		Name = "SIDEKICK PISTOL", Class = "Pistol", Slot = "Secondary",
 		Model = "Modern striker pistol", Kickback = 0,
@@ -2224,8 +2599,8 @@ Weapons.Defs = {
 
 Weapons.Order = {
 	"Striker", "Vanguard", "Viper", "Tempest", "Brute", "Duke", "Hornet", "Ranger", "Warden", "Inferno",
-	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "PlasmaRifle", "VoidCannon", "Railgun",
-	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc", "RayGun",
+	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "PlasmaRifle", "VoidCannon", "Railgun", "Phantom",
+	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc", "RayGun", "Vortex", "Hellcat",
 }
 
 function Weapons.Get(id: string)
@@ -2247,15 +2622,15 @@ return Weapons
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="12">
+  <Item class="ServerScriptService" referent="13">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="13">
+    <Item class="Folder" referent="14">
       <Properties>
         <string name="Name">Server</string>
       </Properties>
-      <Item class="ModuleScript" referent="14">
+      <Item class="ModuleScript" referent="15">
         <Properties>
           <string name="Name">AchievementService</string>
           <string name="Source"><![CDATA[-- Tracks stats and unlocks achievements (with a toast + cash reward).
@@ -2365,7 +2740,7 @@ return AchievementService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="15">
+      <Item class="ModuleScript" referent="16">
         <Properties>
           <string name="Name">BotService</string>
           <string name="Source"><![CDATA[-- AI bots that fill empty servers so there's always someone to fight.
@@ -2378,6 +2753,7 @@ local Weapons = require(Shared.Weapons)
 local GunBuilder = require(Shared.GunBuilder)
 local Util = require(Shared.Util)
 local Combat = require(script.Parent.CombatService)
+local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local MapService = require(script.Parent.MapService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -2519,6 +2895,7 @@ local function runAI(record, model: Model)
 				if shotsInMag <= 0 then
 					shotsInMag = def.Mag
 					nextShot = now + def.Reload
+					Remotes.Effect:FireAllClients("Reload", model, record.Weapon, def.Reload)
 				else
 					local accuracy = Config.BotAccuracy * math.clamp(1 - bestDist / 350, 0.35, 1)
 					local aimPart = math.random() < 0.15 and best.Character:FindFirstChild("Head") or best.Character:FindFirstChild("UpperTorso") or best.Root
@@ -2697,7 +3074,7 @@ return BotService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="16">
+      <Item class="ModuleScript" referent="17">
         <Properties>
           <string name="Name">CombatService</string>
           <string name="Source"><![CDATA[-- Server-authoritative combat: hitscan validation, damage, kills, medals,
@@ -2717,6 +3094,7 @@ local Weapons = require(Shared.Weapons)
 local Remotes = require(Shared.Remotes)
 local Util = require(Shared.Util)
 local GunBuilder = require(Shared.GunBuilder)
+local Knives = require(Shared.Knives)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
 local TeamService = require(script.Parent.TeamService)
@@ -2884,6 +3262,17 @@ function Combat.AttachCharacter(entity, character: Model, weaponIds: { string })
 		if not entity.Dead and entity.Character == character then
 			entity.Dead = true
 			Combat.HandleDeath(nil, entity, { Weapon = "Environment", WeaponName = "THE VOID" })
+		end
+	end)
+	-- swapping weapons cancels a reload in progress (the client does the same)
+	character.ChildAdded:Connect(function(child)
+		if child:IsA("Tool") then
+			local id = child:GetAttribute("WeaponId")
+			for weaponId in entity.Reload do
+				if weaponId ~= id then
+					entity.Reload[weaponId] = nil
+				end
+			end
 		end
 	end)
 	character.AncestryChanged:Connect(function(_, parent)
@@ -3619,6 +4008,8 @@ Remotes.Reload.OnServerEvent:Connect(function(player, weaponId)
 	local t = Combat.ReloadTime(entity, def)
 	local finish = os.clock() + t
 	entity.Reload[weaponId] = finish
+	-- everyone else sees (and hears) this character reload
+	Remotes.Effect:FireAllClients("Reload", entity.Character, weaponId, t)
 	task.delay(t, function()
 		if entity.Reload[weaponId] == finish then
 			completeReload(entity, weaponId)
@@ -3632,15 +4023,21 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 	if not Combat.IsAlive(entity) or entity.Downed then
 		return
 	end
+	-- equipped knife (only if the player still owns its pass)
+	local data = DataService.Get(player)
+	local knife = Knives.Get(data and data.Knife)
+	if knife.Pass and not player:GetAttribute("Pass_" .. knife.Pass) then
+		knife = Knives.Get("Standard")
+	end
 	local now = os.clock()
-	if now - entity.LastKnife < Config.KnifeCooldown then
+	if now - entity.LastKnife < knife.Cooldown - 0.05 then
 		return
 	end
 	entity.LastKnife = now
 	removeSpawnProtection(entity)
 	Remotes.Effect:FireAllClients("Knife", entity.Character)
 	local look = entity.Root.CFrame.LookVector
-	local best, bestDist = nil, Config.KnifeRange
+	local best, bestDist = nil, knife.Range
 	for _, other in Combat.Entities do
 		if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 			local offset = other.Root.Position - entity.Root.Position
@@ -3662,8 +4059,8 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 		end
 	end
 	if best then
-		Combat.Damage(entity, best, Config.KnifeDamage, {
-			Weapon = "Knife", WeaponName = "KNIFE", Kind = "Knife",
+		Combat.Damage(entity, best, knife.Damage, {
+			Weapon = "Knife", WeaponName = knife.Name, Kind = "Knife",
 			Distance = bestDist, Position = best.Root.Position,
 		})
 	end
@@ -3834,7 +4231,7 @@ return Combat
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="17">
+      <Item class="ModuleScript" referent="18">
         <Properties>
           <string name="Name">DataService</string>
           <string name="Source"><![CDATA[-- Persistent player data (cash, XP, owned guns, stats, achievements...).
@@ -3866,6 +4263,7 @@ local DEFAULT = {
 	Level = 1,
 	Owned = { Striker = true, Sidekick = true },
 	Loadout = { Primary = "Striker", Secondary = "Sidekick" },
+	Knife = "Standard",
 	Stats = {},
 	Achievements = {},
 	Daily = { Last = 0, Streak = 0 },
@@ -3903,6 +4301,7 @@ function DataService.Sync(player: Player)
 	Remotes.DataSync:FireClient(player, {
 		Owned = data.Owned,
 		Loadout = data.Loadout,
+		Knife = data.Knife,
 		Stats = data.Stats,
 		Achievements = data.Achievements,
 		Daily = data.Daily,
@@ -3930,6 +4329,9 @@ function DataService.Load(player: Player)
 	data = Util.Reconcile(data or {}, DEFAULT)
 	data._canSave = loadedFromStore -- never overwrite real data after a failed load
 	data._joined = os.time()
+	if not player.Parent then
+		return data -- left while loading: don't keep (or later save) a stray profile
+	end
 	DataService.Profiles[player] = data
 	applyAttributes(player, data)
 	return data
@@ -4085,7 +4487,7 @@ return DataService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="18">
+      <Item class="ModuleScript" referent="19">
         <Properties>
           <string name="Name">KillstreakService</string>
           <string name="Source"><![CDATA[-- Killstreak rewards: UAV, Overdrive, Airstrike and the match-ending Tactical Nuke.
@@ -4258,6 +4660,12 @@ Remotes.UseToken.OnServerEvent:Connect(function(player, kind)
 	if not data or not Combat.IsAlive(entity) or (data.Tokens[kind] or 0) <= 0 then
 		return
 	end
+	local state = KillstreakService.Round and KillstreakService.Round.State
+	if state == "Results" or state == "Voting" then
+		-- don't burn a paid call-in when it can't hurt anyone
+		Remotes.Notify:FireClient(player, "Message", { Text = "WAIT FOR THE NEXT MATCH TO USE THAT", Color = Config.Colors.Red })
+		return
+	end
 	if kind == "Nuke" then
 		local round = KillstreakService.Round
 		if not round or round.State ~= "Active" then
@@ -4275,7 +4683,7 @@ return KillstreakService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Script" referent="19">
+      <Item class="Script" referent="20">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -4287,6 +4695,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Weapons = require(Shared.Weapons)
 local Remotes = require(Shared.Remotes)
+local Knives = require(Shared.Knives)
 
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
@@ -4496,6 +4905,20 @@ Remotes.SetLoadout.OnServerEvent:Connect(function(player, slot, weaponId)
 	end
 end)
 
+Remotes.SetKnife.OnServerEvent:Connect(function(player, knifeId)
+	local data = DataService.Get(player)
+	local def = typeof(knifeId) == "string" and Knives.Defs[knifeId]
+	if not data or not def then
+		return
+	end
+	if def.Pass and not player:GetAttribute("Pass_" .. def.Pass) then
+		return
+	end
+	data.Knife = knifeId
+	DataService.Sync(player)
+	Remotes.Notify:FireClient(player, "Message", { Text = def.Icon .. " " .. def.Name .. " EQUIPPED", Color = Config.Colors.Accent })
+end)
+
 Remotes.ClaimDaily.OnServerEvent:Connect(function(player)
 	local streak, reward = DataService.ClaimDaily(player)
 	if streak then
@@ -4536,7 +4959,7 @@ print("[" .. Config.GameName .. "] server ready")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="20">
+      <Item class="ModuleScript" referent="21">
         <Properties>
           <string name="Name">MapService</string>
           <string name="Source"><![CDATA[-- Loads maps (with per-map lighting), runs map voting, and picks safe spawns.
@@ -4645,6 +5068,28 @@ local function groundSpawn(marker: BasePart): CFrame
 		local high = workspace:Raycast(pos + Vector3.new(0, 14, 0), Vector3.new(0, -20, 0), params)
 		if high and high.Position.Y < pos.Y + 14 then
 			result = high
+		end
+	end
+	-- landed on top of something (parked car, crate, cover)? look for clear floor nearby
+	if result and result.Position.Y > pos.Y + 1.5 then
+		for _, radius in { 6, 10, 14 } do
+			local found = nil
+			for k = 0, 7 do
+				local a = k / 8 * math.pi * 2
+				local p = pos + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius)
+				local r = workspace:Raycast(p + Vector3.new(0, 6, 0), Vector3.new(0, -40, 0), params)
+				if r and r.Position.Y <= pos.Y + 1.5 then
+					local clear = workspace:Raycast(r.Position + Vector3.new(0, 1, 0), Vector3.new(0, 6, 0), params)
+					if not clear then
+						found = { p, r }
+						break
+					end
+				end
+			end
+			if found then
+				pos, result = found[1], found[2]
+				break
+			end
 		end
 	end
 	local y = result and result.Position.Y + 3.2 or pos.Y
@@ -4840,11 +5285,11 @@ return MapService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="21">
+      <Item class="Folder" referent="22">
         <Properties>
           <string name="Name">Maps</string>
         </Properties>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="23">
           <Properties>
             <string name="Name">Arena</string>
             <string name="Source"><![CDATA[-- NEON ARENA: the original symmetrical arena (fast, close-quarters).
@@ -4995,7 +5440,7 @@ return Map
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">Downtown</string>
             <string name="Source"><![CDATA[-- DOWNTOWN: city blocks, subway tunnel, fire escapes, open-window buildings,
@@ -5202,7 +5647,7 @@ function Map.Build()
 	for _, c in { { 96, 8 }, { 92, 10 }, { -96, -8 }, { 8, 96 }, { -8, -96 } } do
 		kit:Cone(Vector3.new(c[1], 0, c[2]))
 	end
-	for _, c in { { -94, 70, 0, "Sports" }, { 94, 40, 0, "Jeep" }, { -40, 96, 90, "Sedan" }, { 40, -96, 270, "Truck" } } do
+	for _, c in { { -94, 70, 0, "Sports" }, { 94, 40, 0, "Jeep" }, { -62, 94, 90, "Sedan" }, { 62, -94, 270, "Truck" } } do
 		kit:VehicleSpot(CFrame.new(c[1], 0, c[2]) * CFrame.Angles(0, math.rad(c[3]), 0), c[4])
 	end
 
@@ -5254,7 +5699,7 @@ return Map
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="25">
           <Properties>
             <string name="Name">Harbor</string>
             <string name="Source"><![CDATA[-- HARBOR: container maze, cranes, warehouses, a boardable cargo ship and a
@@ -5434,7 +5879,7 @@ return Map
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">MapKit</string>
             <string name="Source"><![CDATA[-- MapKit: procedural building blocks for maps.
@@ -7285,7 +7730,7 @@ return MapKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">Timberline</string>
             <string name="Source"><![CDATA[-- TIMBERLINE: forest valley with a river, bridges, cabins, watchtowers and jeeps.
@@ -7480,7 +7925,7 @@ function Map.Build()
 	-- vehicles
 	kit:VehicleSpot(CFrame.new(-150, 1, 5) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(80, 100, 60))
 	kit:VehicleSpot(CFrame.new(150, 1, -5) * CFrame.Angles(0, math.rad(90), 0), "Jeep", rgb(140, 120, 80))
-	kit:VehicleSpot(CFrame.new(120, 1, 120) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
+	kit:VehicleSpot(CFrame.new(120, 1, 100) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
 	kit:VehicleSpot(CFrame.new(-80, 1, -8) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(60, 80, 100))
 
 	-- MINE TUNNELS on both sides of the river (spawn to spawn)
@@ -7547,7 +7992,7 @@ return Map
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="27">
+      <Item class="ModuleScript" referent="28">
         <Properties>
           <string name="Name">MonetizationService</string>
           <string name="Source"><![CDATA[-- Game passes + developer products (Robux store).
@@ -7650,6 +8095,15 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passI
 	player:SetAttribute("Pass_" .. passKey, true)
 	Remotes.Notify:FireClient(player, "Message", { Text = pass.Icon .. " " .. string.upper(pass.Name) .. " UNLOCKED!", Color = pass.Color })
 	AchievementService.Add(player, "RobuxPurchases", 1)
+	-- a freshly bought knife gets equipped right away
+	local knifeId = string.match(passKey, "^Knife(%w+)$")
+	if knifeId then
+		local data = DataService.Get(player)
+		if data then
+			data.Knife = knifeId
+			DataService.Sync(player)
+		end
+	end
 	if passKey == "Railgun" then
 		local data = DataService.Get(player)
 		if data then
@@ -7666,7 +8120,7 @@ return MonetizationService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="28">
+      <Item class="ModuleScript" referent="29">
         <Properties>
           <string name="Name">RoundService</string>
           <string name="Source"><![CDATA[-- Match loop: VOTE (map + mode) -> WARMUP -> LIVE MATCH -> RESULTS -> repeat.
@@ -7916,7 +8370,7 @@ return RoundService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="29">
+      <Item class="ModuleScript" referent="30">
         <Properties>
           <string name="Name">TeamService</string>
           <string name="Source"><![CDATA[-- Game modes + teams.
@@ -8105,7 +8559,7 @@ return TeamService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="30">
+      <Item class="ModuleScript" referent="31">
         <Properties>
           <string name="Name">VehicleService</string>
           <string name="Source"><![CDATA[-- Cars: spawning per map, network ownership for the driver, roadkills,
@@ -8255,7 +8709,7 @@ local function setupDriving(car: Model)
 	prompt.Triggered:Connect(function(player)
 		local char = player.Character
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum and hum.Health > 0 and not seat.Occupant then
+		if hum and hum.Health > 0 and not seat.Occupant and not player:GetAttribute("Downed") then
 			seat:Sit(hum)
 		end
 	end)
@@ -8367,6 +8821,21 @@ RunService.Heartbeat:Connect(function(dt)
 			local v = chassis.AssemblyLinearVelocity
 			chassis.AssemblyLinearVelocity = Vector3.new(v.X * 0.7, v.Y, v.Z * 0.7)
 			chassis.AssemblyAngularVelocity *= 0.7
+			-- empty car left on its roof/side: set it back on its wheels after a few seconds
+			if chassis.CFrame.UpVector.Y < 0.3 then
+				record.FlippedFor = (record.FlippedFor or 0) + 0.1
+				if record.FlippedFor > 4 then
+					record.FlippedFor = 0
+					local pos = car:GetPivot().Position
+					local look = chassis.CFrame.LookVector
+					local flat = Vector3.new(look.X, 0, look.Z)
+					car:PivotTo(CFrame.lookAt(pos + Vector3.new(0, 4, 0), pos + Vector3.new(0, 4, 0) + (flat.Magnitude > 0.1 and flat.Unit or Vector3.zAxis)))
+					chassis.AssemblyLinearVelocity = Vector3.zero
+					chassis.AssemblyAngularVelocity = Vector3.zero
+				end
+			else
+				record.FlippedFor = 0
+			end
 		end
 	end
 end)
@@ -8377,15 +8846,15 @@ return VehicleService
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="31">
+  <Item class="StarterPlayer" referent="32">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterCharacterScripts" referent="32">
+    <Item class="StarterCharacterScripts" referent="33">
       <Properties>
         <string name="Name">StarterCharacterScripts</string>
       </Properties>
-      <Item class="Script" referent="33">
+      <Item class="Script" referent="34">
         <Properties>
           <string name="Name">Health</string>
           <token name="RunContext">0</token>
@@ -8395,15 +8864,177 @@ return VehicleService
         </Properties>
       </Item>
     </Item>
-    <Item class="StarterPlayerScripts" referent="34">
+    <Item class="StarterPlayerScripts" referent="35">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="35">
+      <Item class="Folder" referent="36">
         <Properties>
           <string name="Name">Client</string>
         </Properties>
-        <Item class="LocalScript" referent="36">
+        <Item class="ModuleScript" referent="37">
+          <Properties>
+            <string name="Name">CharacterAnim</string>
+            <string name="Source"><![CDATA[-- Third-person gun gestures for OTHER characters (players and bots), done by
+-- offsetting the arm/torso joints on each client (no uploaded animations needed):
+--   * Reload: tilt the gun, support hand drops the mag, grabs a new one from the
+--     belt, seats it, then racks the charging handle; head follows the gun.
+--   * Recoil: a quick upward arm kick on every shot.
+-- Works on R15 and R6 rigs. Joint C0 changes are local to this client.
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local GunAudio = require(script.Parent.GunAudio)
+
+local player = Players.LocalPlayer
+local CharacterAnim = {}
+
+local rad = math.rad
+
+-- keyframes: { t, rightShoulder {x,y,z}, leftShoulder {x,y,z}, leftElbow x, waist y, neck x }
+local RELOAD_KEYS = {
+	{ 0.00, { 0, 0, 0 }, { 0, 0, 0 }, 0, 0, 0 },
+	{ 0.14, { -10, 0, 22 }, { -25, 0, -10 }, -30, 8, -12 }, -- tilt gun, hand to mag
+	{ 0.30, { -10, 0, 22 }, { 25, 0, -18 }, -10, 8, -16 }, -- pull mag out, arm drops
+	{ 0.45, { -8, 0, 18 }, { 40, 0, -35 }, -55, 10, -14 }, -- reach to belt pouch
+	{ 0.60, { -10, 0, 22 }, { 5, 0, -12 }, -25, 8, -16 }, -- bring new mag up
+	{ 0.70, { -12, 0, 24 }, { -30, 0, -8 }, -35, 6, -14 }, -- seat it (push up)
+	{ 0.80, { -4, 0, 10 }, { -70, 0, -20 }, -60, 4, -8 }, -- hand to charging handle
+	{ 0.88, { -4, 0, 10 }, { -55, 0, -28 }, -95, 2, -6 }, -- pull it back
+	{ 1.00, { 0, 0, 0 }, { 0, 0, 0 }, 0, 0, 0 },
+}
+
+local active = {} -- [character] = { Joints, Base, Start, Duration, Kick, KickAt }
+
+local function joints(character: Model)
+	local function find(names)
+		for _, n in names do
+			local m = character:FindFirstChild(n, true)
+			if m and m:IsA("Motor6D") then
+				return m
+			end
+		end
+		return nil
+	end
+	return {
+		RS = find({ "RightShoulder", "Right Shoulder" }),
+		LS = find({ "LeftShoulder", "Left Shoulder" }),
+		LE = find({ "LeftElbow" }),
+		Waist = find({ "Waist" }),
+		Neck = find({ "Neck" }),
+	}
+end
+
+local function state(character: Model)
+	local st = active[character]
+	if st then
+		return st
+	end
+	local j = joints(character)
+	if not j.RS then
+		return nil
+	end
+	local base = {}
+	for k, m in j do
+		base[k] = m.C0
+	end
+	st = { Joints = j, Base = base, Start = 0, Duration = 0, KickAt = -10 }
+	active[character] = st
+	character.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			active[character] = nil
+		end
+	end)
+	return st
+end
+
+local function sample(r: number)
+	for i = 1, #RELOAD_KEYS - 1 do
+		local a, b = RELOAD_KEYS[i], RELOAD_KEYS[i + 1]
+		if r >= a[1] and r <= b[1] then
+			local u = (r - a[1]) / math.max(0.001, b[1] - a[1])
+			u = u * u * (3 - 2 * u)
+			local function v3(x, y)
+				return { x[1] + (y[1] - x[1]) * u, x[2] + (y[2] - x[2]) * u, x[3] + (y[3] - x[3]) * u }
+			end
+			return v3(a[2], b[2]), v3(a[3], b[3]), a[4] + (b[4] - a[4]) * u, a[5] + (b[5] - a[5]) * u, a[6] + (b[6] - a[6]) * u
+		end
+	end
+	return { 0, 0, 0 }, { 0, 0, 0 }, 0, 0, 0
+end
+
+function CharacterAnim.Reload(character: Model?, weaponId: string, duration: number)
+	if not character or character == player.Character then
+		return
+	end
+	local st = state(character)
+	if not st then
+		return
+	end
+	st.Start = os.clock()
+	st.Duration = math.max(0.3, duration or 2)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if root and weaponId then
+		GunAudio.Reload(weaponId, st.Duration, root.Position)
+	end
+end
+
+function CharacterAnim.Recoil(character: Model?)
+	if not character or character == player.Character then
+		return
+	end
+	local st = state(character)
+	if st then
+		st.KickAt = os.clock()
+	end
+end
+
+RunService.RenderStepped:Connect(function()
+	local now = os.clock()
+	for _, st in active do
+		local j, base = st.Joints, st.Base
+		local reloading = now - st.Start < st.Duration
+		local kickT = now - st.KickAt
+		local kick = kickT < 0.16 and (1 - kickT / 0.16) or 0
+		if not reloading and kick == 0 then
+			if not st.Rest then
+				for k, m in j do
+					if m and base[k] then
+						m.C0 = base[k]
+					end
+				end
+				st.Rest = true
+			end
+			continue
+		end
+		st.Rest = false
+		local rs, ls, le, waist, neck = { 0, 0, 0 }, { 0, 0, 0 }, 0, 0, 0
+		if reloading then
+			rs, ls, le, waist, neck = sample((now - st.Start) / st.Duration)
+		end
+		if j.RS then
+			j.RS.C0 = base.RS * CFrame.Angles(rad(rs[1] + 14 * kick), rad(rs[2]), rad(rs[3]))
+		end
+		if j.LS then
+			j.LS.C0 = base.LS * CFrame.Angles(rad(ls[1] + 10 * kick), rad(ls[2]), rad(ls[3]))
+		end
+		if j.LE then
+			j.LE.C0 = base.LE * CFrame.Angles(rad(le), 0, 0)
+		end
+		if j.Waist then
+			j.Waist.C0 = base.Waist * CFrame.Angles(rad(-3 * kick), rad(waist), 0)
+		end
+		if j.Neck then
+			j.Neck.C0 = base.Neck * CFrame.Angles(rad(neck), 0, 0)
+		end
+	end
+end)
+
+return CharacterAnim
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="LocalScript" referent="38">
           <Properties>
             <string name="Name">ClientMain</string>
             <string name="Source"><![CDATA[-- Client entry point: builds the UI, starts the controllers and routes
@@ -8426,6 +9057,7 @@ local Menus = require(script.Parent.Menus)
 local VoteScreen = require(script.Parent.VoteScreen)
 local OfferToast = require(script.Parent.OfferToast)
 local PassSpotlight = require(script.Parent.PassSpotlight)
+local CharacterAnim = require(script.Parent.CharacterAnim)
 local Movement = require(script.Parent.MovementController)
 local Weapons = require(script.Parent.WeaponController)
 local Vehicle = require(script.Parent.VehicleController)
@@ -8685,6 +9317,9 @@ end)
 Remotes.Effect.OnClientEvent:Connect(function(kind, a, b, c)
 	if kind == "Shot" then
 		Effects.RemoteShot(a, b, c)
+		CharacterAnim.Recoil(a)
+	elseif kind == "Reload" then
+		CharacterAnim.Reload(a, b, c)
 	elseif kind == "Launch" then
 		Effects.Launch(a, b)
 	elseif kind == "Explosion" then
@@ -8730,7 +9365,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="37">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">ClientState</string>
             <string name="Source"><![CDATA[-- Shared client-side state that every controller / UI module can read.
@@ -8804,7 +9439,7 @@ return State
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="38">
+        <Item class="ModuleScript" referent="40">
           <Properties>
             <string name="Name">Effects</string>
             <string name="Source"><![CDATA[-- Client-side visual effects: tracers, muzzle flashes, explosions, shake, UAV.
@@ -8816,6 +9451,7 @@ local Debris = game:GetService("Debris")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Sounds = require(Shared.Sounds)
 local Weapons = require(Shared.Weapons)
+local GunAudio = require(script.Parent.GunAudio)
 local Config = require(Shared.Config)
 
 local player = Players.LocalPlayer
@@ -8997,7 +9633,8 @@ function Effects.RemoteShot(character: Model?, weaponId: string, ends)
 		Effects.Impact(to)
 	end
 	Effects.Flash(from)
-	Effects.Sound3D(def and def.Class == "Sniper" and "ShotHeavy" or "Shot", from, 0.9 + math.random() * 0.2)
+	local cam = workspace.CurrentCamera
+	GunAudio.Shot(weaponId, from, cam and cam.CFrame.Position)
 end
 
 -- Target reaction: briefly flash the character you hit (white, gold for headshots).
@@ -9114,7 +9751,259 @@ return Effects
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="39">
+        <Item class="ModuleScript" referent="41">
+          <Properties>
+            <string name="Name">GunAudio</string>
+            <string name="Source"><![CDATA[-- Layered, more realistic gun audio built from sounds that ship with Roblox.
+-- Every shot is several layers (sharp crack + low body + mechanical), shaped with
+-- EQ / compression, and distant shots get muffled with an outdoor slap-back echo.
+-- Reloads play a timed sequence (mag out, mag in, charging handle / pump / bolt).
+--
+-- Want studio-quality samples? Paste Creator Store sound ids into
+-- Sounds.GunOverrides (see Sounds.lua) and they replace the built-in layers.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Sounds = require(Shared.Sounds)
+local GunBuilder = require(Shared.GunBuilder)
+
+local GunAudio = {}
+
+local CRACK = "rbxasset://sounds/snap.mp3"
+local BODY = "rbxasset://sounds/collide.wav"
+local CLICK = "rbxasset://sounds/clickfast.wav"
+local TICK = "rbxasset://sounds/button.wav"
+local WHOOSH = "rbxasset://sounds/swoosh.wav"
+local ZAP = "rbxasset://sounds/electronicpingshort.wav"
+
+-- layer = { id, volume, pitch, distortion? }
+local PROFILES = {
+	Rifle = { Layers = { { CRACK, 0.75, 1.0 }, { BODY, 0.6, 0.55, 0.25 }, { CLICK, 0.18, 1.6 } }, Tail = 0.45, Brass = true },
+	SMG = { Layers = { { CRACK, 0.6, 1.25 }, { BODY, 0.4, 0.75, 0.15 }, { CLICK, 0.2, 1.9 } }, Tail = 0.3, Brass = true },
+	Pistol = { Layers = { { CRACK, 0.65, 1.15 }, { BODY, 0.45, 0.8, 0.15 }, { CLICK, 0.25, 1.7 } }, Tail = 0.3, Brass = true },
+	Magnum = { Layers = { { CRACK, 0.85, 0.82 }, { BODY, 0.8, 0.42, 0.35 }, { BODY, 0.35, 0.7 } }, Tail = 0.7, Brass = false },
+	Shotgun = { Layers = { { BODY, 0.95, 0.4, 0.4 }, { CRACK, 0.7, 0.72 }, { BODY, 0.4, 0.62 } }, Tail = 0.8, Brass = false },
+	Sniper = { Layers = { { CRACK, 0.95, 0.72 }, { BODY, 0.9, 0.34, 0.45 }, { BODY, 0.45, 0.55 } }, Tail = 1.2, Brass = true },
+	LMG = { Layers = { { CRACK, 0.75, 0.95 }, { BODY, 0.65, 0.5, 0.3 }, { CLICK, 0.15, 1.4 } }, Tail = 0.5, Brass = true },
+	Launcher = { Layers = { { BODY, 0.9, 0.45, 0.3 }, { WHOOSH, 0.8, 0.7 } }, Tail = 0.8, Brass = false },
+	Energy = { Layers = { { ZAP, 0.55, 0.55 }, { WHOOSH, 0.4, 1.6 }, { BODY, 0.3, 1.2 } }, Tail = 0.3, Brass = false },
+}
+
+local STYLE_PROFILE = {
+	M4 = "Rifle", AK = "Rifle", SCAR = "Rifle", FAMAS = "Rifle", SVD = "Rifle",
+	MP5 = "SMG", PDW = "SMG", Uzi = "SMG",
+	Pistol = "Pistol", Deagle = "Magnum", Revolver = "Magnum",
+	Pump = "Shotgun", AA12 = "Shotgun", Double = "Shotgun",
+	AWM = "Sniper", Barrett = "Sniper",
+	M249 = "LMG", Minigun = "LMG",
+	RPG = "Launcher", M32 = "Launcher",
+	Railgun = "Energy", Energy = "Energy", RayGun = "Energy", Plasma = "Energy", Void = "Energy",
+	MachinePistol = "Pistol", ARPistol = "Rifle", Vector = "SMG",
+}
+-- manual actions rack after every shot
+local RACK_AFTER_SHOT = { Pump = 0.32, AWM = 0.45 }
+
+local function styleOf(weaponId: string): string
+	return (GunBuilder.Styles and GunBuilder.Styles[weaponId]) or "M4"
+end
+
+local function profileOf(weaponId: string)
+	return PROFILES[STYLE_PROFILE[styleOf(weaponId)] or "Rifle"]
+end
+
+-- Plays one layer. position = nil -> 2D (your own gun), otherwise 3D at that point.
+local function layer(id: string, volume: number, pitch: number, position: Vector3?, opts)
+	opts = opts or {}
+	local s = Instance.new("Sound")
+	s.SoundId = id
+	s.Volume = volume
+	s.PlaybackSpeed = pitch * (0.97 + math.random() * 0.06)
+	local holder
+	if position then
+		holder = Instance.new("Attachment")
+		holder.WorldPosition = position
+		holder.Parent = workspace.Terrain
+		s.RollOffMode = Enum.RollOffMode.InverseTapered
+		s.RollOffMinDistance = opts.MinDistance or 12
+		s.RollOffMaxDistance = opts.MaxDistance or 600
+		s.Parent = holder
+	else
+		s.Parent = SoundService
+	end
+	if opts.Distortion and opts.Distortion > 0 then
+		local d = Instance.new("DistortionSoundEffect")
+		d.Level = opts.Distortion
+		d.Parent = s
+	end
+	if opts.Punch then
+		local eq = Instance.new("EqualizerSoundEffect")
+		eq.LowGain = 6
+		eq.MidGain = 0
+		eq.HighGain = 2
+		eq.Parent = s
+		local comp = Instance.new("CompressorSoundEffect")
+		comp.Threshold = -14
+		comp.Ratio = 4
+		comp.Attack = 0.002
+		comp.Release = 0.12
+		comp.GainMakeup = 2
+		comp.Parent = s
+	end
+	if opts.Muffle and opts.Muffle > 0 then
+		local eq = Instance.new("EqualizerSoundEffect")
+		eq.HighGain = -opts.Muffle
+		eq.MidGain = -opts.Muffle * 0.4
+		eq.LowGain = 2
+		eq.Parent = s
+	end
+	if opts.Echo then
+		local echo = Instance.new("EchoSoundEffect")
+		echo.Delay = opts.Echo
+		echo.Feedback = 0.25
+		echo.DryLevel = 0
+		echo.WetLevel = -10
+		echo.Parent = s
+	end
+	s:Play()
+	Debris:AddItem(holder or s, 4)
+	return s
+end
+
+local function override(kind: string, weaponId: string)
+	local o = Sounds.GunOverrides
+	if not o then
+		return nil
+	end
+	local entry = o[weaponId] or o[STYLE_PROFILE[styleOf(weaponId)] or ""]
+	return entry and entry[kind]
+end
+
+-- A gunshot. position nil = your own gun (2D, punchy); otherwise someone else's.
+function GunAudio.Shot(weaponId: string, position: Vector3?, listener: Vector3?)
+	local prof = profileOf(weaponId)
+	local dist = (position and listener) and (position - listener).Magnitude or 0
+	local muffle = position and math.clamp((dist - 40) / 12, 0, 24) or 0
+	local echo = (position and dist > 70) and math.clamp(dist / 900, 0.12, 0.4) or nil
+	local custom = override("Shot", weaponId)
+	if custom then
+		layer(custom, position and 0.9 or 1, 1, position, { Punch = not position, Muffle = muffle, Echo = echo })
+	else
+		for i, l in prof.Layers do
+			-- the far-away sound of a gun is mostly the low "boom"; drop the crack with distance
+			local vol = l[2]
+			if position and i == 1 then
+				vol *= math.clamp(1 - dist / 400, 0.25, 1)
+			end
+			layer(l[1], vol, l[3], position, { Distortion = l[4], Punch = not position and i == 2, Muffle = muffle, Echo = (i == 2) and echo or nil })
+		end
+	end
+	-- outdoor tail: a quiet low rumble that hangs after the shot
+	if prof.Tail > 0 and (not position or dist < 500) then
+		task.delay(0.04, function()
+			layer(BODY, 0.18 * prof.Tail, 0.3, position, { Muffle = muffle + 6, MaxDistance = 800 })
+		end)
+	end
+	-- only your own gun gets the close-up mechanical details
+	if not position then
+		local rack = RACK_AFTER_SHOT[styleOf(weaponId)]
+		if rack then
+			task.delay(rack, function()
+				layer(CLICK, 0.45, 0.62)
+				task.wait(0.12)
+				layer(CLICK, 0.4, 0.78)
+			end)
+		end
+		if prof.Brass and math.random() < 0.6 then
+			task.delay(0.28 + math.random() * 0.2, function()
+				layer(TICK, 0.12, 2.6 + math.random() * 0.6)
+			end)
+		end
+	end
+end
+
+-- Dry fire click.
+function GunAudio.Empty()
+	layer(CLICK, 0.5, 1.25)
+end
+
+-- A timed reload: mag out -> mag in -> charging handle / pump / bolt.
+-- position nil = your own reload; otherwise someone else's (quieter, 3D).
+function GunAudio.Reload(weaponId: string, duration: number, position: Vector3?)
+	local style = styleOf(weaponId)
+	local prof = STYLE_PROFILE[style] or "Rifle"
+	local v = position and 0.6 or 1
+	local custom = override("Reload", weaponId)
+	if custom then
+		layer(custom, 0.8 * v, 1, position)
+		return
+	end
+	local function at(frac, fn)
+		task.delay(duration * frac, fn)
+	end
+	local o = { MaxDistance = 90, MinDistance = 6 }
+	if prof == "Shotgun" and style ~= "AA12" then
+		-- shells pushed in one by one, then rack
+		local shells = style == "Double" and 2 or 4
+		for i = 1, shells do
+			at(0.12 + (i - 1) * (0.62 / shells), function()
+				layer(CLICK, 0.4 * v, 0.95 + math.random() * 0.1, position, o)
+				layer(TICK, 0.15 * v, 1.4, position, o)
+			end)
+		end
+		at(0.86, function()
+			layer(CLICK, 0.55 * v, 0.6, position, o)
+			task.wait(0.1)
+			layer(CLICK, 0.5 * v, 0.75, position, o)
+		end)
+	elseif prof == "Magnum" and style == "Revolver" then
+		at(0.1, function()
+			layer(CLICK, 0.45 * v, 0.8, position, o) -- cylinder out
+		end)
+		at(0.25, function()
+			for _ = 1, 5 do
+				layer(TICK, 0.12 * v, 2.2 + math.random() * 0.5, position, o) -- casings drop
+				task.wait(0.03)
+			end
+		end)
+		at(0.55, function()
+			layer(CLICK, 0.35 * v, 1.2, position, o) -- speedloader
+		end)
+		at(0.85, function()
+			layer(CLICK, 0.55 * v, 0.7, position, o) -- cylinder closed
+		end)
+	elseif prof == "Energy" then
+		at(0.2, function()
+			layer(ZAP, 0.3 * v, 0.4, position, o)
+		end)
+		at(0.8, function()
+			layer(ZAP, 0.4 * v, 0.9, position, o)
+		end)
+	else
+		at(0.12, function()
+			layer(CLICK, 0.5 * v, 0.85, position, o) -- mag release
+		end)
+		at(0.22, function()
+			layer(BODY, 0.15 * v, 1.8, position, o) -- empty mag drops
+		end)
+		at(0.55, function()
+			layer(CLICK, 0.55 * v, 1.05, position, o) -- new mag seated
+			layer(BODY, 0.12 * v, 2.2, position, o)
+		end)
+		at(0.82, function()
+			layer(CLICK, 0.6 * v, 0.62, position, o) -- charging handle back...
+			task.wait(0.09)
+			layer(CLICK, 0.55 * v, 0.9, position, o) -- ...and forward
+		end)
+	end
+end
+
+return GunAudio
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">HUD</string>
             <string name="Source"><![CDATA[-- In-game HUD in the style of the big shooters:
@@ -10045,7 +10934,7 @@ return HUD
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">HUDExtras</string>
             <string name="Source"><![CDATA[-- Extra HUD widgets: minimap radar, damage direction arrows, aimed-target info,
@@ -10352,7 +11241,7 @@ return Extras
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">Menus</string>
             <string name="Source"><![CDATA[-- Full-screen menus: Main Menu, Armory, Store (Robux), Achievements,
@@ -10368,6 +11257,7 @@ local Weapons = require(Shared.Weapons)
 local Achievements = require(Shared.Achievements)
 local Monetization = require(Shared.Monetization)
 local GunBuilder = require(Shared.GunBuilder)
+local Knives = require(Shared.Knives)
 local Remotes = require(Shared.Remotes)
 local Util = require(Shared.Util)
 local UIKit = require(script.Parent.UIKit)
@@ -10518,6 +11408,59 @@ local function statBar(parent, y, name, value)
 	bar.Fill.ZIndex = 7
 end
 
+local function knifePreview(parent, id: string)
+	local vpf = new("ViewportFrame", {
+		Size = UDim2.new(1, -16, 0, 74), Position = UDim2.fromOffset(8, 44), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.6,
+		Ambient = Color3.fromRGB(170, 170, 180), LightColor = Color3.new(1, 1, 1), LightDirection = Vector3.new(-1, -1, -0.5), ZIndex = 7, Parent = parent,
+	})
+	UIKit.Corner(6).Parent = vpf
+	local model = Knives.Build(id)
+	model.Parent = vpf
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 30
+	local _, size = model:GetBoundingBox()
+	local L = math.max(size.Z, 1.4)
+	local center = model:GetBoundingBox().Position
+	cam.CFrame = CFrame.lookAt(center + Vector3.new(L * 2.4, 0.4, 0), center)
+	cam.Parent = vpf
+	vpf.CurrentCamera = cam
+end
+
+local function renderKnives(list)
+	local data = ClientState.Data
+	local current = data.Knife or "Standard"
+	for order, id in Knives.Order do
+		local def = Knives.Defs[id]
+		local owned = not def.Pass or ClientState.HasPass(def.Pass)
+		local equipped = current == id and owned
+		local card = UIKit.Panel({ BackgroundColor3 = equipped and Color3.fromRGB(50, 44, 20) or T.Panel, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 6, Parent = list })
+		UIKit.Stroke(equipped and T.Accent or (def.Pass and T.Robux or Color3.new(1, 1, 1)), equipped and 2 or 1, equipped and 0 or 0.85).Parent = card
+		Label({ Text = def.Icon .. "  " .. def.Name, Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(10, 8), TextSize = 14, Font = T.Black, ZIndex = 7, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+		Label({ Text = def.Pass and "MELEE  ·  💎 EXCLUSIVE" or "MELEE  ·  FREE", Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 26), TextSize = 10, Font = T.Bold, TextColor3 = def.Pass and T.Robux or T.Sub, ZIndex = 7, Parent = card })
+		knifePreview(card, id)
+		statBar(card, 126, "DAMAGE", def.Damage / 130)
+		statBar(card, 140, "SPEED", (1.0 - def.Cooldown) / 0.55)
+		statBar(card, 154, "REACH", def.Range / 12)
+		Label({ Text = def.Perk, Size = UDim2.new(1, -20, 0, 14), Position = UDim2.fromOffset(10, 170), TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, ZIndex = 7, TextWrapped = true, Parent = card })
+		local text, color, action
+		if equipped then
+			text, color = "EQUIPPED", T.Panel3
+		elseif owned then
+			text, color = "EQUIP", T.Accent
+			action = function()
+				Remotes.SetKnife:FireServer(id)
+			end
+		else
+			text, color = "💎 R$ " .. Monetization.GamePasses[def.Pass].Price, T.Robux
+			action = function()
+				Menus.BuyPass(def.Pass)
+			end
+		end
+		local b = UIKit.Button({ Text = text, Size = UDim2.new(1, -20, 0, 30), Position = UDim2.new(0, 10, 1, -38), Color = color, TextSize = 13, Parent = card }, action)
+		b.ZIndex = 7
+	end
+end
+
 local function renderArmory(w)
 	w.SyncTabs()
 	clear(w.Content)
@@ -10529,6 +11472,10 @@ local function renderArmory(w)
 	end
 	local slot = w.Tab
 	local list = scroller(w.Content, UDim2.fromOffset(220, 232))
+	if slot == "Knives" then
+		renderKnives(list)
+		return
+	end
 	local level = player:GetAttribute("Level") or 1
 	local cash = player:GetAttribute("Cash") or 0
 	for order, id in Weapons.Order do
@@ -11064,7 +12011,7 @@ end
 function Menus.Init(playerGui: PlayerGui)
 	gui = new("ScreenGui", { Name = "Menus", ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 5, Parent = playerGui })
 
-	local armory = window("Armory", "ARMORY", { "Primary", "Secondary" })
+	local armory = window("Armory", "ARMORY", { "Primary", "Secondary", "Knives" })
 	armory.Render = function()
 		renderArmory(armory)
 	end
@@ -11115,7 +12062,7 @@ return Menus
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="45">
           <Properties>
             <string name="Name">MovementController</string>
             <string name="Source"><![CDATA[-- Advanced movement: sprint, slide, dash, double/triple jump, ground slam, jump pads.
@@ -11478,7 +12425,7 @@ return Movement
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="46">
           <Properties>
             <string name="Name">OfferToast</string>
             <string name="Source"><![CDATA[-- Subtle, contextual Robux offers.
@@ -11661,7 +12608,7 @@ return OfferToast
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="44">
+        <Item class="ModuleScript" referent="47">
           <Properties>
             <string name="Name">PassSpotlight</string>
             <string name="Source"><![CDATA[-- Featured pass spotlight: a big, good-looking card for one random game pass the
@@ -11834,7 +12781,7 @@ return Spotlight
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="45">
+        <Item class="ModuleScript" referent="48">
           <Properties>
             <string name="Name">UIKit</string>
             <string name="Source"><![CDATA[-- Tiny UI helper library + the game's visual theme.
@@ -12089,7 +13036,7 @@ return UIKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="46">
+        <Item class="ModuleScript" referent="49">
           <Properties>
             <string name="Name">VehicleController</string>
             <string name="Source"><![CDATA[-- Arcade car handling. The server gives the driver network ownership,
@@ -12359,7 +13306,7 @@ return Vehicle
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="47">
+        <Item class="ModuleScript" referent="50">
           <Properties>
             <string name="Name">VoteScreen</string>
             <string name="Source"><![CDATA[-- Pre-match vote screen: 3 rotating map choices + the 3 game modes.
@@ -12616,7 +13563,7 @@ return VoteScreen
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="48">
+        <Item class="ModuleScript" referent="51">
           <Properties>
             <string name="Name">WeaponController</string>
             <string name="Source"><![CDATA[-- First-person gunplay: viewmodel, ADS, recoil, spread, reloads, knife, grenades.
@@ -12632,6 +13579,8 @@ local Weapons = require(Shared.Weapons)
 local GunBuilder = require(Shared.GunBuilder)
 local Remotes = require(Shared.Remotes)
 local ClientState = require(script.Parent.ClientState)
+local GunAudio = require(script.Parent.GunAudio)
+local Knives = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Knives"))
 local Effects = require(script.Parent.Effects)
 local UIKit = require(script.Parent.UIKit)
 local Movement = require(script.Parent.MovementController)
@@ -12675,6 +13624,7 @@ local knifeTime = -10
 local throwTime = -10
 local viewmodel = nil
 local knifeModel = nil
+local reloadPath = nil -- support-hand keyframes for the current gun's reload
 local character, humanoid
 
 local function extended()
@@ -12756,8 +13706,27 @@ local function buildViewmodel(id: string)
 	local f = foreA and foreA.Position or Vector3.new(0, -0.25, -L * 0.3)
 	arm(model, "RightHand", Vector3.new(0.38, 0.42, 0.42), cf * CFrame.new(g + Vector3.new(0.04, 0.02, 0)), skin)
 	arm(model, "RightSleeve", Vector3.new(0.5, 0.5, 1.9), cf * CFrame.new(g + Vector3.new(0.3, -0.25, 1.05)) * CFrame.Angles(math.rad(14), math.rad(8), 0), sleeve)
-	arm(model, "LeftHand", Vector3.new(0.38, 0.38, 0.48), cf * CFrame.new(f + Vector3.new(-0.04, -0.06, 0)), skin)
-	arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.1), cf * CFrame.new(f + Vector3.new(-0.55, -0.32, 1.0)) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
+	local lh = arm(model, "LeftHand", Vector3.new(0.38, 0.38, 0.48), cf * CFrame.new(f + Vector3.new(-0.04, -0.06, 0)), skin)
+	local ls = arm(model, "LeftSleeve", Vector3.new(0.5, 0.5, 2.1), cf * CFrame.new(f + Vector3.new(-0.55, -0.32, 1.0)) * CFrame.Angles(math.rad(12), math.rad(-28), 0), sleeve)
+	lh:SetAttribute("Anim", "LeftArm")
+	ls:SetAttribute("Anim", "LeftArm")
+	-- reload path for the support hand: fore grip -> mag -> pouch -> mag -> charging handle
+	local magPart = model:FindFirstChild("Mag", true)
+	local magPos = magPart and handle.CFrame:PointToObjectSpace(magPart.Position) or Vector3.new(0, -0.6, g.Z - 0.5)
+	local magwell = Vector3.new(magPos.X + 0.05, magPos.Y + 0.15, magPos.Z) - f
+	local charge = Vector3.new(-0.12, 0.32, g.Z + 0.15) - f
+	reloadPath = {
+		{ 0, Vector3.zero },
+		{ 0.14, magwell },
+		{ 0.3, magwell + Vector3.new(0, -1.5, 0.15) },
+		{ 0.44, Vector3.new(-0.7, -1.9, 0.9) },
+		{ 0.6, magwell + Vector3.new(0, -1.1, 0.1) },
+		{ 0.7, magwell },
+		{ 0.8, charge },
+		{ 0.88, charge + Vector3.new(0, 0, 0.4) },
+		{ 0.94, charge },
+		{ 1, Vector3.zero },
+	}
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			setVMPart(p)
@@ -12784,22 +13753,25 @@ local function buildViewmodel(id: string)
 	cylAngle, cylTarget, barrelAngle = 0, 0, 0
 end
 
+local knifeBuiltFor = nil
+local function equippedKnife(): string
+	local id = ClientState.Data and ClientState.Data.Knife or "Standard"
+	local def = Knives.Defs[id]
+	if def and def.Pass and not ClientState.HasPass(def.Pass) then
+		return "Standard"
+	end
+	return def and id or "Standard"
+end
+
 local function buildKnife()
-	local model = Instance.new("Model")
-	model.Name = "Knife"
-	local handle = Instance.new("Part")
-	handle.Size = Vector3.new(0.18, 0.25, 0.7)
-	handle.Color = Color3.fromRGB(25, 25, 28)
-	setVMPart(handle)
-	handle.Parent = model
-	local blade = Instance.new("Part")
-	blade.Size = Vector3.new(0.05, 0.25, 1.1)
-	blade.Color = Color3.fromRGB(220, 225, 235)
-	blade.Material = Enum.Material.Metal
-	blade.CFrame = handle.CFrame * CFrame.new(0, 0.02, -0.9)
-	setVMPart(blade)
-	blade.Parent = model
-	model.PrimaryPart = handle
+	local id = equippedKnife()
+	local model = Knives.Build(id)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			setVMPart(p)
+		end
+	end
+	knifeBuiltFor = id
 	model.Parent = nil
 	return model
 end
@@ -12992,21 +13964,21 @@ local function kickRecoil(def)
 	kick = math.min(kick + 0.6 + def.Recoil * 0.08, 2)
 	bloom = math.min(bloom + def.Spread * 0.18, def.Spread * 1.2)
 	Effects.Flash(muzzlePosition(), def.Look.Neon and def.Look.Accent or nil)
-	UIKit.Sound((def.Class == "Sniper" or def.Class == "Exotic") and "ShotHeavy" or "Shot", 0.92 + math.random() * 0.16)
+	GunAudio.Shot(current.Id)
 end
 
 function WC.Reload()
 	if not current or reloading or not alive() or infinite() then
 		return
 	end
-	if gunFlags.Break then
-		task.delay(0.35, ejectShell, "Shell")
-		task.delay(0.4, ejectShell, "Shell")
-	end
 	local def = current.Def
 	local a = ammo[current.Id]
 	if a.Mag >= Weapons.MagSize(def, extended()) or a.Reserve <= 0 then
 		return
+	end
+	if gunFlags.Break then
+		task.delay(0.35, ejectShell, "Shell")
+		task.delay(0.4, ejectShell, "Shell")
 	end
 	reloading = true
 	reloadToken += 1
@@ -13016,7 +13988,7 @@ function WC.Reload()
 	reloadStart = os.clock()
 	reloadEnd = reloadStart + duration
 	Remotes.Reload:FireServer(id)
-	UIKit.Sound("Reload")
+	GunAudio.Reload(id, duration)
 	updateHud()
 	task.delay(duration, function()
 		if token ~= reloadToken or not current or current.Id ~= id then
@@ -13027,7 +13999,6 @@ function WC.Reload()
 		a.Mag += take
 		a.Reserve -= take
 		reloading = false
-		UIKit.Sound("Reload", 1.3)
 		updateHud()
 	end)
 end
@@ -13051,7 +14022,7 @@ local function tryShoot()
 	local a = ammo[current.Id]
 	local unlimited = infinite()
 	if a.Mag <= 0 and not unlimited then
-		UIKit.Sound("Empty")
+		GunAudio.Empty()
 		if ClientState.OnDryFire then
 			ClientState.OnDryFire()
 		end
@@ -13105,7 +14076,7 @@ local function tryShoot()
 end
 
 function WC.Knife()
-	if not canAct() or os.clock() - knifeTime < 0.7 then
+	if not canAct() or os.clock() - knifeTime < Knives.Get(equippedKnife()).Cooldown then
 		return
 	end
 	knifeTime = os.clock()
@@ -13170,6 +14141,24 @@ local function animateViewmodel(dt: number, now: number)
 		barrelAngle += dt * (1.5 + pulse * 14)
 	end
 	local glow = math.max(0, 1 - t / 0.18)
+	-- support hand + charging handle rack during a reload
+	local handOffset = Vector3.zero
+	local rack = 0
+	if reloading and reloadPath then
+		local r = math.clamp((now - reloadStart) / math.max(0.01, reloadEnd - reloadStart), 0, 1)
+		for i = 1, #reloadPath - 1 do
+			local k0, k1 = reloadPath[i], reloadPath[i + 1]
+			if r >= k0[1] and r <= k1[1] then
+				local u = (r - k0[1]) / math.max(0.001, k1[1] - k0[1])
+				u = u * u * (3 - 2 * u)
+				handOffset = k0[2]:Lerp(k1[2], u)
+				break
+			end
+		end
+		if r > 0.8 and r < 0.94 then
+			rack = math.sin((r - 0.8) / 0.14 * math.pi)
+		end
+	end
 	local function around(pivot, rot, base)
 		local p = pivot or Vector3.zero
 		return hcf * CFrame.new(p) * rot * CFrame.new(-p) * base
@@ -13178,15 +14167,18 @@ local function animateViewmodel(dt: number, now: number)
 		local kind = ap.Kind
 		local cf
 		if kind == "Slide" then
-			cf = hcf * CFrame.new(0, 0, empty and 0.2 or 0.22 * pulse) * ap.Base -- locks back when empty
+			cf = hcf * CFrame.new(0, 0, empty and not reloading and 0.2 or 0.22 * math.max(pulse, rack)) * ap.Base -- locks back when empty
 		elseif kind == "Bolt" then
-			cf = hcf * CFrame.new(0, 0, empty and 0.12 or 0.14 * pulse) * ap.Base
+			cf = hcf * CFrame.new(0, 0, empty and not reloading and 0.12 or 0.14 * math.max(pulse, rack)) * ap.Base
 		elseif kind == "Recoil" then
 			cf = hcf * CFrame.new(0, 0, 0.28 * pulse) * ap.Base
+		elseif kind == "LeftArm" then
+			cf = hcf * CFrame.new(handOffset) * ap.Base
 		elseif kind == "Pump" then
-			cf = hcf * CFrame.new(0, 0, 0.34 * cycle) * ap.Base
+			cf = hcf * CFrame.new(0, 0, 0.34 * math.max(cycle, rack)) * ap.Base
 		elseif kind == "BoltAction" then
-			cf = hcf * CFrame.new(0, 0.07 * cycle, 0.3 * cycle) * ap.Base
+			local c = math.max(cycle, rack)
+			cf = hcf * CFrame.new(0, 0.07 * c, 0.3 * c) * ap.Base
 		elseif kind == "Trigger" then
 			cf = hcf * CFrame.new(0, 0, (firing or pulse > 0.3) and 0.035 or 0) * ap.Base
 		elseif kind == "Hammer" then
@@ -13331,6 +14323,10 @@ local function render(dt: number)
 
 		-- knife swing
 		if knifeT < 1 then
+			if knifeModel and knifeBuiltFor ~= equippedKnife() then
+				knifeModel:Destroy()
+				knifeModel = nil
+			end
 			knifeModel = knifeModel or buildKnife()
 			knifeModel.Parent = camera
 			local swing = -60 + knifeT * 140

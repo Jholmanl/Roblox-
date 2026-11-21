@@ -106,6 +106,28 @@ local function groundSpawn(marker: BasePart): CFrame
 			result = high
 		end
 	end
+	-- landed on top of something (parked car, crate, cover)? look for clear floor nearby
+	if result and result.Position.Y > pos.Y + 1.5 then
+		for _, radius in { 6, 10, 14 } do
+			local found = nil
+			for k = 0, 7 do
+				local a = k / 8 * math.pi * 2
+				local p = pos + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius)
+				local r = workspace:Raycast(p + Vector3.new(0, 6, 0), Vector3.new(0, -40, 0), params)
+				if r and r.Position.Y <= pos.Y + 1.5 then
+					local clear = workspace:Raycast(r.Position + Vector3.new(0, 1, 0), Vector3.new(0, 6, 0), params)
+					if not clear then
+						found = { p, r }
+						break
+					end
+				end
+			end
+			if found then
+				pos, result = found[1], found[2]
+				break
+			end
+		end
+	end
 	local y = result and result.Position.Y + 3.2 or pos.Y
 	return CFrame.new(pos.X, y, pos.Z) * marker.CFrame.Rotation
 end

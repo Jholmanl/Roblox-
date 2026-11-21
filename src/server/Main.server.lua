@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Weapons = require(Shared.Weapons)
 local Remotes = require(Shared.Remotes)
+local Knives = require(Shared.Knives)
 
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
@@ -213,6 +214,20 @@ Remotes.SetLoadout.OnServerEvent:Connect(function(player, slot, weaponId)
 	else
 		Remotes.Notify:FireClient(player, "Message", { Text = "LOADOUT APPLIES ON NEXT SPAWN", Color = Config.Colors.Accent })
 	end
+end)
+
+Remotes.SetKnife.OnServerEvent:Connect(function(player, knifeId)
+	local data = DataService.Get(player)
+	local def = typeof(knifeId) == "string" and Knives.Defs[knifeId]
+	if not data or not def then
+		return
+	end
+	if def.Pass and not player:GetAttribute("Pass_" .. def.Pass) then
+		return
+	end
+	data.Knife = knifeId
+	DataService.Sync(player)
+	Remotes.Notify:FireClient(player, "Message", { Text = def.Icon .. " " .. def.Name .. " EQUIPPED", Color = Config.Colors.Accent })
 end)
 
 Remotes.ClaimDaily.OnServerEvent:Connect(function(player)

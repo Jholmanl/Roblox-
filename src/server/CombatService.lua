@@ -15,6 +15,7 @@ local Weapons = require(Shared.Weapons)
 local Remotes = require(Shared.Remotes)
 local Util = require(Shared.Util)
 local GunBuilder = require(Shared.GunBuilder)
+local Knives = require(Shared.Knives)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
 local TeamService = require(script.Parent.TeamService)
@@ -182,6 +183,17 @@ function Combat.AttachCharacter(entity, character: Model, weaponIds: { string })
 		if not entity.Dead and entity.Character == character then
 			entity.Dead = true
 			Combat.HandleDeath(nil, entity, { Weapon = "Environment", WeaponName = "THE VOID" })
+		end
+	end)
+	-- swapping weapons cancels a reload in progress (the client does the same)
+	character.ChildAdded:Connect(function(child)
+		if child:IsA("Tool") then
+			local id = child:GetAttribute("WeaponId")
+			for weaponId in entity.Reload do
+				if weaponId ~= id then
+					entity.Reload[weaponId] = nil
+				end
+			end
 		end
 	end)
 	character.AncestryChanged:Connect(function(_, parent)
@@ -917,6 +929,8 @@ Remotes.Reload.OnServerEvent:Connect(function(player, weaponId)
 	local t = Combat.ReloadTime(entity, def)
 	local finish = os.clock() + t
 	entity.Reload[weaponId] = finish
+	-- everyone else sees (and hears) this character reload
+	Remotes.Effect:FireAllClients("Reload", entity.Character, weaponId, t)
 	task.delay(t, function()
 		if entity.Reload[weaponId] == finish then
 			completeReload(entity, weaponId)
@@ -930,15 +944,21 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 	if not Combat.IsAlive(entity) or entity.Downed then
 		return
 	end
+	-- equipped knife (only if the player still owns its pass)
+	local data = DataService.Get(player)
+	local knife = Knives.Get(data and data.Knife)
+	if knife.Pass and not player:GetAttribute("Pass_" .. knife.Pass) then
+		knife = Knives.Get("Standard")
+	end
 	local now = os.clock()
-	if now - entity.LastKnife < Config.KnifeCooldown then
+	if now - entity.LastKnife < knife.Cooldown - 0.05 then
 		return
 	end
 	entity.LastKnife = now
 	removeSpawnProtection(entity)
 	Remotes.Effect:FireAllClients("Knife", entity.Character)
 	local look = entity.Root.CFrame.LookVector
-	local best, bestDist = nil, Config.KnifeRange
+	local best, bestDist = nil, knife.Range
 	for _, other in Combat.Entities do
 		if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 			local offset = other.Root.Position - entity.Root.Position
@@ -960,8 +980,8 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 		end
 	end
 	if best then
-		Combat.Damage(entity, best, Config.KnifeDamage, {
-			Weapon = "Knife", WeaponName = "KNIFE", Kind = "Knife",
+		Combat.Damage(entity, best, knife.Damage, {
+			Weapon = "Knife", WeaponName = knife.Name, Kind = "Knife",
 			Distance = bestDist, Position = best.Root.Position,
 		})
 	end

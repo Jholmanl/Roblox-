@@ -66,6 +66,41 @@ Monetization.GamePasses = {
 		Perks = { "Heal 25 HP on every kill" },
 		Color = Color3.fromRGB(200, 30, 60),
 	},
+	Phantom = {
+		Id = 0, Price = 499, Icon = "👻", Name = "Phantom Vector",
+		Perks = { "Exclusive Vector-style SMG", "18 rounds/sec with almost no recoil", "Moves fast, built for close fights" },
+		Color = Color3.fromRGB(0, 230, 160),
+	},
+	Vortex = {
+		Id = 0, Price = 349, Icon = "🌀", Name = "Vortex Auto Pistol",
+		Perks = { "Full-auto machine pistol sidearm", "33-round extended mag", "Laser + mini red dot" },
+		Color = Color3.fromRGB(255, 120, 30),
+	},
+	Hellcat = {
+		Id = 0, Price = 449, Icon = "😈", Name = "Hellcat AR Pistol",
+		Perks = { "A full-auto AR as your sidearm", "30-round mag, rifle-class range", "Holo sight + angled grip" },
+		Color = Color3.fromRGB(255, 40, 60),
+	},
+	KnifeKarambit = {
+		Id = 0, Price = 199, Icon = "🪝", Name = "Karambit",
+		Perks = { "Curved claw knife skin", "Faster knife swings (0.5s)" },
+		Color = Color3.fromRGB(255, 70, 90),
+	},
+	KnifeButterfly = {
+		Id = 0, Price = 249, Icon = "🦋", Name = "Butterfly Knife",
+		Perks = { "Anodized butterfly knife skin", "Quick swings + extra reach" },
+		Color = Color3.fromRGB(160, 120, 255),
+	},
+	KnifeMachete = {
+		Id = 0, Price = 299, Icon = "🗡️", Name = "Jungle Machete",
+		Perks = { "Big machete skin", "Longer reach, hits harder" },
+		Color = Color3.fromRGB(150, 155, 160),
+	},
+	KnifeKatana = {
+		Id = 0, Price = 499, Icon = "🐉", Name = "Dragon Katana",
+		Perks = { "Glowing energy katana", "Longest melee reach in the game" },
+		Color = Color3.fromRGB(255, 60, 40),
+	},
 	Railgun = {
 		Id = 0, Price = 799, Icon = "⚡", Name = "Railgun",
 		Perks = { "Exclusive weapon", "Pierces through every enemy in a line", "110 damage per shot" },
@@ -76,6 +111,7 @@ Monetization.GamePasses = {
 Monetization.PassOrder = {
 	"VIP", "DoubleXP", "GoldenArsenal", "Juggernaut", "Railgun", "RadarPro",
 	"Vampire", "SpeedDemon", "ExtendedMags", "FastHands", "Grenadier", "InstantRespawn", "TripleJump",
+	"Phantom", "Vortex", "Hellcat", "KnifeKatana", "KnifeMachete", "KnifeButterfly", "KnifeKarambit",
 }
 
 Monetization.Products = {

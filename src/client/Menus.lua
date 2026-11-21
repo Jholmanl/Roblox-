@@ -11,6 +11,7 @@ local Weapons = require(Shared.Weapons)
 local Achievements = require(Shared.Achievements)
 local Monetization = require(Shared.Monetization)
 local GunBuilder = require(Shared.GunBuilder)
+local Knives = require(Shared.Knives)
 local Remotes = require(Shared.Remotes)
 local Util = require(Shared.Util)
 local UIKit = require(script.Parent.UIKit)
@@ -161,6 +162,59 @@ local function statBar(parent, y, name, value)
 	bar.Fill.ZIndex = 7
 end
 
+local function knifePreview(parent, id: string)
+	local vpf = new("ViewportFrame", {
+		Size = UDim2.new(1, -16, 0, 74), Position = UDim2.fromOffset(8, 44), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.6,
+		Ambient = Color3.fromRGB(170, 170, 180), LightColor = Color3.new(1, 1, 1), LightDirection = Vector3.new(-1, -1, -0.5), ZIndex = 7, Parent = parent,
+	})
+	UIKit.Corner(6).Parent = vpf
+	local model = Knives.Build(id)
+	model.Parent = vpf
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 30
+	local _, size = model:GetBoundingBox()
+	local L = math.max(size.Z, 1.4)
+	local center = model:GetBoundingBox().Position
+	cam.CFrame = CFrame.lookAt(center + Vector3.new(L * 2.4, 0.4, 0), center)
+	cam.Parent = vpf
+	vpf.CurrentCamera = cam
+end
+
+local function renderKnives(list)
+	local data = ClientState.Data
+	local current = data.Knife or "Standard"
+	for order, id in Knives.Order do
+		local def = Knives.Defs[id]
+		local owned = not def.Pass or ClientState.HasPass(def.Pass)
+		local equipped = current == id and owned
+		local card = UIKit.Panel({ BackgroundColor3 = equipped and Color3.fromRGB(50, 44, 20) or T.Panel, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 6, Parent = list })
+		UIKit.Stroke(equipped and T.Accent or (def.Pass and T.Robux or Color3.new(1, 1, 1)), equipped and 2 or 1, equipped and 0 or 0.85).Parent = card
+		Label({ Text = def.Icon .. "  " .. def.Name, Size = UDim2.new(1, -16, 0, 18), Position = UDim2.fromOffset(10, 8), TextSize = 14, Font = T.Black, ZIndex = 7, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+		Label({ Text = def.Pass and "MELEE  ·  💎 EXCLUSIVE" or "MELEE  ·  FREE", Size = UDim2.new(1, -16, 0, 14), Position = UDim2.fromOffset(10, 26), TextSize = 10, Font = T.Bold, TextColor3 = def.Pass and T.Robux or T.Sub, ZIndex = 7, Parent = card })
+		knifePreview(card, id)
+		statBar(card, 126, "DAMAGE", def.Damage / 130)
+		statBar(card, 140, "SPEED", (1.0 - def.Cooldown) / 0.55)
+		statBar(card, 154, "REACH", def.Range / 12)
+		Label({ Text = def.Perk, Size = UDim2.new(1, -20, 0, 14), Position = UDim2.fromOffset(10, 170), TextSize = 10, Font = T.Bold, TextColor3 = T.Sub, ZIndex = 7, TextWrapped = true, Parent = card })
+		local text, color, action
+		if equipped then
+			text, color = "EQUIPPED", T.Panel3
+		elseif owned then
+			text, color = "EQUIP", T.Accent
+			action = function()
+				Remotes.SetKnife:FireServer(id)
+			end
+		else
+			text, color = "💎 R$ " .. Monetization.GamePasses[def.Pass].Price, T.Robux
+			action = function()
+				Menus.BuyPass(def.Pass)
+			end
+		end
+		local b = UIKit.Button({ Text = text, Size = UDim2.new(1, -20, 0, 30), Position = UDim2.new(0, 10, 1, -38), Color = color, TextSize = 13, Parent = card }, action)
+		b.ZIndex = 7
+	end
+end
+
 local function renderArmory(w)
 	w.SyncTabs()
 	clear(w.Content)
@@ -172,6 +226,10 @@ local function renderArmory(w)
 	end
 	local slot = w.Tab
 	local list = scroller(w.Content, UDim2.fromOffset(220, 232))
+	if slot == "Knives" then
+		renderKnives(list)
+		return
+	end
 	local level = player:GetAttribute("Level") or 1
 	local cash = player:GetAttribute("Cash") or 0
 	for order, id in Weapons.Order do
@@ -707,7 +765,7 @@ end
 function Menus.Init(playerGui: PlayerGui)
 	gui = new("ScreenGui", { Name = "Menus", ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 5, Parent = playerGui })
 
-	local armory = window("Armory", "ARMORY", { "Primary", "Secondary" })
+	local armory = window("Armory", "ARMORY", { "Primary", "Secondary", "Knives" })
 	armory.Render = function()
 		renderArmory(armory)
 	end

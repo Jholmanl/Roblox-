@@ -27,6 +27,7 @@ local DEFAULT = {
 	Level = 1,
 	Owned = { Striker = true, Sidekick = true },
 	Loadout = { Primary = "Striker", Secondary = "Sidekick" },
+	Knife = "Standard",
 	Stats = {},
 	Achievements = {},
 	Daily = { Last = 0, Streak = 0 },
@@ -64,6 +65,7 @@ function DataService.Sync(player: Player)
 	Remotes.DataSync:FireClient(player, {
 		Owned = data.Owned,
 		Loadout = data.Loadout,
+		Knife = data.Knife,
 		Stats = data.Stats,
 		Achievements = data.Achievements,
 		Daily = data.Daily,
@@ -91,6 +93,9 @@ function DataService.Load(player: Player)
 	data = Util.Reconcile(data or {}, DEFAULT)
 	data._canSave = loadedFromStore -- never overwrite real data after a failed load
 	data._joined = os.time()
+	if not player.Parent then
+		return data -- left while loading: don't keep (or later save) a stray profile
+	end
 	DataService.Profiles[player] = data
 	applyAttributes(player, data)
 	return data

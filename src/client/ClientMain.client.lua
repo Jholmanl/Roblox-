@@ -18,6 +18,7 @@ local Menus = require(script.Parent.Menus)
 local VoteScreen = require(script.Parent.VoteScreen)
 local OfferToast = require(script.Parent.OfferToast)
 local PassSpotlight = require(script.Parent.PassSpotlight)
+local CharacterAnim = require(script.Parent.CharacterAnim)
 local Movement = require(script.Parent.MovementController)
 local Weapons = require(script.Parent.WeaponController)
 local Vehicle = require(script.Parent.VehicleController)
@@ -277,6 +278,9 @@ end)
 Remotes.Effect.OnClientEvent:Connect(function(kind, a, b, c)
 	if kind == "Shot" then
 		Effects.RemoteShot(a, b, c)
+		CharacterAnim.Recoil(a)
+	elseif kind == "Reload" then
+		CharacterAnim.Reload(a, b, c)
 	elseif kind == "Launch" then
 		Effects.Launch(a, b)
 	elseif kind == "Explosion" then

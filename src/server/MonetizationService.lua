@@ -98,6 +98,15 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passI
 	player:SetAttribute("Pass_" .. passKey, true)
 	Remotes.Notify:FireClient(player, "Message", { Text = pass.Icon .. " " .. string.upper(pass.Name) .. " UNLOCKED!", Color = pass.Color })
 	AchievementService.Add(player, "RobuxPurchases", 1)
+	-- a freshly bought knife gets equipped right away
+	local knifeId = string.match(passKey, "^Knife(%w+)$")
+	if knifeId then
+		local data = DataService.Get(player)
+		if data then
+			data.Knife = knifeId
+			DataService.Sync(player)
+		end
+	end
 	if passKey == "Railgun" then
 		local data = DataService.Get(player)
 		if data then

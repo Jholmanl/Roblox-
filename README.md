@@ -102,6 +102,8 @@ Press **E** to drive. **W/S** drives, **A/D** steers, **Shift** boosts, **S** br
 | **Killstreaks** | 3 kills: UAV (enemies shown through walls). 5: K.O Streak + Overdrive (faster movement and fire rate). 7: Airstrike. 15: **Infinite Ammo**. 20: **Tactical Nuke**, which ends the match and makes you the winner. |
 | **20+ medals** | Headshot, Double/Triple/Quad Kill, Rampage, Revenge, Bounty Claimed, Buzzkill, Comeback, First Blood, Long Shot, No Scope, Point Blank, Slide/Air/Blink Kill, Meteor Strike, Collateral, From the Grave, Clutch, Assist… |
 | **25 guns** | Modeled after real designs: M4, AK-47, MP5, a P90-style PDW, FAMAS-style bullpup, SCAR-H, SVD, M249, an AWM-style bolt action, a Barrett .50, an 870-style pump, AA-12, side-by-side double-barrel, M134 minigun, RPG-7, M32 grenade launcher, a modern striker pistol, Uzi, a .50 AE hand cannon and a large-frame revolver. Plus the Railgun, Arc pistol and 3 sci-fi guns: **Ray Gun**, **Plasma Rifle** and **Void Cannon**. |
+| **Realistic gun audio** | Every shot is layered: a sharp crack, a low body and a mechanical layer, shaped with EQ and compression. Pump and bolt guns rack after each shot and spent brass clinks. Distant shots get muffled and echo. Reloads play a timed sequence: mag release, mag drop, new mag seated, charging handle racked (shotguns load shell by shell; revolvers dump casings). To use studio samples instead, paste Creator Store ids into `Sounds.GunOverrides`. |
+| **GTA-style reloads** | Other players and bots visibly reload: they tilt the gun, drop the mag, grab a new one from the belt, seat it and rack the charging handle. Arms also kick on every shot. In first person, your support hand follows the same path and the slide or bolt racks at the end. |
 | **Moving parts** | In first person, slides and bolts cycle on every shot. Pumps and bolt-actions rack, revolver and grenade-launcher cylinders turn, minigun barrels spin, and the Barrett's barrel recoils. Magazines drop out on reload, the double-barrel breaks open, and brass or shotgun shells eject. Big guns give a slight physical kickback. |
 | **K.O Streak 🔥** | A 5-kill streak without dying brings up a big K.O STREAK banner. A **15-kill streak gives infinite ammo with no reloads** until you die. |
 | **101 achievements** | Seven categories (Combat, Streaks, Style, Vehicles, Rivalry, Arsenal, Career), plus a mastery achievement for every gun and a "conquer" achievement for every map. Each one pays out cash. |
@@ -114,6 +116,10 @@ Press **E** to drive. **W/S** drives, **A/D** steers, **Shift** boosts, **S** br
 ## Robux store (paid advantages)
 
 Everything is defined in `src/shared/Monetization.lua`.
+
+**Exclusive guns**: **Phantom Vector** (Vector-style SMG, 18 rounds/s, almost no recoil), **Vortex Auto Pistol** (full-auto G18-pattern sidearm with a ported comp, 33-round stick mag, laser and mini red dot), **Hellcat AR Pistol** (an AR as your sidearm, with M-LOK rail, flash can, brace, AFG and holo) and the Railgun.
+
+**Knives** (Armory → Knives tab): the free Combat Knife, plus **Karambit** (faster swings), **Butterfly Knife** (quick swings and extra reach), **Jungle Machete** (longer reach, hits harder) and **Dragon Katana** (glowing energy blade, longest reach). Each has its own detailed model, and a newly bought knife is equipped automatically.
 
 **Game passes**: VIP (2x cash, +10 HP, gold name, chat tag), 2x XP, Golden Arsenal (+10% damage on all guns), Juggernaut Armor (+35 HP), Railgun (exclusive gun that pierces enemies), Radar Pro (killstreaks need one fewer kill, longer UAV), Vampire Rounds (heal on kill), Speed Demon, Extended Mags, Fast Hands, Grenadier, Instant Respawn, Triple Jump.
 

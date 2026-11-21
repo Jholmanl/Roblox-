@@ -17,4 +17,9 @@ return {
 	Unlock = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.9 },
 	-- muted tick when you take damage (replaces the old "uuhhh" grunt)
 	Hurt = { Id = "rbxasset://sounds/button.wav", Volume = 0.28 },
+	-- Optional real gun samples. Paste Creator Store sound ids to replace the
+	-- built-in layered sounds, per weapon id or per profile, e.g.
+	--   GunOverrides = { Rifle = { Shot = "rbxassetid://123", Reload = "rbxassetid://456" } }
+	-- Profiles: Rifle, SMG, Pistol, Magnum, Shotgun, Sniper, LMG, Launcher, Energy
+	GunOverrides = {},
 }

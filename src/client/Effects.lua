@@ -7,6 +7,7 @@ local Debris = game:GetService("Debris")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Sounds = require(Shared.Sounds)
 local Weapons = require(Shared.Weapons)
+local GunAudio = require(script.Parent.GunAudio)
 local Config = require(Shared.Config)
 
 local player = Players.LocalPlayer
@@ -188,7 +189,8 @@ function Effects.RemoteShot(character: Model?, weaponId: string, ends)
 		Effects.Impact(to)
 	end
 	Effects.Flash(from)
-	Effects.Sound3D(def and def.Class == "Sniper" and "ShotHeavy" or "Shot", from, 0.9 + math.random() * 0.2)
+	local cam = workspace.CurrentCamera
+	GunAudio.Shot(weaponId, from, cam and cam.CFrame.Position)
 end
 
 -- Target reaction: briefly flash the character you hit (white, gold for headshots).

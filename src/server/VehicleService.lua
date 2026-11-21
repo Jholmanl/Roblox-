@@ -145,7 +145,7 @@ local function setupDriving(car: Model)
 	prompt.Triggered:Connect(function(player)
 		local char = player.Character
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum and hum.Health > 0 and not seat.Occupant then
+		if hum and hum.Health > 0 and not seat.Occupant and not player:GetAttribute("Downed") then
 			seat:Sit(hum)
 		end
 	end)
@@ -257,6 +257,21 @@ RunService.Heartbeat:Connect(function(dt)
 			local v = chassis.AssemblyLinearVelocity
 			chassis.AssemblyLinearVelocity = Vector3.new(v.X * 0.7, v.Y, v.Z * 0.7)
 			chassis.AssemblyAngularVelocity *= 0.7
+			-- empty car left on its roof/side: set it back on its wheels after a few seconds
+			if chassis.CFrame.UpVector.Y < 0.3 then
+				record.FlippedFor = (record.FlippedFor or 0) + 0.1
+				if record.FlippedFor > 4 then
+					record.FlippedFor = 0
+					local pos = car:GetPivot().Position
+					local look = chassis.CFrame.LookVector
+					local flat = Vector3.new(look.X, 0, look.Z)
+					car:PivotTo(CFrame.lookAt(pos + Vector3.new(0, 4, 0), pos + Vector3.new(0, 4, 0) + (flat.Magnitude > 0.1 and flat.Unit or Vector3.zAxis)))
+					chassis.AssemblyLinearVelocity = Vector3.zero
+					chassis.AssemblyAngularVelocity = Vector3.zero
+				end
+			else
+				record.FlippedFor = 0
+			end
 		end
 	end
 end)

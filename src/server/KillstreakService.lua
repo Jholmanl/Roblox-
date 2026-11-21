@@ -168,6 +168,12 @@ Remotes.UseToken.OnServerEvent:Connect(function(player, kind)
 	if not data or not Combat.IsAlive(entity) or (data.Tokens[kind] or 0) <= 0 then
 		return
 	end
+	local state = KillstreakService.Round and KillstreakService.Round.State
+	if state == "Results" or state == "Voting" then
+		-- don't burn a paid call-in when it can't hurt anyone
+		Remotes.Notify:FireClient(player, "Message", { Text = "WAIT FOR THE NEXT MATCH TO USE THAT", Color = Config.Colors.Red })
+		return
+	end
 	if kind == "Nuke" then
 		local round = KillstreakService.Round
 		if not round or round.State ~= "Active" then

@@ -8,6 +8,7 @@ local Weapons = require(Shared.Weapons)
 local GunBuilder = require(Shared.GunBuilder)
 local Util = require(Shared.Util)
 local Combat = require(script.Parent.CombatService)
+local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local MapService = require(script.Parent.MapService)
 local TeamService = require(script.Parent.TeamService)
 
@@ -149,6 +150,7 @@ local function runAI(record, model: Model)
 				if shotsInMag <= 0 then
 					shotsInMag = def.Mag
 					nextShot = now + def.Reload
+					Remotes.Effect:FireAllClients("Reload", model, record.Weapon, def.Reload)
 				else
 					local accuracy = Config.BotAccuracy * math.clamp(1 - bestDist / 350, 0.35, 1)
 					local aimPart = math.random() < 0.15 and best.Character:FindFirstChild("Head") or best.Character:FindFirstChild("UpperTorso") or best.Root

@@ -202,7 +202,7 @@ function Map.Build()
 	for _, c in { { 96, 8 }, { 92, 10 }, { -96, -8 }, { 8, 96 }, { -8, -96 } } do
 		kit:Cone(Vector3.new(c[1], 0, c[2]))
 	end
-	for _, c in { { -94, 70, 0, "Sports" }, { 94, 40, 0, "Jeep" }, { -40, 96, 90, "Sedan" }, { 40, -96, 270, "Truck" } } do
+	for _, c in { { -94, 70, 0, "Sports" }, { 94, 40, 0, "Jeep" }, { -62, 94, 90, "Sedan" }, { 62, -94, 270, "Truck" } } do
 		kit:VehicleSpot(CFrame.new(c[1], 0, c[2]) * CFrame.Angles(0, math.rad(c[3]), 0), c[4])
 	end
 

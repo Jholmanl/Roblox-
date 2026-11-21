@@ -200,7 +200,38 @@ Weapons.Defs = {
 		Look = { Body = Color3.fromRGB(26, 22, 36), Accent = Color3.fromRGB(180, 80, 255), Length = 3.2, Barrel = 0.4, Scope = false, Neon = true },
 	},
 
+	Phantom = {
+		Name = "PHANTOM VECTOR", Class = "SMG", Slot = "Primary",
+		Model = "Vector-style recoil-mitigated SMG", Kickback = 0,
+		Damage = 17, HeadMult = 1.45, FireRate = 18, Auto = true,
+		Mag = 25, Reserve = 175, Reload = 1.7,
+		Spread = 2.4, AdsSpread = 0.7, Range = 320, FalloffStart = 70,
+		Recoil = 0.35, ZoomFov = 58, Speed = 1.1,
+		Price = 0, Level = 1, Pass = "Phantom",
+		Look = { Body = Color3.fromRGB(32, 34, 40), Accent = Color3.fromRGB(0, 230, 160), Length = 2.0, Barrel = 0.35, Scope = false },
+	},
+
 	-- SECONDARIES ------------------------------------------------------
+	Vortex = {
+		Name = "VORTEX AUTO PISTOL", Class = "Machine Pistol", Slot = "Secondary",
+		Model = "Select-fire G18-pattern pistol", Kickback = 0,
+		Damage = 15, HeadMult = 1.5, FireRate = 18, Auto = true,
+		Mag = 33, Reserve = 165, Reload = 1.3,
+		Spread = 2.6, AdsSpread = 1.0, Range = 220, FalloffStart = 45,
+		Recoil = 0.55, ZoomFov = 62, Speed = 1.12,
+		Price = 0, Level = 1, Pass = "Vortex",
+		Look = { Body = Color3.fromRGB(40, 40, 44), Accent = Color3.fromRGB(255, 120, 30), Length = 1.15, Barrel = 0.2, Scope = false },
+	},
+	Hellcat = {
+		Name = "HELLCAT AR PISTOL", Class = "AR Pistol", Slot = "Secondary",
+		Model = "Short-barrel AR with pistol brace", Kickback = 0,
+		Damage = 22, HeadMult = 1.55, FireRate = 11, Auto = true,
+		Mag = 30, Reserve = 120, Reload = 1.8,
+		Spread = 2.4, AdsSpread = 0.6, Range = 420, FalloffStart = 90,
+		Recoil = 0.85, ZoomFov = 56, Speed = 1.05,
+		Price = 0, Level = 1, Pass = "Hellcat",
+		Look = { Body = Color3.fromRGB(44, 46, 50), Accent = Color3.fromRGB(255, 40, 60), Length = 1.9, Barrel = 0.25, Scope = false },
+	},
 	Sidekick = {
 		Name = "SIDEKICK PISTOL", Class = "Pistol", Slot = "Secondary",
 		Model = "Modern striker pistol", Kickback = 0,
@@ -266,8 +297,8 @@ Weapons.Defs = {
 
 Weapons.Order = {
 	"Striker", "Vanguard", "Viper", "Tempest", "Brute", "Duke", "Hornet", "Ranger", "Warden", "Inferno",
-	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "PlasmaRifle", "VoidCannon", "Railgun",
-	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc", "RayGun",
+	"Razor", "Thumper", "Longbow", "Havoc", "Titan", "Reaper", "PlasmaRifle", "VoidCannon", "Railgun", "Phantom",
+	"Sidekick", "Stinger", "Judge", "HandCannon", "Arc", "RayGun", "Vortex", "Hellcat",
 }
 
 function Weapons.Get(id: string)

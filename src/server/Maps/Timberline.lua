@@ -190,7 +190,7 @@ function Map.Build()
 	-- vehicles
 	kit:VehicleSpot(CFrame.new(-150, 1, 5) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(80, 100, 60))
 	kit:VehicleSpot(CFrame.new(150, 1, -5) * CFrame.Angles(0, math.rad(90), 0), "Jeep", rgb(140, 120, 80))
-	kit:VehicleSpot(CFrame.new(120, 1, 120) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
+	kit:VehicleSpot(CFrame.new(120, 1, 100) * CFrame.Angles(0, math.rad(180), 0), "Truck", rgb(160, 60, 40))
 	kit:VehicleSpot(CFrame.new(-80, 1, -8) * CFrame.Angles(0, math.rad(-90), 0), "Jeep", rgb(60, 80, 100))
 
 	-- MINE TUNNELS on both sides of the river (spawn to spawn)
