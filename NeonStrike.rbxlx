@@ -554,7 +554,7 @@ Config.ModeName = "TEAM DEATHMATCH" -- default; the live mode is ReplicatedStora
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
 Config.MatchLength = 300 -- 5 minute matches
 Config.ResultsLength = 10 -- podium / match summary
-Config.VoteLength = 15 -- pre-match map + mode vote
+Config.VoteLength = 5 -- pre-match map + mode vote (seconds)
 Config.KillsToWin = 30 -- (unused in team mode)
 Config.TeamKillsToWin = 75 -- first team to this many kills wins
 Config.MaxPlayers = 30 -- set the same number in Game Settings > Places
@@ -12540,10 +12540,10 @@ function VoteScreen.Init(playerGui: PlayerGui)
 		rootScale.Scale = math.clamp(math.min(vp.X / 880, vp.Y / 600), 0.45, 1.25)
 		local left = math.max(0, (ReplicatedStorage:GetAttribute("MatchEnd") or 0) - workspace:GetServerTimeNow())
 		timerLabel.Text = "⏱  " .. math.ceil(left) .. "s"
-		timerLabel.TextColor3 = left <= 5 and T.Red or T.Text
+		timerLabel.TextColor3 = left <= 2 and T.Red or T.Text
 		timerBar.Size = UDim2.fromScale(math.clamp(left / Config.VoteLength, 0, 1), 1)
-		timerBar.BackgroundColor3 = left <= 5 and T.Red or T.Accent
-		footer.Text = left <= 3 and "Locking in votes…" or "Click a card to vote · you can change your vote any time"
+		timerBar.BackgroundColor3 = left <= 2 and T.Red or T.Accent
+		footer.Text = left <= 1 and "Locking in votes…" or "Click a card to vote · you can change your vote any time"
 		refresh()
 	end)
 	player:GetAttributeChangedSignal("Team"):Connect(refresh)

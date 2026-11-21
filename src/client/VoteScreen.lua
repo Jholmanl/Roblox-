@@ -239,10 +239,10 @@ function VoteScreen.Init(playerGui: PlayerGui)
 		rootScale.Scale = math.clamp(math.min(vp.X / 880, vp.Y / 600), 0.45, 1.25)
 		local left = math.max(0, (ReplicatedStorage:GetAttribute("MatchEnd") or 0) - workspace:GetServerTimeNow())
 		timerLabel.Text = "⏱  " .. math.ceil(left) .. "s"
-		timerLabel.TextColor3 = left <= 5 and T.Red or T.Text
+		timerLabel.TextColor3 = left <= 2 and T.Red or T.Text
 		timerBar.Size = UDim2.fromScale(math.clamp(left / Config.VoteLength, 0, 1), 1)
-		timerBar.BackgroundColor3 = left <= 5 and T.Red or T.Accent
-		footer.Text = left <= 3 and "Locking in votes…" or "Click a card to vote · you can change your vote any time"
+		timerBar.BackgroundColor3 = left <= 2 and T.Red or T.Accent
+		footer.Text = left <= 1 and "Locking in votes…" or "Click a card to vote · you can change your vote any time"
 		refresh()
 	end)
 	player:GetAttributeChangedSignal("Team"):Connect(refresh)
