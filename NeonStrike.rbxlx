@@ -4542,54 +4542,65 @@ local function ensure(class: string, parent: Instance)
 end
 
 local function applyLighting(L)
+	-- Cinematic "console" grade: Future lighting, soft shadows, filmic contrast,
+	-- bloom on lights, sun rays, aerial haze and a touch of depth of field.
 	Lighting.ClockTime = L.ClockTime or 14
+	Lighting.GeographicLatitude = L.Latitude or 38
 	Lighting.Brightness = L.Brightness or 2.5
 	Lighting.Ambient = L.Ambient or Color3.fromRGB(70, 70, 80)
 	Lighting.OutdoorAmbient = L.OutdoorAmbient or Color3.fromRGB(120, 120, 130)
 	Lighting.GlobalShadows = true
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 1
-	Lighting.ShadowSoftness = 0.25
+	Lighting.ShadowSoftness = 0.18
 	Lighting.ExposureCompensation = L.Exposure or 0
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
+	local sky = ensure("Sky", Lighting)
+	sky.SunAngularSize = 12
+	sky.MoonAngularSize = 9
+	sky.StarCount = 3000
+	sky.CelestialBodiesShown = true
 	local atmo = ensure("Atmosphere", Lighting)
 	local a = L.Atmosphere or {}
 	atmo.Density = a.Density or 0.3
+	atmo.Offset = a.Offset or 0.2
 	atmo.Haze = a.Haze or 1
 	atmo.Color = a.Color or Color3.fromRGB(200, 210, 230)
 	atmo.Decay = a.Decay or Color3.fromRGB(100, 100, 130)
-	atmo.Glare = 0.2
+	atmo.Glare = a.Glare or 0.45
 	local bloom = ensure("BloomEffect", Lighting)
-	bloom.Intensity = 0.9
-	bloom.Size = 30
-	bloom.Threshold = 1.25 -- lets neon windows / lamps glow
+	bloom.Intensity = 1
+	bloom.Size = 26
+	bloom.Threshold = 1.15 -- neon, lamps and lit windows glow; plain surfaces don't
 	local cc = ensure("ColorCorrectionEffect", Lighting)
-	cc.Saturation = L.Saturation or 0.15
-	cc.Contrast = 0.12
-	cc.Brightness = 0.02
+	cc.Saturation = L.Saturation or 0.12
+	cc.Contrast = L.Contrast or 0.2
+	cc.Brightness = 0.03
 	cc.TintColor = L.Tint or Color3.new(1, 1, 1)
 	local rays = ensure("SunRaysEffect", Lighting)
-	rays.Intensity = 0.06
-	rays.Spread = 0.7
+	rays.Intensity = L.SunRays or 0.12
+	rays.Spread = 0.8
 	local dof = ensure("DepthOfFieldEffect", Lighting)
-	dof.FarIntensity = 0.12
-	dof.FocusDistance = 120
-	dof.InFocusRadius = 120
+	dof.FarIntensity = 0.18
+	dof.FocusDistance = 90
+	dof.InFocusRadius = 140
 	dof.NearIntensity = 0
 	pcall(function()
 		local clouds = ensure("Clouds", workspace.Terrain)
-		clouds.Cover = 0.55
-		clouds.Density = 0.6
+		clouds.Cover = L.CloudCover or 0.6
+		clouds.Density = 0.7
+		clouds.Color = L.CloudColor or Color3.fromRGB(255, 255, 255)
 	end)
 	pcall(function()
 		workspace.Terrain.Decoration = true -- animated grass blades
 	end)
-	workspace.Terrain.WaterColor = Color3.fromRGB(30, 110, 140)
-	workspace.Terrain.WaterTransparency = 0.6
-	workspace.Terrain.WaterWaveSize = 0.15
-	workspace.Terrain.WaterReflectance = 0.6
+	workspace.Terrain.WaterColor = L.WaterColor or Color3.fromRGB(25, 95, 120)
+	workspace.Terrain.WaterTransparency = 0.7
+	workspace.Terrain.WaterWaveSize = 0.18
+	workspace.Terrain.WaterWaveSpeed = 8
+	workspace.Terrain.WaterReflectance = 0.85
 end
 
 -- Snap spawn markers to whatever surface is under them.
@@ -4819,7 +4830,7 @@ local Map = {
 		ClockTime = 15.5, Brightness = 2.5,
 		Ambient = rgb(70, 70, 85), OutdoorAmbient = rgb(120, 120, 140),
 		Atmosphere = { Density = 0.3, Haze = 1.2, Color = rgb(200, 210, 255), Decay = rgb(110, 90, 160) },
-		Tint = rgb(255, 255, 255), Saturation = 0.15,
+		Tint = rgb(250, 250, 255), Saturation = 0.18, Contrast = 0.26, SunRays = 0.08,
 	},
 }
 
@@ -4859,6 +4870,22 @@ function Map.Build()
 		kit:Neon(Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 20, 0), ACCENT)
 	end
 
+	-- wall panel ribs with light strips + corner floodlight towers
+	for _, side in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+		for a = -HALF + 12, HALF - 12, 16 do
+			local x = side[1] ~= 0 and side[1] * (HALF - 0.2) or a
+			local z = side[2] ~= 0 and side[2] * (HALF - 0.2) or a
+			local size = side[1] ~= 0 and Vector3.new(0.8, 34, 2) or Vector3.new(2, 34, 0.8)
+			kit:Part(size, CFrame.new(x, 17, z), DARK, M.Metal)
+			local strip = side[1] ~= 0 and Vector3.new(0.9, 10, 0.3) or Vector3.new(0.3, 10, 0.9)
+			kit:Neon(strip, CFrame.new(x, 12, z), (math.floor(a / 16) % 2 == 0) and ACCENT2 or ACCENT).Transparency = 0.2
+		end
+	end
+	for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+		local p = Vector3.new(c[1] * (HALF - 2), 42, c[2] * (HALF - 2))
+		kit:Pillar(Vector3.new(p.X, 0, p.Z), 42, 1.6, DARK, M.Metal)
+		kit:Floodlight(p + Vector3.new(0, 1.5, 0), Vector3.new(0, 0, 0))
+	end
 	kit:Part(Vector3.new(20, 10, 20), CFrame.new(0, 5, 0), MID, M.Metal)
 	kit:Neon(Vector3.new(20.4, 0.4, 20.4), CFrame.new(0, 10, 0), ACCENT)
 	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
@@ -4956,7 +4983,7 @@ local Map = {
 		ClockTime = 18.1, Brightness = 2, Exposure = 0.15,
 		Ambient = rgb(90, 80, 90), OutdoorAmbient = rgb(140, 120, 120),
 		Atmosphere = { Density = 0.32, Haze = 1.6, Color = rgb(255, 200, 170), Decay = rgb(120, 90, 110) },
-		Tint = rgb(255, 238, 225), Saturation = 0.12,
+		Tint = rgb(255, 236, 222), Saturation = 0.14, Contrast = 0.24, SunRays = 0.16, CloudColor = rgb(255, 205, 185),
 	},
 }
 
@@ -5215,7 +5242,7 @@ local Map = {
 		ClockTime = 17.4, Brightness = 2.4,
 		Ambient = rgb(100, 80, 80), OutdoorAmbient = rgb(150, 120, 110),
 		Atmosphere = { Density = 0.3, Haze = 2, Color = rgb(255, 190, 150), Decay = rgb(150, 90, 100) },
-		Tint = rgb(255, 230, 210), Saturation = 0.15,
+		Tint = rgb(255, 232, 212), Saturation = 0.16, Contrast = 0.22, SunRays = 0.2, CloudColor = rgb(255, 210, 180), WaterColor = rgb(20, 80, 110),
 	},
 }
 
@@ -5631,6 +5658,18 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 				glow.Transparency = 0.45
 				glow.Name = "LitWindow"
 			end
+			-- window mullions: a cross of thin frame bars over the pane
+			if trim and len > 2.5 and h > 2.5 then
+				local mc = trim.Color:Lerp(Color3.new(), 0.35)
+				local d = 0.42
+				if axis == "X" then
+					self:Deco(Vector3.new(0.14, h, d), origin * CFrame.new(pos), mc, M.Metal, parent).CastShadow = false
+					self:Deco(Vector3.new(len, 0.14, d), origin * CFrame.new(pos + Vector3.new(0, h * 0.12, 0)), mc, M.Metal, parent).CastShadow = false
+				else
+					self:Deco(Vector3.new(d, h, 0.14), origin * CFrame.new(pos), mc, M.Metal, parent).CastShadow = false
+					self:Deco(Vector3.new(d, 0.14, len), origin * CFrame.new(pos + Vector3.new(0, h * 0.12, 0)), mc, M.Metal, parent).CastShadow = false
+				end
+			end
 		else
 			self:Part(size, origin * CFrame.new(pos), color, material, parent)
 		end
@@ -5668,6 +5707,21 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 		if o.Frame then
 			frame(l, r, o.Bottom - 0.15, 0.7, 0.3) -- sill
 			frame(l, r, o.Top + 0.2, 0.35, 0.4) -- head
+			if trim and o.Bottom > 2 and self.Rng:NextNumber() < (self.FlowerBoxes or 0.14) then
+				local mid = (l + r) / 2
+				local out = trim.Outward * (thick / 2 + 0.55)
+				local y = o.Bottom - 0.75
+				local bpos = axis == "X" and start + Vector3.new(mid, y, out) or start + Vector3.new(out, y, mid)
+				local bsize = axis == "X" and Vector3.new(o.Width - 0.4, 0.8, 0.9) or Vector3.new(0.9, 0.8, o.Width - 0.4)
+				self:Deco(bsize, origin * CFrame.new(bpos), rgb(110, 70, 50), M.Wood, parent)
+				for k = -1, 1 do
+					local fp = axis == "X" and bpos + Vector3.new(k * (o.Width / 3.4), 0.6, 0) or bpos + Vector3.new(0, 0.6, k * (o.Width / 3.4))
+					local leaf = self:Ball(0.9, (origin * CFrame.new(fp)).Position, P.Leaf, M.LeafyGrass, parent)
+					leaf.CanCollide, leaf.CanQuery, leaf.CastShadow = false, false, false
+					local flower = self:Ball(0.45, (origin * CFrame.new(fp + Vector3.new(0, 0.4, 0))).Position, ({ rgb(240, 70, 90), rgb(255, 200, 60), rgb(250, 250, 250), rgb(190, 90, 230) })[self.Rng:NextInteger(1, 4)], M.SmoothPlastic, parent)
+					flower.CanCollide, flower.CanQuery, flower.CastShadow = false, false, false
+				end
+			end
 		end
 		cursor = r
 	end
@@ -5944,6 +5998,51 @@ function MapKit:Building(spec)
 			end
 		end
 	end
+	-- drainpipes down two corners (with brackets)
+	for _, c in { { W / 2 + 0.55, D / 2 - 1.2 }, { -W / 2 - 0.55, D / 2 - 1.2 } } do
+		local pipe = self:Cylinder(top + 0.5, 0.45, o * CFrame.new(c[1], top / 2, c[2]) * CFrame.Angles(0, 0, math.rad(90)), P.MetalDark, M.Metal, model)
+		pipe.CanCollide, pipe.CanQuery = false, false
+		for y = H * 0.5, top, H do
+			self:Deco(Vector3.new(0.7, 0.18, 0.6), o * CFrame.new(c[1] - math.sign(c[1]) * 0.25, y, c[2]), P.MetalDark, M.Metal, model)
+		end
+		self:Deco(Vector3.new(0.6, 0.3, 1.0), o * CFrame.new(c[1], 0.4, c[2] - 0.4), P.MetalDark, M.Metal, model)
+	end
+	-- door frames around every ground-floor doorway
+	for side, on in doors do
+		if on and SIDES[side] and not (side == "Front" and spec.Storefront) then
+			for _, a in { -3.25, 3.25 } do
+				self:Deco(Vector3.new(0.5, 8.9, 0.5), sidePos(side, a, 0.3, 4.65), trim:Lerp(Color3.new(), 0.2), M.Concrete, model)
+			end
+			self:Deco(Vector3.new(7, 0.6, 0.6), sidePos(side, 0, 0.3, 9.1), trim:Lerp(Color3.new(), 0.2), M.Concrete, model)
+			local lamp = self:Neon(Vector3.new(0.5, 0.35, 0.3), sidePos(side, 0, 0.75, 9.8), rgb(255, 225, 170), model)
+			self:Light(lamp, "PointLight", rgb(255, 210, 150), 12, 0.9)
+		end
+	end
+	-- rooftop gear + the odd lit billboard (flat roofs only)
+	if spec.Roof ~= "Gable" then
+		local dishPos = (o * CFrame.new(-W / 4, top, D / 4)).Position
+		self:Pillar(dishPos, 2.2, 0.3, P.MetalDark, M.Metal, model)
+		local dish = self:Cylinder(0.3, 2.6, CFrame.new(dishPos + Vector3.new(0, 2.6, 0)) * CFrame.Angles(0, rng:NextNumber(0, 6), math.rad(60)), rgb(220, 222, 226), M.SmoothPlastic, model)
+		dish.CanQuery = false
+		for i = 1, 2 do
+			local v = (o * CFrame.new(W / 4 - i * 3, top, -D / 4)).Position
+			self:Pillar(v, 1.6, 1.1, rgb(170, 172, 176), M.Metal, model)
+			self:Cylinder(0.3, 1.5, CFrame.new(v + Vector3.new(0, 1.75, 0)) * CFrame.Angles(0, 0, math.rad(90)), P.MetalDark, M.Metal, model)
+		end
+		if W >= 20 and rng:NextNumber() < (self.Billboards or 0.25) then
+			local bc = o * CFrame.new(0, top + 9, D / 2 - 2)
+			for _, x in { -5, 5 } do
+				self:Part(Vector3.new(0.5, 9, 0.5), o * CFrame.new(x, top + 4.5, D / 2 - 2), P.MetalDark, M.Metal, model)
+			end
+			self:Part(Vector3.new(14, 6, 0.5), bc, P.MetalDark, M.Metal, model)
+			local adColor = ({ rgb(255, 80, 60), rgb(0, 190, 255), rgb(255, 200, 30), rgb(120, 230, 90), rgb(230, 90, 220) })[rng:NextInteger(1, 5)]
+			local panel = self:Deco(Vector3.new(13, 5, 0.1), bc * CFrame.new(0, 0, -0.3), adColor, M.SmoothPlastic, model)
+			self:Light(panel, "SurfaceLight", adColor:Lerp(Color3.new(1, 1, 1), 0.4), 18, 1.4, Enum.NormalId.Front)
+			self:Neon(Vector3.new(9, 0.8, 0.12), bc * CFrame.new(-1, 0.9, -0.36), Color3.new(1, 1, 1))
+			self:Neon(Vector3.new(6, 0.5, 0.12), bc * CFrame.new(-2.4, -0.6, -0.36), adColor:Lerp(Color3.new(1, 1, 1), 0.6))
+			self:Neon(Vector3.new(14.2, 0.2, 0.2), bc * CFrame.new(0, -3.1, -0.4), rgb(255, 245, 220))
+		end
+	end
 	-- wall AC units
 	if spec.AC ~= false then
 		for _ = 1, floors do
@@ -6031,6 +6130,38 @@ function MapKit:Road(axis: string, center: Vector3, length: number, width: numbe
 			self:Deco(s, CFrame.new(pos), P.Yellow, M.SmoothPlastic, self.Props)
 		end
 	end
+	-- surface wear: puddles, cracks, oil stains and curb drains
+	if not self.NoRoadDetail then
+		for d = start + 8, start + length - 8, 14 do
+			if not inIntersection(d) then
+				local lateral = self.Rng:NextNumber(-width / 2 + 2, width / 2 - 2)
+				local pos = base + along * (d + self.Rng:NextNumber(-3, 3)) + across * lateral
+				local roll = self.Rng:NextNumber()
+				if roll < 0.28 then
+					local puddle = self:Deco(Vector3.new(0.04, self.Rng:NextNumber(3, 6), self.Rng:NextNumber(2.5, 5)), CFrame.new(pos + Vector3.new(0, markY - 0.01, 0)) * CFrame.Angles(0, self.Rng:NextNumber(0, 3), math.rad(90)), rgb(40, 46, 56), M.Glass, self.Props)
+					puddle.Shape = Enum.PartType.Cylinder
+					puddle.Reflectance = 0.45
+					puddle.Transparency = 0.15
+					puddle.CastShadow = false
+					puddle.Name = "Puddle"
+				elseif roll < 0.62 then
+					for k = 0, 2 do
+						local c = self:Deco(Vector3.new(self.Rng:NextNumber(1.5, 3.2), 0.03, 0.12), CFrame.new(pos + Vector3.new(k * 1.1, markY - 0.015, k * 0.7)) * CFrame.Angles(0, self.Rng:NextNumber(0, 3), 0), rgb(26, 27, 30), M.SmoothPlastic, self.Props)
+						c.CastShadow = false
+					end
+				elseif roll < 0.82 then
+					local stain = self:Deco(Vector3.new(0.03, self.Rng:NextNumber(2, 3.5), self.Rng:NextNumber(2, 3.5)), CFrame.new(pos + Vector3.new(0, markY - 0.015, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(30, 31, 34), M.SmoothPlastic, self.Props)
+					stain.Shape = Enum.PartType.Cylinder
+					stain.Transparency = 0.25
+					stain.CastShadow = false
+				else
+					local drain = base + along * d + across * (width / 2 - 0.9) * (self.Rng:NextNumber() < 0.5 and 1 or -1)
+					local g = self:Deco(axis == "X" and Vector3.new(2.4, 0.05, 1.2) or Vector3.new(1.2, 0.05, 2.4), CFrame.new(drain + Vector3.new(0, markY, 0)), rgb(30, 30, 32), M.DiamondPlate, self.Props)
+					g.CastShadow = false
+				end
+			end
+		end
+	end
 	-- white edge lines (split around intersections)
 	local segStart = start
 	local cuts = {}
@@ -6068,6 +6199,28 @@ function MapKit:Sidewalk(center: Vector3, sx: number, sz: number)
 	table.insert(self.Surfaces, { center.X - sx / 2, center.X + sx / 2, center.Z - sz / 2, center.Z + sz / 2, center.Y + 0.8 })
 	self:Part(Vector3.new(sx, 0.8, sz), CFrame.new(center + Vector3.new(0, 0.4, 0)), P.Sidewalk, M.Concrete, self.Geo)
 	self:Part(Vector3.new(sx + 0.6, 0.6, sz + 0.6), CFrame.new(center + Vector3.new(0, 0.3, 0)), P.ConcreteDark, M.Concrete, self.Geo)
+	-- curb stones around the edge + paving seams near the curb
+	local topY = center.Y + 0.81
+	for _, e in { { 0, -sz / 2 + 0.5, sx, 1 }, { 0, sz / 2 - 0.5, sx, 1 }, { -sx / 2 + 0.5, 0, 1, sz }, { sx / 2 - 0.5, 0, 1, sz } } do
+		self:Deco(Vector3.new(e[3], 0.04, e[4]), CFrame.new(center.X + e[1], topY, center.Z + e[2]), P.Sidewalk:Lerp(Color3.new(1, 1, 1), 0.25), M.Concrete).CastShadow = false
+	end
+	local seam = P.Sidewalk:Lerp(Color3.new(), 0.18)
+	for x = -sx / 2 + 6, sx / 2 - 6, 6 do
+		for _, zEdge in { -sz / 2 + 3.5, sz / 2 - 3.5 } do
+			self:Deco(Vector3.new(0.12, 0.03, 5), CFrame.new(center.X + x, topY, center.Z + zEdge), seam, M.SmoothPlastic).CastShadow = false
+		end
+	end
+	for z = -sz / 2 + 6, sz / 2 - 6, 6 do
+		for _, xEdge in { -sx / 2 + 3.5, sx / 2 - 3.5 } do
+			self:Deco(Vector3.new(5, 0.03, 0.12), CFrame.new(center.X + xEdge, topY, center.Z + z), seam, M.SmoothPlastic).CastShadow = false
+		end
+	end
+	-- a little litter: paper scraps and leaves
+	for _ = 1, math.floor(sx * sz / 900) do
+		local lp = Vector3.new(center.X + self.Rng:NextNumber(-sx / 2 + 1, sx / 2 - 1), topY + 0.01, center.Z + self.Rng:NextNumber(-sz / 2 + 1, sz / 2 - 1))
+		local bit = self:Deco(Vector3.new(0.5, 0.02, 0.4), CFrame.new(lp) * CFrame.Angles(0, self.Rng:NextNumber(0, 6), 0), self.Rng:NextNumber() < 0.5 and rgb(235, 232, 220) or rgb(150, 110, 60), M.SmoothPlastic)
+		bit.CastShadow = false
+	end
 end
 
 -- PROPS -----------------------------------------------------------------------------
@@ -6148,6 +6301,19 @@ function MapKit:Tree(pos: Vector3, scale: number?, kind: string?)
 	else
 		local trunkH = 6 * s
 		self:Pillar(pos - Vector3.new(0, 1, 0), trunkH + 1, 1.4 * s, P.Trunk, M.Wood, model)
+		-- root flare + a branch fork so the trunk isn't a plain stick
+		for k = 1, 4 do
+			local a = k / 4 * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
+			local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+			local root = self:Cylinder(2 * s, 0.7 * s, CFrame.lookAt(pos + dir * 0.7 * s + Vector3.new(0, 0.25, 0), pos + dir * 2 * s - Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, math.rad(90), 0), P.Trunk:Lerp(Color3.new(), 0.1), M.Wood, model)
+			root.CanCollide, root.CanQuery = false, false
+		end
+		for _, side in { -1, 1 } do
+			local b0 = pos + Vector3.new(0, trunkH * 0.7, 0)
+			local b1 = b0 + Vector3.new(side * 2 * s, 2.2 * s, rng:NextNumber(-1, 1) * s)
+			local branch = self:Cylinder((b1 - b0).Magnitude, 0.55 * s, CFrame.lookAt((b0 + b1) / 2, b1) * CFrame.Angles(0, math.rad(90), 0), P.Trunk, M.Wood, model)
+			branch.CanCollide, branch.CanQuery = false, false
+		end
 		-- fuller, rounder canopy: a big core plus smaller clumps around it
 		local crown = pos + Vector3.new(0, trunkH + 2 * s, 0)
 		local core = self:Ball(8 * s, crown, P.Leaf, M.LeafyGrass, model)
@@ -6181,7 +6347,16 @@ function MapKit:Rock(pos: Vector3, scale: number?)
 	local s = scale or 1
 	local rng = self.Rng
 	for _ = 1, 2 do
-		self:Part(Vector3.new(rng:NextNumber(3, 6), rng:NextNumber(2.5, 4.5), rng:NextNumber(3, 6)) * s, CFrame.new(pos + Vector3.new(rng:NextNumber(-1, 1), 0.8 * s, rng:NextNumber(-1, 1))) * CFrame.Angles(rng:NextNumber(-0.4, 0.4), rng:NextNumber(0, 3), rng:NextNumber(-0.4, 0.4)), P.Rock, M.Slate, self.Geo)
+		local size = Vector3.new(rng:NextNumber(3, 6), rng:NextNumber(2.5, 4.5), rng:NextNumber(3, 6)) * s
+		local cf = CFrame.new(pos + Vector3.new(rng:NextNumber(-1, 1), 0.8 * s, rng:NextNumber(-1, 1))) * CFrame.Angles(rng:NextNumber(-0.3, 0.3), rng:NextNumber(0, 3), rng:NextNumber(-0.3, 0.3))
+		self:Part(size, cf, P.Rock:Lerp(rgb(90, 88, 84), rng:NextNumber()), M.Slate, self.Geo)
+		-- moss cap on top
+		local moss = self:Deco(Vector3.new(size.X * 0.85, 0.25, size.Z * 0.85), cf * CFrame.new(0, size.Y / 2, 0), rgb(70, 110, 55), M.Grass)
+		moss.CastShadow = false
+	end
+	for _ = 1, 3 do
+		local pebble = self:Part(Vector3.one * rng:NextNumber(0.6, 1.2) * s, CFrame.new(pos + Vector3.new(rng:NextNumber(-4, 4), 0.3, rng:NextNumber(-4, 4)) * Vector3.new(s, 1, s)) * CFrame.Angles(rng:NextNumber(0, 3), rng:NextNumber(0, 3), 0), P.Rock, M.Slate, self.Props)
+		pebble.CanCollide, pebble.CanQuery = false, false
 	end
 end
 
@@ -6228,6 +6403,21 @@ function MapKit:Container(cf: CFrame, color: Color3?, open: boolean?)
 	end
 	for _, z in { -L / 2 + 0.2, L / 2 - 0.2 } do
 		self:Deco(Vector3.new(W + 0.1, H + 0.1, 0.4), cf * CFrame.new(0, H / 2, z), c:Lerp(Color3.new(), 0.3), M.Metal, model)
+	end
+	-- corrugated side ribs, rust streaks and locking bars on the doors
+	local rib = c:Lerp(Color3.new(), 0.18)
+	for z = -L / 2 + 1.6, L / 2 - 1.6, 2.4 do
+		for _, x in { -W / 2 - 0.08, W / 2 + 0.08 } do
+			self:Deco(Vector3.new(0.16, H - 0.6, 0.7), cf * CFrame.new(x, H / 2, z), rib, M.CorrodedMetal, model).CastShadow = false
+		end
+	end
+	for _ = 1, 2 do
+		local x = (self.Rng:NextNumber() < 0.5 and -1 or 1) * (W / 2 + 0.17)
+		self:Deco(Vector3.new(0.05, self.Rng:NextNumber(2, 5), self.Rng:NextNumber(0.6, 1.4)), cf * CFrame.new(x, H - 2.5, self.Rng:NextNumber(-L / 2 + 2, L / 2 - 2)), rgb(120, 70, 40), M.CorrodedMetal, model).CastShadow = false
+	end
+	for i = -1.5, 1.5 do
+		local bar = self:Cylinder(H - 0.8, 0.18, cf * CFrame.new(i * 1.7, H / 2, L / 2 + 0.05) * CFrame.Angles(0, 0, math.rad(90)), rgb(60, 62, 66), M.Metal, model)
+		bar.CanCollide, bar.CanQuery, bar.CastShadow = false, false, false
 	end
 	return model
 end
@@ -6389,6 +6579,24 @@ function MapKit:Pier(a: Vector3, b: Vector3, width: number, deckY: number)
 			local p = a + dir.Unit * d + cf.RightVector * side * (width / 2 - 0.5)
 			self:Pillar(Vector3.new(p.X, deckY - 14, p.Z), 14, 1.2, P.WoodDark, M.Wood)
 		end
+	end
+	-- plank seams, bollards, tyre fenders and rope coils
+	for d = 1, len - 1, 2 do
+		local p = a + dir.Unit * d
+		self:Deco(Vector3.new(width - 0.2, 0.03, 0.08), CFrame.new(p.X, deckY + 0.01, p.Z) * cf.Rotation, P.WoodDark, M.Wood).CastShadow = false
+	end
+	for d = 6, len - 4, 14 do
+		for _, side in { -1, 1 } do
+			local p = a + dir.Unit * d + cf.RightVector * side * (width / 2 - 0.8)
+			self:Pillar(Vector3.new(p.X, deckY, p.Z), 1.4, 0.9, rgb(40, 42, 46), M.Metal)
+			self:Ball(1.1, Vector3.new(p.X, deckY + 1.45, p.Z), rgb(40, 42, 46), M.Metal).CanQuery = false
+			local f = a + dir.Unit * (d + 4) + cf.RightVector * side * (width / 2 + 0.5)
+			local tyre = self:Cylinder(0.8, 2.2, CFrame.new(f.X, deckY - 1.2, f.Z) * cf.Rotation * CFrame.Angles(0, math.rad(90), 0), rgb(25, 25, 27), M.Rubber)
+			tyre.CanCollide, tyre.CanQuery = false, false
+		end
+		local rp = a + dir.Unit * (d + 2)
+		local coil = self:Cylinder(0.35, 1.6, CFrame.new(rp.X, deckY + 0.18, rp.Z) * CFrame.Angles(0, 0, math.rad(90)), rgb(200, 180, 130), M.Fabric)
+		coil.CanCollide, coil.CanQuery = false, false
 	end
 end
 
@@ -6758,7 +6966,7 @@ end
 
 -- COVER -------------------------------------------------------------------------------
 -- Height of the terrain under (x, z); 0 when there's nothing to hit (or outside Roblox).
-function MapKit:GroundY(x: number, z: number): number
+function MapKit:GroundY(x: number, z: number): (number, boolean)
 	-- raised surfaces (sidewalk blocks) built by this kit
 	local best = nil
 	for _, r in self.Surfaces or {} do
@@ -6767,7 +6975,7 @@ function MapKit:GroundY(x: number, z: number): number
 		end
 	end
 	if best then
-		return best
+		return best, false
 	end
 	local ok, result = pcall(function()
 		local params = RaycastParams.new()
@@ -6775,10 +6983,64 @@ function MapKit:GroundY(x: number, z: number): number
 		params.FilterDescendantsInstances = { workspace.Terrain }
 		return workspace:Raycast(Vector3.new(x, 60, z), Vector3.new(0, -90, 0), params)
 	end)
-	if ok and result and result.Material ~= Enum.Material.Water then
-		return result.Position.Y
+	if ok and result then
+		return result.Position.Y, result.Material == Enum.Material.Water
 	end
-	return 0
+	return 0, false
+end
+
+-- Decorative ground cover: grass tufts, wildflowers, ferns, stumps and mushrooms.
+-- Nothing here collides or blocks bullets; it just makes the ground feel alive.
+function MapKit:Scatter(x0: number, x1: number, z0: number, z1: number, count: number, avoid)
+	local rng = self.Rng
+	local grass = { rgb(76, 140, 60), rgb(96, 158, 66), rgb(60, 118, 52) }
+	local petals = { rgb(250, 240, 120), rgb(255, 255, 255), rgb(200, 120, 255), rgb(255, 120, 150), rgb(120, 170, 255) }
+	local placed = 0
+	for _ = 1, count * 3 do
+		if placed >= count then
+			break
+		end
+		local x, z = rng:NextNumber(x0, x1), rng:NextNumber(z0, z1)
+		local blocked = avoid and avoid(x, z)
+		local y, water = self:GroundY(x, z)
+		if not blocked and not water then
+			placed += 1
+			local base = CFrame.new(x, y, z) * CFrame.Angles(0, rng:NextNumber(0, 6.28), 0)
+			local roll = rng:NextNumber()
+			if roll < 0.5 then
+				for k = 1, 4 do
+					local blade = self:Deco(Vector3.new(0.15, rng:NextNumber(0.9, 1.6), 0.5), base * CFrame.new(rng:NextNumber(-0.5, 0.5), 0.5, rng:NextNumber(-0.5, 0.5)) * CFrame.Angles(rng:NextNumber(-0.35, 0.35), k, rng:NextNumber(-0.35, 0.35)), grass[rng:NextInteger(1, 3)], M.Grass)
+					blade.CastShadow = false
+				end
+			elseif roll < 0.75 then
+				local col = petals[rng:NextInteger(1, #petals)]
+				for _ = 1, 3 do
+					local off = Vector3.new(rng:NextNumber(-0.8, 0.8), 0, rng:NextNumber(-0.8, 0.8))
+					local h = rng:NextNumber(0.8, 1.4)
+					self:Deco(Vector3.new(0.08, h, 0.08), base * CFrame.new(off + Vector3.new(0, h / 2, 0)), rgb(70, 120, 50), M.Grass).CastShadow = false
+					local bloom = self:Ball(0.42, (base * CFrame.new(off + Vector3.new(0, h, 0))).Position, col, M.SmoothPlastic, self.Props)
+					bloom.CanCollide, bloom.CanQuery, bloom.CastShadow = false, false, false
+				end
+			elseif roll < 0.9 then
+				for k = 1, 6 do
+					local frond = self:Deco(Vector3.new(0.6, 0.08, 2.2), base * CFrame.Angles(0, k * 1.05, 0) * CFrame.new(0, 0.55, -1) * CFrame.Angles(math.rad(25), 0, 0), rgb(56, 120, 50), M.LeafyGrass)
+					frond.CastShadow = false
+				end
+			elseif roll < 0.96 then
+				local stump = self:Cylinder(1.2, 1.8, base * CFrame.new(0, 0.6, 0) * CFrame.Angles(0, 0, math.rad(90)), P.Trunk, M.Wood, self.Props)
+				stump.CanQuery = false
+				self:Deco(Vector3.new(0.05, 1.7, 1.7), base * CFrame.new(0, 1.21, 0) * CFrame.Angles(0, 0, math.rad(90)), P.WoodLight, M.Wood).Shape = Enum.PartType.Cylinder
+			else
+				for k = 1, 3 do
+					local m0 = base * CFrame.new(k * 0.5 - 1, 0, rng:NextNumber(-0.4, 0.4))
+					self:Deco(Vector3.new(0.15, 0.4, 0.15), m0 * CFrame.new(0, 0.2, 0), rgb(235, 225, 205), M.SmoothPlastic).CastShadow = false
+					local cap = self:Ball(0.5, (m0 * CFrame.new(0, 0.42, 0)).Position, rgb(200, 60, 40), M.SmoothPlastic, self.Props)
+					cap.CanCollide, cap.CanQuery, cap.CastShadow = false, false, false
+					cap.Size = Vector3.new(0.5, 0.3, 0.5)
+				end
+			end
+		end
+	end
 end
 
 function MapKit:Barrel(pos: Vector3, color: Color3?, tipped: boolean?)
@@ -6880,7 +7142,8 @@ function MapKit:CoverCluster(pos: Vector3, theme: string, style: string?)
 	local rng = self.Rng
 	local styles = COVER_STYLES[theme] or COVER_STYLES.City
 	style = style or styles[rng:NextInteger(1, #styles)]
-	local y = math.max(pos.Y, self:GroundY(pos.X, pos.Z))
+	local groundY = self:GroundY(pos.X, pos.Z)
+	local y = math.max(pos.Y, groundY)
 	local base = CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 	if style == "BarrierL" then
 		self:Barrier(base * CFrame.new(-2, 0, 0))
@@ -7008,7 +7271,7 @@ local Map = {
 		ClockTime = 16.4, Brightness = 2.6,
 		Ambient = rgb(80, 90, 80), OutdoorAmbient = rgb(130, 140, 130),
 		Atmosphere = { Density = 0.35, Haze = 1.4, Color = rgb(200, 225, 210), Decay = rgb(90, 120, 110) },
-		Tint = rgb(240, 255, 240), Saturation = 0.2,
+		Tint = rgb(245, 255, 240), Saturation = 0.2, Contrast = 0.2, SunRays = 0.22, WaterColor = rgb(30, 100, 95),
 	},
 }
 
@@ -7238,6 +7501,10 @@ function Map.Build()
 	kit:FFASpawns(ffa, 30)
 	-- MORE COVER: log piles, rocks, fallen trees and sandbag nests in the clearings
 	kit:CoverField({ { 135, 27 }, { -87, -103 }, { -131, -25 }, { -71, -39 }, { -51, 87 }, { -129, 25 }, { -67, 123 }, { -115, 83 }, { 83, 111 }, { 59, -53 }, { -113, -85 }, { -97, -35 }, { 39, 21 }, { 71, -129 }, { 109, -85 }, { 5, -45 }, { -7, -141 }, { 73, -89 }, { 71, 19 }, { 103, 89 }, { 115, -43 }, { 45, -77 }, { -61, 19 } }, "Forest")
+	-- ground cover everywhere that isn't river, road or a structure
+	kit:Scatter(-HALF + 6, HALF - 6, -HALF + 6, HALF - 6, 520, function(x, z)
+		return blocked(x, z, 0)
+	end)
 	kit:Mountains(HALF + 18, HALF + 18, { Margin = 95, GroundY = -0.5 })
 	kit:Boundary(HALF, HALF, 260)
 	return kit
@@ -8126,6 +8393,7 @@ local HUD = require(script.Parent.HUD)
 local Menus = require(script.Parent.Menus)
 local VoteScreen = require(script.Parent.VoteScreen)
 local OfferToast = require(script.Parent.OfferToast)
+local PassSpotlight = require(script.Parent.PassSpotlight)
 local Movement = require(script.Parent.MovementController)
 local Weapons = require(script.Parent.WeaponController)
 local Vehicle = require(script.Parent.VehicleController)
@@ -8156,6 +8424,8 @@ OfferToast.Init(playerGui)
 OfferToast.BuyPass = Menus.BuyPass
 OfferToast.BuyProduct = Menus.BuyProduct
 ClientState.OnDryFire = OfferToast.OnDryFire
+PassSpotlight.Init(playerGui)
+PassSpotlight.BuyPass = Menus.BuyPass
 Weapons.HUD = HUD
 Menus.Notify = HUD.Message
 HUD.OpenMenu = function(name)
@@ -8224,7 +8494,7 @@ RunService.RenderStepped:Connect(function(dt)
 		camera.CFrame = CFrame.lookAt(pos, Vector3.new(0, 8, 0))
 		camera.FieldOfView = 70
 	end
-	local freeMouse = ClientState.MenuOpen or ClientState.VoteOpen or ClientState.Dead or not ClientState.Deployed
+	local freeMouse = ClientState.MenuOpen or ClientState.VoteOpen or ClientState.SpotlightOpen or ClientState.Dead or not ClientState.Deployed
 	UserInputService.MouseIconEnabled = freeMouse
 end)
 
@@ -8362,6 +8632,7 @@ end)
 Remotes.Damaged.OnClientEvent:Connect(function(from, amount)
 	HUD.Damaged(from, amount)
 	OfferToast.LastDamaged = os.clock()
+	PassSpotlight.LastDamaged = os.clock()
 	Effects.Shake(math.clamp(amount / 40, 0.2, 1.5))
 	if amount >= 20 then
 		UIKit.Sound("Hurt", 0.55 + math.random() * 0.1)
@@ -8441,6 +8712,7 @@ local State = {
 	Data = nil, -- synced profile (Owned, Loadout, Stats, Achievements, Daily...)
 	MenuOpen = false, -- any full-screen menu is open (blocks shooting)
 	VoteOpen = false, -- pre-match vote screen is up
+	SpotlightOpen = false, -- featured pass card is up
 	OnDryFire = nil, -- hook: called when the trigger is pulled on an empty mag
 	Deployed = false, -- pressed PLAY
 	Dead = false,
@@ -11152,7 +11424,7 @@ return Movement
 -- its own. Rules that keep it from being annoying:
 --   * at most one card every 4 minutes, and 3 per session
 --   * never while you're in a fight (took damage in the last 6 seconds) or voting
---   * never for something you already own; closing it counts toward the limits
+--   * never for something you already own; no close button needed, it leaves by itself
 --   * honest copy: real perks and real prices only, no fake timers or scarcity
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11233,9 +11505,9 @@ local function build(kind: string, key: string)
 	UIKit.Gradient(accent:Lerp(Color3.new(1, 1, 1), 0.25), accent:Lerp(Color3.new(), 0.35), 90).Parent = tile
 	Label({ Text = info.Icon or "💎", Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 32, Font = T.Black, Parent = tile })
 	-- text
-	Label({ Text = string.upper(info.Name), Size = UDim2.new(1, -120, 0, 18), Position = UDim2.fromOffset(86, 12), TextSize = 14, Font = T.Black, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+	Label({ Text = string.upper(info.Name), Size = UDim2.new(1, -96, 0, 18), Position = UDim2.fromOffset(86, 12), TextSize = 14, Font = T.Black, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
 	Label({
-		Text = REASONS[key] or (info.Perks and info.Perks[1]) or info.Desc or "", Size = UDim2.new(1, -98, 0, 30), Position = UDim2.fromOffset(86, 31),
+		Text = REASONS[key] or (info.Perks and info.Perks[1]) or info.Desc or "", Size = UDim2.new(1, -96, 0, 30), Position = UDim2.fromOffset(86, 31),
 		TextSize = 11, Font = T.Medium, TextColor3 = T.Sub, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = card,
 	})
 	local buy = UIKit.Button({ Text = "R$ " .. tostring(info.Price), Size = UDim2.fromOffset(82, 24), Position = UDim2.fromOffset(86, 62), Color = T.Robux, TextSize = 13, Radius = 12, Parent = card }, function()
@@ -11247,16 +11519,6 @@ local function build(kind: string, key: string)
 		hide()
 	end)
 	buy.Name = "Buy"
-	local later = new("TextButton", {
-		Text = "Not now", Size = UDim2.fromOffset(70, 24), Position = UDim2.fromOffset(174, 62), BackgroundTransparency = 1,
-		Font = T.Bold, TextSize = 11, TextColor3 = T.Sub, Parent = card,
-	})
-	later.Activated:Connect(hide)
-	local close = new("TextButton", {
-		Text = "✕", Size = UDim2.fromOffset(22, 22), Position = UDim2.new(1, -6, 0, 6), AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 1,
-		Font = T.Black, TextSize = 12, TextColor3 = T.Sub, Parent = card,
-	})
-	close.Activated:Connect(hide)
 	-- auto-dismiss bar
 	local bar = new("Frame", { Size = UDim2.new(1, -20, 0, 2), Position = UDim2.new(0, 10, 1, -4), BackgroundColor3 = accent, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = card })
 	UIKit.Tween(bar, SHOW_TIME, { Size = UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Linear)
@@ -11337,6 +11599,179 @@ return OfferToast
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="43">
+          <Properties>
+            <string name="Name">PassSpotlight</string>
+            <string name="Source"><![CDATA[-- Featured pass spotlight: a big, good-looking card for one random game pass the
+-- player doesn't own, about every 20 minutes of play.
+-- It waits for a calm moment (dead, between matches, or 10s out of combat), never
+-- covers the vote screen, and always has a clear "Maybe later" button.
+-- Copy is honest: real perks, real price, no fake timers or "limited" claims.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Monetization = require(Shared.Monetization)
+local UIKit = require(script.Parent.UIKit)
+local ClientState = require(script.Parent.ClientState)
+
+local T = UIKit.Theme
+local new, Label = UIKit.new, UIKit.Label
+local rgb = Color3.fromRGB
+
+local INTERVAL = 20 * 60
+
+local Spotlight = {}
+Spotlight.BuyPass = function(_key) end -- injected (Menus.BuyPass)
+Spotlight.LastDamaged = 0 -- set by ClientMain when you take damage
+
+local gui, overlay, card
+local nextAt = math.huge
+local lastKey = nil
+
+local function calmMoment(): boolean
+	local state = ReplicatedStorage:GetAttribute("MatchState")
+	if state == "Voting" or ClientState.VoteOpen or ClientState.MenuOpen then
+		return false
+	end
+	if ClientState.Dead or not ClientState.Deployed or state == "Results" or state == "Intermission" then
+		return true
+	end
+	return os.clock() - Spotlight.LastDamaged > 10
+end
+
+local function pickPass(): string?
+	local pool = {}
+	for _, key in Monetization.PassOrder do
+		if not ClientState.HasPass(key) and key ~= lastKey then
+			table.insert(pool, key)
+		end
+	end
+	if #pool == 0 then
+		return nil
+	end
+	return pool[math.random(1, #pool)]
+end
+
+function Spotlight.Hide()
+	if not overlay or not overlay.Visible then
+		return
+	end
+	ClientState.SpotlightOpen = false
+	local scale = card:FindFirstChildOfClass("UIScale")
+	UIKit.Tween(scale, 0.2, { Scale = 0.85 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	UIKit.Tween(overlay, 0.25, { BackgroundTransparency = 1 })
+	task.delay(0.25, function()
+		overlay.Visible = false
+	end)
+end
+
+function Spotlight.Show(key: string)
+	local pass = Monetization.GamePasses[key]
+	if not pass then
+		return
+	end
+	lastKey = key
+	if card then
+		card:Destroy()
+	end
+	local accent = pass.Color or T.Accent
+	overlay.Visible = true
+	overlay.BackgroundTransparency = 1
+	UIKit.Tween(overlay, 0.3, { BackgroundTransparency = 0.45 })
+	ClientState.SpotlightOpen = true
+
+	card = new("Frame", {
+		Name = "Card", Size = UDim2.fromOffset(520, 380), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = rgb(14, 16, 24), BorderSizePixel = 0, ClipsDescendants = true, Parent = overlay,
+	})
+	UIKit.Corner(16).Parent = card
+	new("UIStroke", { Color = accent, Thickness = 2, Transparency = 0.2, Parent = card })
+	new("UIGradient", { Rotation = 90, Color = ColorSequence.new(accent:Lerp(rgb(14, 16, 24), 0.55), rgb(10, 12, 18)), Parent = card })
+	local scale = new("UIScale", { Scale = 0.8, Parent = card })
+	UIKit.Tween(scale, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
+
+	-- light sweep across the card
+	local sweep = new("Frame", { Size = UDim2.new(0, 90, 2, 0), Position = UDim2.new(-0.3, 0, -0.5, 0), Rotation = 20, BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.88, BorderSizePixel = 0, Parent = card })
+	new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 1) }), Parent = sweep })
+	task.spawn(function()
+		while sweep.Parent do
+			sweep.Position = UDim2.new(-0.3, 0, -0.5, 0)
+			UIKit.Tween(sweep, 1.2, { Position = UDim2.new(1.2, 0, -0.5, 0) }, Enum.EasingStyle.Quad)
+			task.wait(3.5)
+		end
+	end)
+
+	local tag = Label({
+		Text = "⭐ FEATURED PASS", Size = UDim2.fromOffset(150, 24), Position = UDim2.new(0.5, 0, 0, 18), AnchorPoint = Vector2.new(0.5, 0),
+		TextXAlignment = Enum.TextXAlignment.Center, BackgroundTransparency = 0.2, BackgroundColor3 = rgb(0, 0, 0), TextSize = 12, Font = T.Black, TextColor3 = T.Gold, Parent = card,
+	})
+	UIKit.Corner(12).Parent = tag
+
+	-- icon with a slowly spinning glow ring
+	local ring = new("Frame", { Size = UDim2.fromOffset(120, 120), Position = UDim2.new(0.5, 0, 0, 52), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = accent, BorderSizePixel = 0, Parent = card })
+	UIKit.Corner(60).Parent = ring
+	local ringGrad = new("UIGradient", {
+		Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, accent), ColorSequenceKeypoint.new(0.5, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, accent) }),
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(0.5, 0.6), NumberSequenceKeypoint.new(1, 0.2) }),
+		Parent = ring,
+	})
+	local inner = new("Frame", { Size = UDim2.new(1, -10, 1, -10), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = rgb(18, 20, 30), BorderSizePixel = 0, Parent = ring })
+	UIKit.Corner(55).Parent = inner
+	UIKit.Gradient(accent:Lerp(rgb(18, 20, 30), 0.4), rgb(18, 20, 30), 90).Parent = inner
+	Label({ Text = pass.Icon or "💎", Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 58, Font = T.Black, Parent = inner })
+	local spin
+	spin = RunService.RenderStepped:Connect(function(dt)
+		if not ring.Parent then
+			spin:Disconnect()
+			return
+		end
+		ringGrad.Rotation = (ringGrad.Rotation + dt * 60) % 360
+	end)
+
+	local title = Label({ Text = string.upper(pass.Name), Size = UDim2.new(1, -40, 0, 34), Position = UDim2.new(0, 20, 0, 182), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 30, Font = T.Black, Parent = card })
+	UIKit.TextStroke(0.4).Parent = title
+	local perks = new("Frame", { Size = UDim2.new(1, -80, 0, 70), Position = UDim2.new(0, 40, 0, 222), BackgroundTransparency = 1, Parent = card }, { UIKit.List(4) })
+	for i, perk in pass.Perks or {} do
+		if i > 3 then
+			break
+		end
+		Label({ Text = "✓  " .. perk, Size = UDim2.new(1, 0, 0, 18), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 14, Font = T.Bold, TextColor3 = rgb(225, 230, 240), LayoutOrder = i, Parent = perks })
+	end
+	local buy = UIKit.Button({ Text = "GET IT  ·  R$ " .. tostring(pass.Price), Size = UDim2.fromOffset(260, 46), Position = UDim2.new(0.5, 0, 1, -76), AnchorPoint = Vector2.new(0.5, 0), Color = T.Robux, TextSize = 18, Radius = 10, Parent = card }, function()
+		Spotlight.BuyPass(key)
+		Spotlight.Hide()
+	end)
+	buy.Name = "Buy"
+	local later = new("TextButton", {
+		Text = "Maybe later", Size = UDim2.fromOffset(160, 22), Position = UDim2.new(0.5, 0, 1, -26), AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundTransparency = 1, Font = T.Bold, TextSize = 13, TextColor3 = T.Sub, Parent = card,
+	})
+	later.Activated:Connect(Spotlight.Hide)
+end
+
+function Spotlight.Init(playerGui: PlayerGui)
+	gui = new("ScreenGui", { Name = "Spotlight", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 15, Parent = playerGui })
+	overlay = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Text = "", AutoButtonColor = false, Modal = true, Visible = false, Parent = gui })
+	nextAt = os.clock() + INTERVAL
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			if os.clock() >= nextAt and not overlay.Visible and calmMoment() then
+				local key = pickPass()
+				if key then
+					Spotlight.Show(key)
+				end
+				nextAt = os.clock() + INTERVAL
+			end
+		end
+	end)
+end
+
+return Spotlight
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">UIKit</string>
             <string name="Source"><![CDATA[-- Tiny UI helper library + the game's visual theme.
@@ -11591,7 +12026,7 @@ return UIKit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="44">
+        <Item class="ModuleScript" referent="45">
           <Properties>
             <string name="Name">VehicleController</string>
             <string name="Source"><![CDATA[-- Arcade car handling. The server gives the driver network ownership,
@@ -11861,7 +12296,7 @@ return Vehicle
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="45">
+        <Item class="ModuleScript" referent="46">
           <Properties>
             <string name="Name">VoteScreen</string>
             <string name="Source"><![CDATA[-- Pre-match vote screen: 3 rotating map choices + the 3 game modes.
@@ -12118,7 +12553,7 @@ return VoteScreen
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="46">
+        <Item class="ModuleScript" referent="47">
           <Properties>
             <string name="Name">WeaponController</string>
             <string name="Source"><![CDATA[-- First-person gunplay: viewmodel, ADS, recoil, spread, reloads, knife, grenades.
@@ -12211,7 +12646,7 @@ local function alive(): boolean
 end
 
 local function canAct(): boolean
-	return alive() and not ClientState.MenuOpen and not ClientState.VoteOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
+	return alive() and not ClientState.MenuOpen and not ClientState.VoteOpen and not ClientState.SpotlightOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
 end
 
 -- VIEWMODEL --------------------------------------------------------------------

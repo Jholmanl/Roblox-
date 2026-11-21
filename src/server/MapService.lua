@@ -29,54 +29,65 @@ local function ensure(class: string, parent: Instance)
 end
 
 local function applyLighting(L)
+	-- Cinematic "console" grade: Future lighting, soft shadows, filmic contrast,
+	-- bloom on lights, sun rays, aerial haze and a touch of depth of field.
 	Lighting.ClockTime = L.ClockTime or 14
+	Lighting.GeographicLatitude = L.Latitude or 38
 	Lighting.Brightness = L.Brightness or 2.5
 	Lighting.Ambient = L.Ambient or Color3.fromRGB(70, 70, 80)
 	Lighting.OutdoorAmbient = L.OutdoorAmbient or Color3.fromRGB(120, 120, 130)
 	Lighting.GlobalShadows = true
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 1
-	Lighting.ShadowSoftness = 0.25
+	Lighting.ShadowSoftness = 0.18
 	Lighting.ExposureCompensation = L.Exposure or 0
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
+	local sky = ensure("Sky", Lighting)
+	sky.SunAngularSize = 12
+	sky.MoonAngularSize = 9
+	sky.StarCount = 3000
+	sky.CelestialBodiesShown = true
 	local atmo = ensure("Atmosphere", Lighting)
 	local a = L.Atmosphere or {}
 	atmo.Density = a.Density or 0.3
+	atmo.Offset = a.Offset or 0.2
 	atmo.Haze = a.Haze or 1
 	atmo.Color = a.Color or Color3.fromRGB(200, 210, 230)
 	atmo.Decay = a.Decay or Color3.fromRGB(100, 100, 130)
-	atmo.Glare = 0.2
+	atmo.Glare = a.Glare or 0.45
 	local bloom = ensure("BloomEffect", Lighting)
-	bloom.Intensity = 0.9
-	bloom.Size = 30
-	bloom.Threshold = 1.25 -- lets neon windows / lamps glow
+	bloom.Intensity = 1
+	bloom.Size = 26
+	bloom.Threshold = 1.15 -- neon, lamps and lit windows glow; plain surfaces don't
 	local cc = ensure("ColorCorrectionEffect", Lighting)
-	cc.Saturation = L.Saturation or 0.15
-	cc.Contrast = 0.12
-	cc.Brightness = 0.02
+	cc.Saturation = L.Saturation or 0.12
+	cc.Contrast = L.Contrast or 0.2
+	cc.Brightness = 0.03
 	cc.TintColor = L.Tint or Color3.new(1, 1, 1)
 	local rays = ensure("SunRaysEffect", Lighting)
-	rays.Intensity = 0.06
-	rays.Spread = 0.7
+	rays.Intensity = L.SunRays or 0.12
+	rays.Spread = 0.8
 	local dof = ensure("DepthOfFieldEffect", Lighting)
-	dof.FarIntensity = 0.12
-	dof.FocusDistance = 120
-	dof.InFocusRadius = 120
+	dof.FarIntensity = 0.18
+	dof.FocusDistance = 90
+	dof.InFocusRadius = 140
 	dof.NearIntensity = 0
 	pcall(function()
 		local clouds = ensure("Clouds", workspace.Terrain)
-		clouds.Cover = 0.55
-		clouds.Density = 0.6
+		clouds.Cover = L.CloudCover or 0.6
+		clouds.Density = 0.7
+		clouds.Color = L.CloudColor or Color3.fromRGB(255, 255, 255)
 	end)
 	pcall(function()
 		workspace.Terrain.Decoration = true -- animated grass blades
 	end)
-	workspace.Terrain.WaterColor = Color3.fromRGB(30, 110, 140)
-	workspace.Terrain.WaterTransparency = 0.6
-	workspace.Terrain.WaterWaveSize = 0.15
-	workspace.Terrain.WaterReflectance = 0.6
+	workspace.Terrain.WaterColor = L.WaterColor or Color3.fromRGB(25, 95, 120)
+	workspace.Terrain.WaterTransparency = 0.7
+	workspace.Terrain.WaterWaveSize = 0.18
+	workspace.Terrain.WaterWaveSpeed = 8
+	workspace.Terrain.WaterReflectance = 0.85
 end
 
 -- Snap spawn markers to whatever surface is under them.

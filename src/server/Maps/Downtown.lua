@@ -14,7 +14,7 @@ local Map = {
 		ClockTime = 18.1, Brightness = 2, Exposure = 0.15,
 		Ambient = rgb(90, 80, 90), OutdoorAmbient = rgb(140, 120, 120),
 		Atmosphere = { Density = 0.32, Haze = 1.6, Color = rgb(255, 200, 170), Decay = rgb(120, 90, 110) },
-		Tint = rgb(255, 238, 225), Saturation = 0.12,
+		Tint = rgb(255, 236, 222), Saturation = 0.14, Contrast = 0.24, SunRays = 0.16, CloudColor = rgb(255, 205, 185),
 	},
 }
 

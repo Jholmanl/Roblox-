@@ -9,6 +9,7 @@ local State = {
 	Data = nil, -- synced profile (Owned, Loadout, Stats, Achievements, Daily...)
 	MenuOpen = false, -- any full-screen menu is open (blocks shooting)
 	VoteOpen = false, -- pre-match vote screen is up
+	SpotlightOpen = false, -- featured pass card is up
 	OnDryFire = nil, -- hook: called when the trigger is pulled on an empty mag
 	Deployed = false, -- pressed PLAY
 	Dead = false,

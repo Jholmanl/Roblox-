@@ -13,7 +13,7 @@ local Map = {
 		ClockTime = 16.4, Brightness = 2.6,
 		Ambient = rgb(80, 90, 80), OutdoorAmbient = rgb(130, 140, 130),
 		Atmosphere = { Density = 0.35, Haze = 1.4, Color = rgb(200, 225, 210), Decay = rgb(90, 120, 110) },
-		Tint = rgb(240, 255, 240), Saturation = 0.2,
+		Tint = rgb(245, 255, 240), Saturation = 0.2, Contrast = 0.2, SunRays = 0.22, WaterColor = rgb(30, 100, 95),
 	},
 }
 
@@ -243,6 +243,10 @@ function Map.Build()
 	kit:FFASpawns(ffa, 30)
 	-- MORE COVER: log piles, rocks, fallen trees and sandbag nests in the clearings
 	kit:CoverField({ { 135, 27 }, { -87, -103 }, { -131, -25 }, { -71, -39 }, { -51, 87 }, { -129, 25 }, { -67, 123 }, { -115, 83 }, { 83, 111 }, { 59, -53 }, { -113, -85 }, { -97, -35 }, { 39, 21 }, { 71, -129 }, { 109, -85 }, { 5, -45 }, { -7, -141 }, { 73, -89 }, { 71, 19 }, { 103, 89 }, { 115, -43 }, { 45, -77 }, { -61, 19 } }, "Forest")
+	-- ground cover everywhere that isn't river, road or a structure
+	kit:Scatter(-HALF + 6, HALF - 6, -HALF + 6, HALF - 6, 520, function(x, z)
+		return blocked(x, z, 0)
+	end)
 	kit:Mountains(HALF + 18, HALF + 18, { Margin = 95, GroundY = -0.5 })
 	kit:Boundary(HALF, HALF, 260)
 	return kit

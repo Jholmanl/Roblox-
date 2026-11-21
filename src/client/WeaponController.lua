@@ -88,7 +88,7 @@ local function alive(): boolean
 end
 
 local function canAct(): boolean
-	return alive() and not ClientState.MenuOpen and not ClientState.VoteOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
+	return alive() and not ClientState.MenuOpen and not ClientState.VoteOpen and not ClientState.SpotlightOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
 end
 
 -- VIEWMODEL --------------------------------------------------------------------

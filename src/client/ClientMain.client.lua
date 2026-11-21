@@ -17,6 +17,7 @@ local HUD = require(script.Parent.HUD)
 local Menus = require(script.Parent.Menus)
 local VoteScreen = require(script.Parent.VoteScreen)
 local OfferToast = require(script.Parent.OfferToast)
+local PassSpotlight = require(script.Parent.PassSpotlight)
 local Movement = require(script.Parent.MovementController)
 local Weapons = require(script.Parent.WeaponController)
 local Vehicle = require(script.Parent.VehicleController)
@@ -47,6 +48,8 @@ OfferToast.Init(playerGui)
 OfferToast.BuyPass = Menus.BuyPass
 OfferToast.BuyProduct = Menus.BuyProduct
 ClientState.OnDryFire = OfferToast.OnDryFire
+PassSpotlight.Init(playerGui)
+PassSpotlight.BuyPass = Menus.BuyPass
 Weapons.HUD = HUD
 Menus.Notify = HUD.Message
 HUD.OpenMenu = function(name)
@@ -115,7 +118,7 @@ RunService.RenderStepped:Connect(function(dt)
 		camera.CFrame = CFrame.lookAt(pos, Vector3.new(0, 8, 0))
 		camera.FieldOfView = 70
 	end
-	local freeMouse = ClientState.MenuOpen or ClientState.VoteOpen or ClientState.Dead or not ClientState.Deployed
+	local freeMouse = ClientState.MenuOpen or ClientState.VoteOpen or ClientState.SpotlightOpen or ClientState.Dead or not ClientState.Deployed
 	UserInputService.MouseIconEnabled = freeMouse
 end)
 
@@ -253,6 +256,7 @@ end)
 Remotes.Damaged.OnClientEvent:Connect(function(from, amount)
 	HUD.Damaged(from, amount)
 	OfferToast.LastDamaged = os.clock()
+	PassSpotlight.LastDamaged = os.clock()
 	Effects.Shake(math.clamp(amount / 40, 0.2, 1.5))
 	if amount >= 20 then
 		UIKit.Sound("Hurt", 0.55 + math.random() * 0.1)

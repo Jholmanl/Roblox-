@@ -4,7 +4,7 @@
 -- its own. Rules that keep it from being annoying:
 --   * at most one card every 4 minutes, and 3 per session
 --   * never while you're in a fight (took damage in the last 6 seconds) or voting
---   * never for something you already own; closing it counts toward the limits
+--   * never for something you already own; no close button needed, it leaves by itself
 --   * honest copy: real perks and real prices only, no fake timers or scarcity
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -85,9 +85,9 @@ local function build(kind: string, key: string)
 	UIKit.Gradient(accent:Lerp(Color3.new(1, 1, 1), 0.25), accent:Lerp(Color3.new(), 0.35), 90).Parent = tile
 	Label({ Text = info.Icon or "💎", Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 32, Font = T.Black, Parent = tile })
 	-- text
-	Label({ Text = string.upper(info.Name), Size = UDim2.new(1, -120, 0, 18), Position = UDim2.fromOffset(86, 12), TextSize = 14, Font = T.Black, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+	Label({ Text = string.upper(info.Name), Size = UDim2.new(1, -96, 0, 18), Position = UDim2.fromOffset(86, 12), TextSize = 14, Font = T.Black, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
 	Label({
-		Text = REASONS[key] or (info.Perks and info.Perks[1]) or info.Desc or "", Size = UDim2.new(1, -98, 0, 30), Position = UDim2.fromOffset(86, 31),
+		Text = REASONS[key] or (info.Perks and info.Perks[1]) or info.Desc or "", Size = UDim2.new(1, -96, 0, 30), Position = UDim2.fromOffset(86, 31),
 		TextSize = 11, Font = T.Medium, TextColor3 = T.Sub, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = card,
 	})
 	local buy = UIKit.Button({ Text = "R$ " .. tostring(info.Price), Size = UDim2.fromOffset(82, 24), Position = UDim2.fromOffset(86, 62), Color = T.Robux, TextSize = 13, Radius = 12, Parent = card }, function()
@@ -99,16 +99,6 @@ local function build(kind: string, key: string)
 		hide()
 	end)
 	buy.Name = "Buy"
-	local later = new("TextButton", {
-		Text = "Not now", Size = UDim2.fromOffset(70, 24), Position = UDim2.fromOffset(174, 62), BackgroundTransparency = 1,
-		Font = T.Bold, TextSize = 11, TextColor3 = T.Sub, Parent = card,
-	})
-	later.Activated:Connect(hide)
-	local close = new("TextButton", {
-		Text = "✕", Size = UDim2.fromOffset(22, 22), Position = UDim2.new(1, -6, 0, 6), AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 1,
-		Font = T.Black, TextSize = 12, TextColor3 = T.Sub, Parent = card,
-	})
-	close.Activated:Connect(hide)
 	-- auto-dismiss bar
 	local bar = new("Frame", { Size = UDim2.new(1, -20, 0, 2), Position = UDim2.new(0, 10, 1, -4), BackgroundColor3 = accent, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = card })
 	UIKit.Tween(bar, SHOW_TIME, { Size = UDim2.new(0, 0, 0, 2) }, Enum.EasingStyle.Linear)

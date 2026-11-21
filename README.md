@@ -61,6 +61,15 @@ Without a 5-kill streak you die and respawn automatically as normal.
   - **Guns:** grips, stocks, handguards and magazines have rounded edges.
   - **Cars:** rounded bumpers, body corners and roof edges.
   - **Trees:** fuller canopies.
+- Max-detail pass, building on the MapKit functions so every map benefits:
+  - **Buildings:** window mullions, flower boxes, drainpipes, door frames with porch lamps, rooftop dishes and vents, and lit billboards.
+  - **Streets:** puddles, cracks, oil stains and storm drains on the roads; curb stones, paving seams and litter on the sidewalks.
+  - **Nature:** trees with root flares and branches, moss-capped rocks with pebbles, and Timberline ground cover (grass tufts, wildflowers, ferns, stumps, mushrooms).
+  - **Harbor:** corrugated, rust-streaked containers with locking bars; piers with plank seams, bollards, tyre fenders and rope coils.
+  - **Arena:** ribbed walls with light strips and corner floodlight towers.
+- Cinematic "console" grade:
+  - Future lighting with soft shadows, a filmic contrast grade, and bloom tuned so only lights glow.
+  - Sun rays, aerial haze with glare, subtle far depth of field, a sky with sun and stars, reflective water, and a per-map color grade.
 - Softer hit sounds: hits make a crisp click (higher-pitched on headshots), and taking damage gives a muted tick instead of a grunt.
 
 ## Battle-royale style maps
@@ -115,8 +124,10 @@ The game also links to the store from several places: a VIP banner on the main m
 - None in the first 2 minutes of a session.
 - Never during a fight or the vote.
 - Never for something you already own.
-- Each one dismisses itself after 9 seconds.
+- No close button needed: each one slides away on its own after 9 seconds.
 - They show only real perks and prices, with no fake timers or "limited" claims.
+
+**Featured pass spotlight (`src/client/PassSpotlight.lua`)** is a big animated card for one random pass you don't own, about every 20 minutes of play. It waits for a calm moment (dead, between matches, or 10 seconds out of combat), never covers the vote screen, and always has a "Maybe later" button.
 
 **To make purchases work:**
 1. Publish the game, then open the [Creator Dashboard](https://create.roblox.com) and go to your experience → **Monetization**.
@@ -146,7 +157,7 @@ src/shared/     Config, Weapons, Achievements, Monetization, GunBuilder, Remotes
 src/server/     Main (wiring), DataService, AchievementService, MonetizationService, CombatService,
                 KillstreakService, RoundService, MapService, BotService, VehicleService
 src/server/Maps MapKit + Downtown, Harbor, Timberline, Arena
-src/client/     ClientMain, HUD, HUDExtras, Menus, VoteScreen, OfferToast, WeaponController, MovementController,
+src/client/     ClientMain, HUD, HUDExtras, Menus, VoteScreen, OfferToast, PassSpotlight, WeaponController, MovementController,
                 VehicleController, Effects, UIKit, ClientState
 tools/map-preview  renders the maps outside Roblox (see its README)
 src/character/  Health (replaces default regen)

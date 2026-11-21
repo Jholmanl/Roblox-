@@ -12,7 +12,7 @@ local Map = {
 		ClockTime = 15.5, Brightness = 2.5,
 		Ambient = rgb(70, 70, 85), OutdoorAmbient = rgb(120, 120, 140),
 		Atmosphere = { Density = 0.3, Haze = 1.2, Color = rgb(200, 210, 255), Decay = rgb(110, 90, 160) },
-		Tint = rgb(255, 255, 255), Saturation = 0.15,
+		Tint = rgb(250, 250, 255), Saturation = 0.18, Contrast = 0.26, SunRays = 0.08,
 	},
 }
 
@@ -52,6 +52,22 @@ function Map.Build()
 		kit:Neon(Vector3.new(size.X + 0.2, 0.6, size.Z + 0.2), cf * CFrame.new(0, 20, 0), ACCENT)
 	end
 
+	-- wall panel ribs with light strips + corner floodlight towers
+	for _, side in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+		for a = -HALF + 12, HALF - 12, 16 do
+			local x = side[1] ~= 0 and side[1] * (HALF - 0.2) or a
+			local z = side[2] ~= 0 and side[2] * (HALF - 0.2) or a
+			local size = side[1] ~= 0 and Vector3.new(0.8, 34, 2) or Vector3.new(2, 34, 0.8)
+			kit:Part(size, CFrame.new(x, 17, z), DARK, M.Metal)
+			local strip = side[1] ~= 0 and Vector3.new(0.9, 10, 0.3) or Vector3.new(0.3, 10, 0.9)
+			kit:Neon(strip, CFrame.new(x, 12, z), (math.floor(a / 16) % 2 == 0) and ACCENT2 or ACCENT).Transparency = 0.2
+		end
+	end
+	for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+		local p = Vector3.new(c[1] * (HALF - 2), 42, c[2] * (HALF - 2))
+		kit:Pillar(Vector3.new(p.X, 0, p.Z), 42, 1.6, DARK, M.Metal)
+		kit:Floodlight(p + Vector3.new(0, 1.5, 0), Vector3.new(0, 0, 0))
+	end
 	kit:Part(Vector3.new(20, 10, 20), CFrame.new(0, 5, 0), MID, M.Metal)
 	kit:Neon(Vector3.new(20.4, 0.4, 20.4), CFrame.new(0, 10, 0), ACCENT)
 	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do

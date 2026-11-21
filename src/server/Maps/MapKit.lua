@@ -250,6 +250,18 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 				glow.Transparency = 0.45
 				glow.Name = "LitWindow"
 			end
+			-- window mullions: a cross of thin frame bars over the pane
+			if trim and len > 2.5 and h > 2.5 then
+				local mc = trim.Color:Lerp(Color3.new(), 0.35)
+				local d = 0.42
+				if axis == "X" then
+					self:Deco(Vector3.new(0.14, h, d), origin * CFrame.new(pos), mc, M.Metal, parent).CastShadow = false
+					self:Deco(Vector3.new(len, 0.14, d), origin * CFrame.new(pos + Vector3.new(0, h * 0.12, 0)), mc, M.Metal, parent).CastShadow = false
+				else
+					self:Deco(Vector3.new(d, h, 0.14), origin * CFrame.new(pos), mc, M.Metal, parent).CastShadow = false
+					self:Deco(Vector3.new(d, 0.14, len), origin * CFrame.new(pos + Vector3.new(0, h * 0.12, 0)), mc, M.Metal, parent).CastShadow = false
+				end
+			end
 		else
 			self:Part(size, origin * CFrame.new(pos), color, material, parent)
 		end
@@ -287,6 +299,21 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 		if o.Frame then
 			frame(l, r, o.Bottom - 0.15, 0.7, 0.3) -- sill
 			frame(l, r, o.Top + 0.2, 0.35, 0.4) -- head
+			if trim and o.Bottom > 2 and self.Rng:NextNumber() < (self.FlowerBoxes or 0.14) then
+				local mid = (l + r) / 2
+				local out = trim.Outward * (thick / 2 + 0.55)
+				local y = o.Bottom - 0.75
+				local bpos = axis == "X" and start + Vector3.new(mid, y, out) or start + Vector3.new(out, y, mid)
+				local bsize = axis == "X" and Vector3.new(o.Width - 0.4, 0.8, 0.9) or Vector3.new(0.9, 0.8, o.Width - 0.4)
+				self:Deco(bsize, origin * CFrame.new(bpos), rgb(110, 70, 50), M.Wood, parent)
+				for k = -1, 1 do
+					local fp = axis == "X" and bpos + Vector3.new(k * (o.Width / 3.4), 0.6, 0) or bpos + Vector3.new(0, 0.6, k * (o.Width / 3.4))
+					local leaf = self:Ball(0.9, (origin * CFrame.new(fp)).Position, P.Leaf, M.LeafyGrass, parent)
+					leaf.CanCollide, leaf.CanQuery, leaf.CastShadow = false, false, false
+					local flower = self:Ball(0.45, (origin * CFrame.new(fp + Vector3.new(0, 0.4, 0))).Position, ({ rgb(240, 70, 90), rgb(255, 200, 60), rgb(250, 250, 250), rgb(190, 90, 230) })[self.Rng:NextInteger(1, 4)], M.SmoothPlastic, parent)
+					flower.CanCollide, flower.CanQuery, flower.CastShadow = false, false, false
+				end
+			end
 		end
 		cursor = r
 	end
@@ -563,6 +590,51 @@ function MapKit:Building(spec)
 			end
 		end
 	end
+	-- drainpipes down two corners (with brackets)
+	for _, c in { { W / 2 + 0.55, D / 2 - 1.2 }, { -W / 2 - 0.55, D / 2 - 1.2 } } do
+		local pipe = self:Cylinder(top + 0.5, 0.45, o * CFrame.new(c[1], top / 2, c[2]) * CFrame.Angles(0, 0, math.rad(90)), P.MetalDark, M.Metal, model)
+		pipe.CanCollide, pipe.CanQuery = false, false
+		for y = H * 0.5, top, H do
+			self:Deco(Vector3.new(0.7, 0.18, 0.6), o * CFrame.new(c[1] - math.sign(c[1]) * 0.25, y, c[2]), P.MetalDark, M.Metal, model)
+		end
+		self:Deco(Vector3.new(0.6, 0.3, 1.0), o * CFrame.new(c[1], 0.4, c[2] - 0.4), P.MetalDark, M.Metal, model)
+	end
+	-- door frames around every ground-floor doorway
+	for side, on in doors do
+		if on and SIDES[side] and not (side == "Front" and spec.Storefront) then
+			for _, a in { -3.25, 3.25 } do
+				self:Deco(Vector3.new(0.5, 8.9, 0.5), sidePos(side, a, 0.3, 4.65), trim:Lerp(Color3.new(), 0.2), M.Concrete, model)
+			end
+			self:Deco(Vector3.new(7, 0.6, 0.6), sidePos(side, 0, 0.3, 9.1), trim:Lerp(Color3.new(), 0.2), M.Concrete, model)
+			local lamp = self:Neon(Vector3.new(0.5, 0.35, 0.3), sidePos(side, 0, 0.75, 9.8), rgb(255, 225, 170), model)
+			self:Light(lamp, "PointLight", rgb(255, 210, 150), 12, 0.9)
+		end
+	end
+	-- rooftop gear + the odd lit billboard (flat roofs only)
+	if spec.Roof ~= "Gable" then
+		local dishPos = (o * CFrame.new(-W / 4, top, D / 4)).Position
+		self:Pillar(dishPos, 2.2, 0.3, P.MetalDark, M.Metal, model)
+		local dish = self:Cylinder(0.3, 2.6, CFrame.new(dishPos + Vector3.new(0, 2.6, 0)) * CFrame.Angles(0, rng:NextNumber(0, 6), math.rad(60)), rgb(220, 222, 226), M.SmoothPlastic, model)
+		dish.CanQuery = false
+		for i = 1, 2 do
+			local v = (o * CFrame.new(W / 4 - i * 3, top, -D / 4)).Position
+			self:Pillar(v, 1.6, 1.1, rgb(170, 172, 176), M.Metal, model)
+			self:Cylinder(0.3, 1.5, CFrame.new(v + Vector3.new(0, 1.75, 0)) * CFrame.Angles(0, 0, math.rad(90)), P.MetalDark, M.Metal, model)
+		end
+		if W >= 20 and rng:NextNumber() < (self.Billboards or 0.25) then
+			local bc = o * CFrame.new(0, top + 9, D / 2 - 2)
+			for _, x in { -5, 5 } do
+				self:Part(Vector3.new(0.5, 9, 0.5), o * CFrame.new(x, top + 4.5, D / 2 - 2), P.MetalDark, M.Metal, model)
+			end
+			self:Part(Vector3.new(14, 6, 0.5), bc, P.MetalDark, M.Metal, model)
+			local adColor = ({ rgb(255, 80, 60), rgb(0, 190, 255), rgb(255, 200, 30), rgb(120, 230, 90), rgb(230, 90, 220) })[rng:NextInteger(1, 5)]
+			local panel = self:Deco(Vector3.new(13, 5, 0.1), bc * CFrame.new(0, 0, -0.3), adColor, M.SmoothPlastic, model)
+			self:Light(panel, "SurfaceLight", adColor:Lerp(Color3.new(1, 1, 1), 0.4), 18, 1.4, Enum.NormalId.Front)
+			self:Neon(Vector3.new(9, 0.8, 0.12), bc * CFrame.new(-1, 0.9, -0.36), Color3.new(1, 1, 1))
+			self:Neon(Vector3.new(6, 0.5, 0.12), bc * CFrame.new(-2.4, -0.6, -0.36), adColor:Lerp(Color3.new(1, 1, 1), 0.6))
+			self:Neon(Vector3.new(14.2, 0.2, 0.2), bc * CFrame.new(0, -3.1, -0.4), rgb(255, 245, 220))
+		end
+	end
 	-- wall AC units
 	if spec.AC ~= false then
 		for _ = 1, floors do
@@ -650,6 +722,38 @@ function MapKit:Road(axis: string, center: Vector3, length: number, width: numbe
 			self:Deco(s, CFrame.new(pos), P.Yellow, M.SmoothPlastic, self.Props)
 		end
 	end
+	-- surface wear: puddles, cracks, oil stains and curb drains
+	if not self.NoRoadDetail then
+		for d = start + 8, start + length - 8, 14 do
+			if not inIntersection(d) then
+				local lateral = self.Rng:NextNumber(-width / 2 + 2, width / 2 - 2)
+				local pos = base + along * (d + self.Rng:NextNumber(-3, 3)) + across * lateral
+				local roll = self.Rng:NextNumber()
+				if roll < 0.28 then
+					local puddle = self:Deco(Vector3.new(0.04, self.Rng:NextNumber(3, 6), self.Rng:NextNumber(2.5, 5)), CFrame.new(pos + Vector3.new(0, markY - 0.01, 0)) * CFrame.Angles(0, self.Rng:NextNumber(0, 3), math.rad(90)), rgb(40, 46, 56), M.Glass, self.Props)
+					puddle.Shape = Enum.PartType.Cylinder
+					puddle.Reflectance = 0.45
+					puddle.Transparency = 0.15
+					puddle.CastShadow = false
+					puddle.Name = "Puddle"
+				elseif roll < 0.62 then
+					for k = 0, 2 do
+						local c = self:Deco(Vector3.new(self.Rng:NextNumber(1.5, 3.2), 0.03, 0.12), CFrame.new(pos + Vector3.new(k * 1.1, markY - 0.015, k * 0.7)) * CFrame.Angles(0, self.Rng:NextNumber(0, 3), 0), rgb(26, 27, 30), M.SmoothPlastic, self.Props)
+						c.CastShadow = false
+					end
+				elseif roll < 0.82 then
+					local stain = self:Deco(Vector3.new(0.03, self.Rng:NextNumber(2, 3.5), self.Rng:NextNumber(2, 3.5)), CFrame.new(pos + Vector3.new(0, markY - 0.015, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(30, 31, 34), M.SmoothPlastic, self.Props)
+					stain.Shape = Enum.PartType.Cylinder
+					stain.Transparency = 0.25
+					stain.CastShadow = false
+				else
+					local drain = base + along * d + across * (width / 2 - 0.9) * (self.Rng:NextNumber() < 0.5 and 1 or -1)
+					local g = self:Deco(axis == "X" and Vector3.new(2.4, 0.05, 1.2) or Vector3.new(1.2, 0.05, 2.4), CFrame.new(drain + Vector3.new(0, markY, 0)), rgb(30, 30, 32), M.DiamondPlate, self.Props)
+					g.CastShadow = false
+				end
+			end
+		end
+	end
 	-- white edge lines (split around intersections)
 	local segStart = start
 	local cuts = {}
@@ -687,6 +791,28 @@ function MapKit:Sidewalk(center: Vector3, sx: number, sz: number)
 	table.insert(self.Surfaces, { center.X - sx / 2, center.X + sx / 2, center.Z - sz / 2, center.Z + sz / 2, center.Y + 0.8 })
 	self:Part(Vector3.new(sx, 0.8, sz), CFrame.new(center + Vector3.new(0, 0.4, 0)), P.Sidewalk, M.Concrete, self.Geo)
 	self:Part(Vector3.new(sx + 0.6, 0.6, sz + 0.6), CFrame.new(center + Vector3.new(0, 0.3, 0)), P.ConcreteDark, M.Concrete, self.Geo)
+	-- curb stones around the edge + paving seams near the curb
+	local topY = center.Y + 0.81
+	for _, e in { { 0, -sz / 2 + 0.5, sx, 1 }, { 0, sz / 2 - 0.5, sx, 1 }, { -sx / 2 + 0.5, 0, 1, sz }, { sx / 2 - 0.5, 0, 1, sz } } do
+		self:Deco(Vector3.new(e[3], 0.04, e[4]), CFrame.new(center.X + e[1], topY, center.Z + e[2]), P.Sidewalk:Lerp(Color3.new(1, 1, 1), 0.25), M.Concrete).CastShadow = false
+	end
+	local seam = P.Sidewalk:Lerp(Color3.new(), 0.18)
+	for x = -sx / 2 + 6, sx / 2 - 6, 6 do
+		for _, zEdge in { -sz / 2 + 3.5, sz / 2 - 3.5 } do
+			self:Deco(Vector3.new(0.12, 0.03, 5), CFrame.new(center.X + x, topY, center.Z + zEdge), seam, M.SmoothPlastic).CastShadow = false
+		end
+	end
+	for z = -sz / 2 + 6, sz / 2 - 6, 6 do
+		for _, xEdge in { -sx / 2 + 3.5, sx / 2 - 3.5 } do
+			self:Deco(Vector3.new(5, 0.03, 0.12), CFrame.new(center.X + xEdge, topY, center.Z + z), seam, M.SmoothPlastic).CastShadow = false
+		end
+	end
+	-- a little litter: paper scraps and leaves
+	for _ = 1, math.floor(sx * sz / 900) do
+		local lp = Vector3.new(center.X + self.Rng:NextNumber(-sx / 2 + 1, sx / 2 - 1), topY + 0.01, center.Z + self.Rng:NextNumber(-sz / 2 + 1, sz / 2 - 1))
+		local bit = self:Deco(Vector3.new(0.5, 0.02, 0.4), CFrame.new(lp) * CFrame.Angles(0, self.Rng:NextNumber(0, 6), 0), self.Rng:NextNumber() < 0.5 and rgb(235, 232, 220) or rgb(150, 110, 60), M.SmoothPlastic)
+		bit.CastShadow = false
+	end
 end
 
 -- PROPS -----------------------------------------------------------------------------
@@ -767,6 +893,19 @@ function MapKit:Tree(pos: Vector3, scale: number?, kind: string?)
 	else
 		local trunkH = 6 * s
 		self:Pillar(pos - Vector3.new(0, 1, 0), trunkH + 1, 1.4 * s, P.Trunk, M.Wood, model)
+		-- root flare + a branch fork so the trunk isn't a plain stick
+		for k = 1, 4 do
+			local a = k / 4 * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
+			local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+			local root = self:Cylinder(2 * s, 0.7 * s, CFrame.lookAt(pos + dir * 0.7 * s + Vector3.new(0, 0.25, 0), pos + dir * 2 * s - Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, math.rad(90), 0), P.Trunk:Lerp(Color3.new(), 0.1), M.Wood, model)
+			root.CanCollide, root.CanQuery = false, false
+		end
+		for _, side in { -1, 1 } do
+			local b0 = pos + Vector3.new(0, trunkH * 0.7, 0)
+			local b1 = b0 + Vector3.new(side * 2 * s, 2.2 * s, rng:NextNumber(-1, 1) * s)
+			local branch = self:Cylinder((b1 - b0).Magnitude, 0.55 * s, CFrame.lookAt((b0 + b1) / 2, b1) * CFrame.Angles(0, math.rad(90), 0), P.Trunk, M.Wood, model)
+			branch.CanCollide, branch.CanQuery = false, false
+		end
 		-- fuller, rounder canopy: a big core plus smaller clumps around it
 		local crown = pos + Vector3.new(0, trunkH + 2 * s, 0)
 		local core = self:Ball(8 * s, crown, P.Leaf, M.LeafyGrass, model)
@@ -800,7 +939,16 @@ function MapKit:Rock(pos: Vector3, scale: number?)
 	local s = scale or 1
 	local rng = self.Rng
 	for _ = 1, 2 do
-		self:Part(Vector3.new(rng:NextNumber(3, 6), rng:NextNumber(2.5, 4.5), rng:NextNumber(3, 6)) * s, CFrame.new(pos + Vector3.new(rng:NextNumber(-1, 1), 0.8 * s, rng:NextNumber(-1, 1))) * CFrame.Angles(rng:NextNumber(-0.4, 0.4), rng:NextNumber(0, 3), rng:NextNumber(-0.4, 0.4)), P.Rock, M.Slate, self.Geo)
+		local size = Vector3.new(rng:NextNumber(3, 6), rng:NextNumber(2.5, 4.5), rng:NextNumber(3, 6)) * s
+		local cf = CFrame.new(pos + Vector3.new(rng:NextNumber(-1, 1), 0.8 * s, rng:NextNumber(-1, 1))) * CFrame.Angles(rng:NextNumber(-0.3, 0.3), rng:NextNumber(0, 3), rng:NextNumber(-0.3, 0.3))
+		self:Part(size, cf, P.Rock:Lerp(rgb(90, 88, 84), rng:NextNumber()), M.Slate, self.Geo)
+		-- moss cap on top
+		local moss = self:Deco(Vector3.new(size.X * 0.85, 0.25, size.Z * 0.85), cf * CFrame.new(0, size.Y / 2, 0), rgb(70, 110, 55), M.Grass)
+		moss.CastShadow = false
+	end
+	for _ = 1, 3 do
+		local pebble = self:Part(Vector3.one * rng:NextNumber(0.6, 1.2) * s, CFrame.new(pos + Vector3.new(rng:NextNumber(-4, 4), 0.3, rng:NextNumber(-4, 4)) * Vector3.new(s, 1, s)) * CFrame.Angles(rng:NextNumber(0, 3), rng:NextNumber(0, 3), 0), P.Rock, M.Slate, self.Props)
+		pebble.CanCollide, pebble.CanQuery = false, false
 	end
 end
 
@@ -847,6 +995,21 @@ function MapKit:Container(cf: CFrame, color: Color3?, open: boolean?)
 	end
 	for _, z in { -L / 2 + 0.2, L / 2 - 0.2 } do
 		self:Deco(Vector3.new(W + 0.1, H + 0.1, 0.4), cf * CFrame.new(0, H / 2, z), c:Lerp(Color3.new(), 0.3), M.Metal, model)
+	end
+	-- corrugated side ribs, rust streaks and locking bars on the doors
+	local rib = c:Lerp(Color3.new(), 0.18)
+	for z = -L / 2 + 1.6, L / 2 - 1.6, 2.4 do
+		for _, x in { -W / 2 - 0.08, W / 2 + 0.08 } do
+			self:Deco(Vector3.new(0.16, H - 0.6, 0.7), cf * CFrame.new(x, H / 2, z), rib, M.CorrodedMetal, model).CastShadow = false
+		end
+	end
+	for _ = 1, 2 do
+		local x = (self.Rng:NextNumber() < 0.5 and -1 or 1) * (W / 2 + 0.17)
+		self:Deco(Vector3.new(0.05, self.Rng:NextNumber(2, 5), self.Rng:NextNumber(0.6, 1.4)), cf * CFrame.new(x, H - 2.5, self.Rng:NextNumber(-L / 2 + 2, L / 2 - 2)), rgb(120, 70, 40), M.CorrodedMetal, model).CastShadow = false
+	end
+	for i = -1.5, 1.5 do
+		local bar = self:Cylinder(H - 0.8, 0.18, cf * CFrame.new(i * 1.7, H / 2, L / 2 + 0.05) * CFrame.Angles(0, 0, math.rad(90)), rgb(60, 62, 66), M.Metal, model)
+		bar.CanCollide, bar.CanQuery, bar.CastShadow = false, false, false
 	end
 	return model
 end
@@ -1008,6 +1171,24 @@ function MapKit:Pier(a: Vector3, b: Vector3, width: number, deckY: number)
 			local p = a + dir.Unit * d + cf.RightVector * side * (width / 2 - 0.5)
 			self:Pillar(Vector3.new(p.X, deckY - 14, p.Z), 14, 1.2, P.WoodDark, M.Wood)
 		end
+	end
+	-- plank seams, bollards, tyre fenders and rope coils
+	for d = 1, len - 1, 2 do
+		local p = a + dir.Unit * d
+		self:Deco(Vector3.new(width - 0.2, 0.03, 0.08), CFrame.new(p.X, deckY + 0.01, p.Z) * cf.Rotation, P.WoodDark, M.Wood).CastShadow = false
+	end
+	for d = 6, len - 4, 14 do
+		for _, side in { -1, 1 } do
+			local p = a + dir.Unit * d + cf.RightVector * side * (width / 2 - 0.8)
+			self:Pillar(Vector3.new(p.X, deckY, p.Z), 1.4, 0.9, rgb(40, 42, 46), M.Metal)
+			self:Ball(1.1, Vector3.new(p.X, deckY + 1.45, p.Z), rgb(40, 42, 46), M.Metal).CanQuery = false
+			local f = a + dir.Unit * (d + 4) + cf.RightVector * side * (width / 2 + 0.5)
+			local tyre = self:Cylinder(0.8, 2.2, CFrame.new(f.X, deckY - 1.2, f.Z) * cf.Rotation * CFrame.Angles(0, math.rad(90), 0), rgb(25, 25, 27), M.Rubber)
+			tyre.CanCollide, tyre.CanQuery = false, false
+		end
+		local rp = a + dir.Unit * (d + 2)
+		local coil = self:Cylinder(0.35, 1.6, CFrame.new(rp.X, deckY + 0.18, rp.Z) * CFrame.Angles(0, 0, math.rad(90)), rgb(200, 180, 130), M.Fabric)
+		coil.CanCollide, coil.CanQuery = false, false
 	end
 end
 
@@ -1377,7 +1558,7 @@ end
 
 -- COVER -------------------------------------------------------------------------------
 -- Height of the terrain under (x, z); 0 when there's nothing to hit (or outside Roblox).
-function MapKit:GroundY(x: number, z: number): number
+function MapKit:GroundY(x: number, z: number): (number, boolean)
 	-- raised surfaces (sidewalk blocks) built by this kit
 	local best = nil
 	for _, r in self.Surfaces or {} do
@@ -1386,7 +1567,7 @@ function MapKit:GroundY(x: number, z: number): number
 		end
 	end
 	if best then
-		return best
+		return best, false
 	end
 	local ok, result = pcall(function()
 		local params = RaycastParams.new()
@@ -1394,10 +1575,64 @@ function MapKit:GroundY(x: number, z: number): number
 		params.FilterDescendantsInstances = { workspace.Terrain }
 		return workspace:Raycast(Vector3.new(x, 60, z), Vector3.new(0, -90, 0), params)
 	end)
-	if ok and result and result.Material ~= Enum.Material.Water then
-		return result.Position.Y
+	if ok and result then
+		return result.Position.Y, result.Material == Enum.Material.Water
 	end
-	return 0
+	return 0, false
+end
+
+-- Decorative ground cover: grass tufts, wildflowers, ferns, stumps and mushrooms.
+-- Nothing here collides or blocks bullets; it just makes the ground feel alive.
+function MapKit:Scatter(x0: number, x1: number, z0: number, z1: number, count: number, avoid)
+	local rng = self.Rng
+	local grass = { rgb(76, 140, 60), rgb(96, 158, 66), rgb(60, 118, 52) }
+	local petals = { rgb(250, 240, 120), rgb(255, 255, 255), rgb(200, 120, 255), rgb(255, 120, 150), rgb(120, 170, 255) }
+	local placed = 0
+	for _ = 1, count * 3 do
+		if placed >= count then
+			break
+		end
+		local x, z = rng:NextNumber(x0, x1), rng:NextNumber(z0, z1)
+		local blocked = avoid and avoid(x, z)
+		local y, water = self:GroundY(x, z)
+		if not blocked and not water then
+			placed += 1
+			local base = CFrame.new(x, y, z) * CFrame.Angles(0, rng:NextNumber(0, 6.28), 0)
+			local roll = rng:NextNumber()
+			if roll < 0.5 then
+				for k = 1, 4 do
+					local blade = self:Deco(Vector3.new(0.15, rng:NextNumber(0.9, 1.6), 0.5), base * CFrame.new(rng:NextNumber(-0.5, 0.5), 0.5, rng:NextNumber(-0.5, 0.5)) * CFrame.Angles(rng:NextNumber(-0.35, 0.35), k, rng:NextNumber(-0.35, 0.35)), grass[rng:NextInteger(1, 3)], M.Grass)
+					blade.CastShadow = false
+				end
+			elseif roll < 0.75 then
+				local col = petals[rng:NextInteger(1, #petals)]
+				for _ = 1, 3 do
+					local off = Vector3.new(rng:NextNumber(-0.8, 0.8), 0, rng:NextNumber(-0.8, 0.8))
+					local h = rng:NextNumber(0.8, 1.4)
+					self:Deco(Vector3.new(0.08, h, 0.08), base * CFrame.new(off + Vector3.new(0, h / 2, 0)), rgb(70, 120, 50), M.Grass).CastShadow = false
+					local bloom = self:Ball(0.42, (base * CFrame.new(off + Vector3.new(0, h, 0))).Position, col, M.SmoothPlastic, self.Props)
+					bloom.CanCollide, bloom.CanQuery, bloom.CastShadow = false, false, false
+				end
+			elseif roll < 0.9 then
+				for k = 1, 6 do
+					local frond = self:Deco(Vector3.new(0.6, 0.08, 2.2), base * CFrame.Angles(0, k * 1.05, 0) * CFrame.new(0, 0.55, -1) * CFrame.Angles(math.rad(25), 0, 0), rgb(56, 120, 50), M.LeafyGrass)
+					frond.CastShadow = false
+				end
+			elseif roll < 0.96 then
+				local stump = self:Cylinder(1.2, 1.8, base * CFrame.new(0, 0.6, 0) * CFrame.Angles(0, 0, math.rad(90)), P.Trunk, M.Wood, self.Props)
+				stump.CanQuery = false
+				self:Deco(Vector3.new(0.05, 1.7, 1.7), base * CFrame.new(0, 1.21, 0) * CFrame.Angles(0, 0, math.rad(90)), P.WoodLight, M.Wood).Shape = Enum.PartType.Cylinder
+			else
+				for k = 1, 3 do
+					local m0 = base * CFrame.new(k * 0.5 - 1, 0, rng:NextNumber(-0.4, 0.4))
+					self:Deco(Vector3.new(0.15, 0.4, 0.15), m0 * CFrame.new(0, 0.2, 0), rgb(235, 225, 205), M.SmoothPlastic).CastShadow = false
+					local cap = self:Ball(0.5, (m0 * CFrame.new(0, 0.42, 0)).Position, rgb(200, 60, 40), M.SmoothPlastic, self.Props)
+					cap.CanCollide, cap.CanQuery, cap.CastShadow = false, false, false
+					cap.Size = Vector3.new(0.5, 0.3, 0.5)
+				end
+			end
+		end
+	end
 end
 
 function MapKit:Barrel(pos: Vector3, color: Color3?, tipped: boolean?)
@@ -1499,7 +1734,8 @@ function MapKit:CoverCluster(pos: Vector3, theme: string, style: string?)
 	local rng = self.Rng
 	local styles = COVER_STYLES[theme] or COVER_STYLES.City
 	style = style or styles[rng:NextInteger(1, #styles)]
-	local y = math.max(pos.Y, self:GroundY(pos.X, pos.Z))
+	local groundY = self:GroundY(pos.X, pos.Z)
+	local y = math.max(pos.Y, groundY)
 	local base = CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 	if style == "BarrierL" then
 		self:Barrier(base * CFrame.new(-2, 0, 0))
