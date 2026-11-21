@@ -8,10 +8,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
+local TeamService = require(script.Parent.TeamService)
+local Config = require(Shared.Config)
 
 local MapsFolder = script.Parent.Maps
 local MapService = {}
-MapService.Spawns = {} :: { CFrame }
+MapService.Spawns = {} -- list of { CFrame = CFrame, Team = "A"|"B"|"C"|"FFA"|nil }
 MapService.Current = nil
 MapService.OnMapLoaded = nil :: ((Instance) -> ())?
 MapService.Order = { "Downtown", "Harbor", "Timberline", "Arena" }
@@ -112,15 +114,7 @@ function MapService.Load(id: string)
 	MapService.Current = def
 	applyLighting(def.Lighting or {})
 
-	MapService.Spawns = {}
-	for _, s in map.Spawns:GetChildren() do
-		if s:IsA("BasePart") then
-			table.insert(MapService.Spawns, groundSpawn(s))
-		end
-	end
-	if #MapService.Spawns == 0 then
-		table.insert(MapService.Spawns, CFrame.new(0, 30, 0))
-	end
+	MapService.CollectSpawns(map)
 	Combat.SetupPickups(map)
 	ReplicatedStorage:SetAttribute("MapId", def.Id)
 	ReplicatedStorage:SetAttribute("MapName", def.Name)
@@ -130,21 +124,41 @@ function MapService.Load(id: string)
 	Remotes.Notify:FireAllClients("Announce", { Text = def.Name, Sub = def.Desc, Color = Color3.fromRGB(255, 198, 26), Icon = def.Icon })
 end
 
+function MapService.CollectSpawns(map: Instance)
+	MapService.Spawns = {}
+	local folder = map:FindFirstChild("Spawns")
+	for _, s in folder and folder:GetChildren() or {} do
+		if s:IsA("BasePart") then
+			table.insert(MapService.Spawns, { CFrame = groundSpawn(s), Team = s:GetAttribute("Team") })
+		end
+	end
+	if #MapService.Spawns == 0 then
+		table.insert(MapService.Spawns, { CFrame = CFrame.new(0, 30, 0) })
+	end
+end
+
 -- VOTING -----------------------------------------------------------------------
 local votes = {} :: { [Player]: string }
+local modeVotes = {} :: { [Player]: string }
 local options = {} :: { string }
 
 local function publishVotes()
 	for _, id in MapService.Order do
 		ReplicatedStorage:SetAttribute("Votes_" .. id, 0)
 	end
-	for _, id in votes do
-		ReplicatedStorage:SetAttribute("Votes_" .. id, (ReplicatedStorage:GetAttribute("Votes_" .. id) or 0) + 1)
+	for _, id in Config.ModeOrder do
+		ReplicatedStorage:SetAttribute("Votes_" .. id, 0)
+	end
+	for _, list in { votes, modeVotes } do
+		for _, id in list do
+			ReplicatedStorage:SetAttribute("Votes_" .. id, (ReplicatedStorage:GetAttribute("Votes_" .. id) or 0) + 1)
+		end
 	end
 end
 
 function MapService.StartVote()
 	votes = {}
+	modeVotes = {}
 	options = {}
 	local pool = table.clone(MapService.Order)
 	for i = #pool, 2, -1 do
@@ -158,41 +172,58 @@ function MapService.StartVote()
 	publishVotes()
 end
 
-function MapService.EndVote(): string
+local function winner(list, choices, fallback)
 	local counts = {}
-	for _, id in votes do
+	for _, id in list do
 		counts[id] = (counts[id] or 0) + 1
 	end
-	local best, bestCount = options[1] or MapService.Order[1], -1
-	for _, id in options do
+	local best, bestCount = fallback, -1
+	for _, id in choices do
 		local c = (counts[id] or 0) + math.random() * 0.5 -- random tie-break
 		if c > bestCount then
 			best, bestCount = id, c
 		end
 	end
-	ReplicatedStorage:SetAttribute("VoteOptions", "")
 	return best
 end
 
+-- Returns the winning map id and game mode id.
+function MapService.EndVote(): (string, string)
+	local map = winner(votes, options, options[1] or MapService.Order[1])
+	-- no mode votes: rotate to the next mode so every mode gets played
+	local mode
+	if next(modeVotes) == nil then
+		local i = table.find(Config.ModeOrder, TeamService.Mode) or 0
+		mode = Config.ModeOrder[i % #Config.ModeOrder + 1]
+	else
+		mode = winner(modeVotes, Config.ModeOrder, TeamService.Mode)
+	end
+	ReplicatedStorage:SetAttribute("VoteOptions", "")
+	return map, mode
+end
+
 Remotes.Vote.OnServerEvent:Connect(function(player, id)
-	if typeof(id) == "string" and table.find(options, id) then
+	if typeof(id) ~= "string" then
+		return
+	end
+	if table.find(options, id) then
 		votes[player] = id
+		publishVotes()
+	elseif Config.Modes[id] then
+		modeVotes[player] = id
 		publishVotes()
 	end
 end)
 Players.PlayerRemoving:Connect(function(player)
 	votes[player] = nil
+	modeVotes[player] = nil
 end)
 
 function MapService.Init()
 	local existing = workspace:FindFirstChild("Map")
 	if existing and existing:FindFirstChild("Spawns") then
 		-- hand-made map in the place file
-		for _, s in existing.Spawns:GetChildren() do
-			if s:IsA("BasePart") then
-				table.insert(MapService.Spawns, groundSpawn(s))
-			end
-		end
+		MapService.CollectSpawns(existing)
 		Combat.SetupPickups(existing)
 		applyLighting({})
 		if MapService.OnMapLoaded then
@@ -203,22 +234,41 @@ function MapService.Init()
 	MapService.Load(MapService.Order[1])
 end
 
--- Spawn point farthest from living enemies (with a bit of randomness).
+-- Spawn for this fighter in the current mode (team base, or anywhere in FFA),
+-- picking the point farthest from living enemies (with a bit of randomness).
 function MapService.PickSpawn(forEntity): CFrame
+	local want = (forEntity and forEntity.Team) or (TeamService.IsTeamMode() and nil or "FFA")
+	local candidates = {}
+	for _, sp in MapService.Spawns do
+		if sp.Team == want then
+			table.insert(candidates, sp)
+		end
+	end
+	if #candidates == 0 then
+		-- maps without FFA points fall back to every spawn
+		candidates = MapService.Spawns
+	end
 	local scored = {}
-	for _, cf in MapService.Spawns do
+	for _, sp in candidates do
+		local cf = sp.CFrame
 		local nearest = math.huge
 		for _, other in Combat.Entities do
-			if other ~= forEntity and Combat.IsAlive(other) then
+			if other ~= forEntity and TeamService.Enemies(forEntity, other) and Combat.IsAlive(other) then
 				nearest = math.min(nearest, (other.Root.Position - cf.Position).Magnitude)
 			end
 		end
-		table.insert(scored, { cf = cf, score = nearest + math.random() * 25 })
+		table.insert(scored, { cf = cf, score = math.min(nearest, 400) + math.random() * 25 })
 	end
 	table.sort(scored, function(a, b)
 		return a.score > b.score
 	end)
 	return scored[1].cf
+end
+
+-- Any spawn point (bots use these as places to wander to)
+function MapService.RandomPoint(): Vector3
+	local sp = MapService.Spawns[math.random(1, #MapService.Spawns)]
+	return sp.CFrame.Position
 end
 
 return MapService

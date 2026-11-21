@@ -223,7 +223,22 @@ function Map.Build()
 	-- TEAM SPAWNS at both ends (clear of the river)
 	kit:SpawnBase(Vector3.new(-90, 0, -135), Vector3.new(-60, 0, 0), "A", 70)
 	kit:SpawnBase(Vector3.new(90, 0, 135), Vector3.new(60, 0, 0), "B", 70)
-	kit:Boundary(HALF, HALF, 200)
+	-- TRIPLE TEAM base (east) + FREE FOR ALL spawns spread through the forest
+	kit:SpawnBase(Vector3.new(140, 0, -55), Vector3.new(0, 0, 0), "C", 55)
+	local ffa = {}
+	for i = 0, 15 do
+		local a = i / 16 * math.pi * 2
+		for _, r in { 105, 75, 130 } do
+			local x, z = math.cos(a) * r, math.sin(a) * r
+			if not blocked(x, z, 3) then
+				table.insert(ffa, Vector3.new(x, 0, z))
+				break
+			end
+		end
+	end
+	kit:FFASpawns(ffa)
+	kit:Mountains(HALF + 40, HALF + 40, { Margin = 70, GroundY = -0.5 })
+	kit:Boundary(HALF, HALF, 260)
 	return kit
 end
 

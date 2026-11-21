@@ -209,7 +209,27 @@ function Map.Build()
 	for _, p in { Vector3.new(20, 0.8, 20), Vector3.new(-20, 0.8, -20), Vector3.new(-20, 0.8, 20), Vector3.new(20, 0.8, -20) } do
 		kit:HealthPack(p)
 	end
-	kit:Boundary(HALF - 2, HALF - 2, 160)
+	-- TRIPLE TEAM base (west road end) + FREE FOR ALL spawns all over the city
+	kit:SpawnBase(Vector3.new(-138, 0, 0), Vector3.new(0, 0, 0), "C", 22)
+	local ffa = {}
+	for _, x in ROADS do
+		for _, z in { -50, 50 } do
+			table.insert(ffa, Vector3.new(x, 0, z))
+		end
+	end
+	for _, z in ROADS do
+		for _, x in { -40, 40 } do
+			table.insert(ffa, Vector3.new(x, 0, z))
+		end
+	end
+	for _, p in { { 0, -118 }, { 0, 118 }, { -40, -135 }, { 40, -135 }, { -40, 135 }, { 40, 135 }, { 60, 72 }, { -84, -40 }, { 84, 30 } } do
+		table.insert(ffa, Vector3.new(p[1], 0, p[2]))
+	end
+	kit:FFASpawns(ffa)
+
+	-- mountains all around (beyond the boundary, can't be reached)
+	kit:Mountains(HALF, HALF, { Margin = 60, GroundY = -0.5 })
+	kit:Boundary(HALF - 2, HALF - 2, 260)
 	return kit
 end
 

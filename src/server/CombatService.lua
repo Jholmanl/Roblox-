@@ -17,6 +17,7 @@ local Util = require(Shared.Util)
 local GunBuilder = require(Shared.GunBuilder)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local Combat = {}
 Combat.Entities = {} -- [character Model] = entity (alive or recently dead)
@@ -110,6 +111,7 @@ function Combat.NewEntity(name: string, holder: Instance, player: Player?)
 	if player then
 		Combat.ByPlayer[player] = entity
 	end
+	TeamService.Register(entity)
 	return entity
 end
 
@@ -120,6 +122,7 @@ function Combat.RemoveEntity(entity)
 	if entity.Player then
 		Combat.ByPlayer[entity.Player] = nil
 	end
+	TeamService.Unregister(entity)
 	entity.Dead = true
 end
 
@@ -142,8 +145,14 @@ function Combat.AttachCharacter(entity, character: Model, weaponIds: { string })
 	entity.Root = root
 	entity.Dead = false
 	entity.InfiniteAmmo = false
+	entity.Downed = false
+	entity.DownedBy = nil
+	character:SetAttribute("Team", entity.Team)
+	character:SetAttribute("Downed", false)
 	if entity.Player then
 		entity.Player:SetAttribute("InfiniteAmmo", false)
+		entity.Player:SetAttribute("Downed", false)
+		entity.Player:SetAttribute("SelfReviveUsed", false)
 	end
 	entity.DamageLog = {}
 	entity.LastDamaged = 0
@@ -224,6 +233,9 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	if attacker == victim then
 		return false
 	end
+	if attacker and not TeamService.Enemies(attacker, victim) then
+		return false -- no friendly fire
+	end
 	if Combat.Hooks.Round and Combat.Hooks.Round.State == "Results" then
 		return false
 	end
@@ -259,6 +271,15 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	end
 
 	if after <= 0 then
+		-- players on a big streak get knocked down instead of dying
+		if victim.Player and not victim.Downed and victim.Streak >= Config.DownStreak and info.Kind ~= "Nuke" then
+			Combat.Down(attacker, victim, info)
+			return false
+		end
+		if victim.Downed and not attacker then
+			attacker = victim.DownedBy -- bled out: credit whoever knocked them
+			info = victim.DownedInfo or info
+		end
 		victim.Dead = true -- set before Health so the Died handler doesn't double count
 		humanoid.Health = 0
 		Combat.HandleDeath(attacker, victim, info)
@@ -268,6 +289,103 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	return false
 end
 
+-- DOWNED / REVIVE -----------------------------------------------------------------
+local function clearDowned(entity)
+	entity.Downed = false
+	entity.DownedBy = nil
+	entity.DownedInfo = nil
+	if entity.Character then
+		entity.Character:SetAttribute("Downed", false)
+		local root = entity.Character:FindFirstChild("HumanoidRootPart")
+		local prompt = root and root:FindFirstChild("RevivePrompt")
+		if prompt then
+			prompt:Destroy()
+		end
+	end
+	if entity.Player then
+		entity.Player:SetAttribute("Downed", false)
+	end
+end
+Combat.ClearDowned = clearDowned
+
+function Combat.Down(attacker, victim, info)
+	victim.Downed = true
+	victim.DownedBy = attacker
+	victim.DownedInfo = info
+	victim.DownedAt = os.clock()
+	victim.Humanoid.Health = Config.DownedHealth
+	victim.Character:SetAttribute("Downed", true)
+	victim.Player:SetAttribute("Downed", true)
+	-- teammates hold E on the downed player to revive them
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "RevivePrompt"
+	prompt.ActionText = "Revive"
+	prompt.ObjectText = victim.Name
+	prompt.HoldDuration = Config.ReviveTime
+	prompt.MaxActivationDistance = 9
+	prompt.RequiresLineOfSight = false
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt:SetAttribute("Team", victim.Team)
+	prompt.Enabled = victim.Team ~= nil
+	prompt.Parent = victim.Root
+	prompt.Triggered:Connect(function(player)
+		local reviver = Combat.ByPlayer[player]
+		if reviver and reviver ~= victim and reviver.Team ~= nil and reviver.Team == victim.Team and Combat.IsAlive(reviver) and not reviver.Downed and victim.Downed and Combat.IsAlive(victim) then
+			Combat.Revive(victim, reviver)
+		end
+	end)
+	if attacker then
+		AchievementService.Add(attacker.Player, "Knockdowns", 1)
+		notify(attacker, "Medal", { Medals = { { Text = "KNOCKED DOWN", Bonus = 50 } } })
+		if counting() then
+			addAttr(attacker.Holder, "Score", 50)
+		end
+	end
+	Remotes.KillFeed:FireAllClients({
+		Killer = attacker and attacker.Name, KillerTeam = attacker and attacker.Team,
+		Victim = victim.Name, VictimTeam = victim.Team, Weapon = info.WeaponName or "?", Knock = true,
+	})
+	notify(victim, "Downed", { By = attacker and attacker.Name or "?", Bleed = Config.DownedHealth / Config.BleedRate })
+end
+
+function Combat.Revive(victim, reviver)
+	if not victim.Downed then
+		return
+	end
+	clearDowned(victim)
+	victim.Humanoid.Health = victim.Humanoid.MaxHealth * Config.ReviveHealth
+	victim.LastDamaged = os.clock()
+	notify(victim, "Revived", { By = reviver and reviver.Name or nil })
+	if reviver then
+		AchievementService.Add(reviver.Player, "Revives", 1)
+		notify(reviver, "Medal", { Medals = { { Text = "REVIVE", Bonus = 100 } } })
+		if counting() then
+			addAttr(reviver.Holder, "Score", 100)
+		end
+		if reviver.Player then
+			DataService.AddCash(reviver.Player, 25, true)
+			DataService.AddXP(reviver.Player, 100)
+		end
+	else
+		AchievementService.Add(victim.Player, "SelfRevives", 1)
+	end
+end
+
+Remotes.SelfRevive.OnServerEvent:Connect(function(player)
+	local entity = Combat.ByPlayer[player]
+	if not entity or not entity.Downed or not Combat.IsAlive(entity) then
+		return
+	end
+	if player:GetAttribute("SelfReviveUsed") then
+		return
+	end
+	if os.clock() - (entity.DownedAt or 0) < Config.SelfReviveTime - 0.3 then
+		return
+	end
+	player:SetAttribute("SelfReviveUsed", true)
+	Combat.Revive(entity, nil)
+end)
+
 local MULTI_NAMES = { [2] = "DOUBLE KILL", [3] = "TRIPLE KILL", [4] = "QUAD KILL", [5] = "RAMPAGE" }
 local MULTI_STATS = { [2] = "DoubleKills", [3] = "TripleKills", [4] = "QuadKills", [5] = "Rampages" }
 local STREAK_NAMES = { [5] = "K.O STREAK 🔥", [10] = "DOMINATING", [15] = "UNSTOPPABLE", [20] = "GODLIKE", [25] = "LEGENDARY" }
@@ -275,6 +393,7 @@ local STREAK_NAMES = { [5] = "K.O STREAK 🔥", [10] = "DOMINATING", [15] = "UNS
 function Combat.HandleDeath(killer, victim, info)
 	local round = Combat.Hooks.Round
 	local victimStreak = victim.Streak
+	clearDowned(victim)
 	victim.Streak = 0
 	victim.InfiniteAmmo = false
 	if victim.Player then
@@ -292,7 +411,7 @@ function Combat.HandleDeath(killer, victim, info)
 	local weaponName = info.WeaponName or "?"
 
 	if not killer or killer == victim then
-		Remotes.KillFeed:FireAllClients({ Victim = victim.Name, Weapon = weaponName })
+		Remotes.KillFeed:FireAllClients({ Victim = victim.Name, VictimTeam = victim.Team, Weapon = weaponName })
 		if victim.Player then
 			Remotes.KillInfo:FireClient(victim.Player, { Killer = nil, Weapon = weaponName })
 		end
@@ -417,6 +536,7 @@ function Combat.HandleDeath(killer, victim, info)
 	if counting() then
 		addAttr(killer.Holder, "Kills", 1)
 		addAttr(killer.Holder, "Score", score)
+		TeamService.AddScore(killer.Team, 1)
 	end
 	if kp then
 		DataService.AddCash(kp, Config.KillCash + bonus // 5, true)
@@ -444,8 +564,10 @@ function Combat.HandleDeath(killer, victim, info)
 	Remotes.KillFeed:FireAllClients({
 		Killer = killer.Name,
 		KillerVIP = hasPass(killer, "VIP"),
+		KillerTeam = killer.Team,
 		Victim = victim.Name,
 		VictimVIP = hasPass(victim, "VIP"),
+		VictimTeam = victim.Team,
 		Weapon = weaponName,
 		Headshot = info.Headshot == true,
 	})
@@ -483,7 +605,7 @@ function Combat.AreaDamage(attacker, position: Vector3, radius: number, maxDamag
 		table.insert(victims, victim)
 	end
 	for _, victim in victims do
-		if victim ~= attacker and Combat.IsAlive(victim) then
+		if victim ~= attacker and TeamService.Enemies(attacker, victim) and Combat.IsAlive(victim) then
 			local d = (victim.Root.Position - position).Magnitude
 			if d <= radius then
 				local hitInfo = table.clone(info)
@@ -563,6 +685,13 @@ function Combat.Shoot(entity, weaponId: string, origin: Vector3, dirs, flags)
 				carTotals[car] = (carTotals[car] or 0) + def.Damage * dmgMult * 0.7
 				endPos = result.Position
 				break
+			end
+			if victim and Combat.IsAlive(victim) and not TeamService.Enemies(entity, victim) then
+				-- bullets pass through teammates
+				table.insert(exclude, model)
+				remaining -= (result.Position - start).Magnitude
+				start = result.Position
+				continue
 			end
 			if victim and Combat.IsAlive(victim) then
 				local hitPart = result.Instance
@@ -708,7 +837,7 @@ end
 
 Remotes.Fire.OnServerEvent:Connect(function(player, weaponId, origin, dirs, flags)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) then
+	if not Combat.IsAlive(entity) or entity.Downed then
 		return
 	end
 	if typeof(weaponId) ~= "string" or typeof(origin) ~= "Vector3" or typeof(dirs) ~= "table" then
@@ -798,7 +927,7 @@ end)
 -- EQUIPMENT ------------------------------------------------------------------
 Remotes.Knife.OnServerEvent:Connect(function(player)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) then
+	if not Combat.IsAlive(entity) or entity.Downed then
 		return
 	end
 	local now = os.clock()
@@ -811,7 +940,7 @@ Remotes.Knife.OnServerEvent:Connect(function(player)
 	local look = entity.Root.CFrame.LookVector
 	local best, bestDist = nil, Config.KnifeRange
 	for _, other in Combat.Entities do
-		if other ~= entity and Combat.IsAlive(other) then
+		if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 			local offset = other.Root.Position - entity.Root.Position
 			local d = offset.Magnitude
 			if d <= bestDist and d > 0 and look:Dot(offset.Unit) > 0.3 then
@@ -869,7 +998,7 @@ end
 
 Remotes.Grenade.OnServerEvent:Connect(function(player, dir)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) or not validVector(dir) then
+	if not Combat.IsAlive(entity) or entity.Downed or not validVector(dir) then
 		return
 	end
 	local now = os.clock()
@@ -886,7 +1015,7 @@ end)
 
 Remotes.Slam.OnServerEvent:Connect(function(player, position)
 	local entity = Combat.ByPlayer[player]
-	if not Combat.IsAlive(entity) or not validVector(position) then
+	if not Combat.IsAlive(entity) or entity.Downed or not validVector(position) then
 		return
 	end
 	local now = os.clock()
@@ -924,7 +1053,7 @@ function Combat.SetupPickups(folder: Instance)
 				end
 				local _, model = Util.HumanoidFromPart(hit)
 				local entity = model and Combat.Entities[model]
-				if not Combat.IsAlive(entity) then
+				if not Combat.IsAlive(entity) or entity.Downed then
 					return
 				end
 				ready = false
@@ -959,7 +1088,15 @@ RunService.Heartbeat:Connect(function(dt)
 	accum = 0
 	local now = os.clock()
 	for _, entity in Combat.Entities do
-		if Combat.IsAlive(entity) then
+		if Combat.IsAlive(entity) and entity.Downed then
+			local hum = entity.Humanoid
+			local left = hum.Health - Config.BleedRate * step
+			if left <= 0.5 then
+				Combat.Damage(nil, entity, 9999, entity.DownedInfo or { WeaponName = "BLED OUT" })
+			else
+				hum.Health = left
+			end
+		elseif Combat.IsAlive(entity) then
 			local hum = entity.Humanoid
 			if now - entity.LastDamaged >= Config.RegenDelay and hum.Health < hum.MaxHealth then
 				hum.Health = math.min(hum.MaxHealth, hum.Health + Config.RegenRate * step)

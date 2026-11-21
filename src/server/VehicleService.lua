@@ -9,6 +9,7 @@ local CarBuilder = require(Shared.CarBuilder)
 local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local VehicleService = {}
 VehicleService.Cars = {} -- [Model] = record
@@ -184,8 +185,11 @@ local function setupDriving(car: Model)
 		if os.clock() - (lastHit[victim] or 0) < 1 then
 			return
 		end
-		lastHit[victim] = os.clock()
 		local driver = driverEntity(car)
+		if driver and not TeamService.Enemies(driver, victim) then
+			return -- don't run over teammates
+		end
+		lastHit[victim] = os.clock()
 		local killed = Combat.Damage(driver, victim, 60 + speed * 1.6, { Weapon = "Car", WeaponName = "ROADKILL", Kind = "Roadkill", Position = victim.Root.Position, Distance = 0 })
 		if killed and driver and driver.Player then
 			AchievementService.Add(driver.Player, "Roadkills", 1)

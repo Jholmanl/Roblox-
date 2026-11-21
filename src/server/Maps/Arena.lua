@@ -104,9 +104,20 @@ function Map.Build()
 	for _, s in { { 40, 0, 0 }, { -40, 0, 0 }, { 0, 40, 90 }, { 0, -40, 90 } } do
 		kit:Sandbags(CFrame.new(s[1], 0, s[2]) * CFrame.Angles(0, math.rad(s[3]), 0), 10, 3)
 	end
+	-- FREE FOR ALL spawns around the edges + TRIPLE TEAM base on the west side
+	local ffa = {}
+	for _, along in { -60, -20, 20, 60 } do
+		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			table.insert(ffa, edge[1] ~= 0 and Vector3.new(edge[1] * 115, 0, along) or Vector3.new(along, 0, edge[2] * 115))
+		end
+	end
+	kit:FFASpawns(ffa)
+	kit:SpawnBase(Vector3.new(-114, 0, 0), Vector3.new(0, 0, 0), "C", 100)
+	kit:Mountains(HALF + 10, HALF + 10, { Margin = 70, GroundY = -0.5 })
 	-- TEAM SPAWNS at both ends
 	kit:SpawnBase(Vector3.new(0, 0, -114), Vector3.new(0, 0, 0), "A", 110)
 	kit:SpawnBase(Vector3.new(0, 0, 114), Vector3.new(0, 0, 0), "B", 110)
+	kit:Boundary(HALF + 4, HALF + 4, 260)
 	return kit
 end
 

@@ -1215,4 +1215,63 @@ function MapKit:SpawnBase(center: Vector3, toward: Vector3, team: string, width:
 	glow.Name = "SpawnLine"
 end
 
+-- Free-for-all spawn points scattered around the map.
+function MapKit:FFASpawns(points)
+	for _, p in points do
+		self:Spawn(Vector3.new(p.X, (p.Y ~= 0 and p.Y or 3), p.Z), Vector3.new(0, 3, 0), "FFA")
+	end
+end
+
+--[[ Big terrain mountains all around the map (outside the invisible boundary walls,
+so they look real but can't be reached). Also lays a grass plain out to the horizon.
+opts = { Margin = 40, SkipSide = "N" (water side, +Z), GroundY = -0.5 } ]]
+function MapKit:Mountains(halfX: number, halfZ: number, opts)
+	opts = opts or {}
+	local rng = self.Rng
+	local margin = opts.Margin or 40
+	local gy = opts.GroundY or -0.5
+	local ext = 650
+	local inX, inZ = halfX + 12, halfZ + 12
+	-- grass plains from just outside the map to the horizon
+	local plains = {
+		S = { CFrame.new(0, gy - 4, -inZ - ext / 2), Vector3.new((inX + ext) * 2, 8, ext) },
+		N = { CFrame.new(0, gy - 4, inZ + ext / 2), Vector3.new((inX + ext) * 2, 8, ext) },
+		W = { CFrame.new(-inX - ext / 2, gy - 4, 0), Vector3.new(ext, 8, inZ * 2) },
+		E = { CFrame.new(inX + ext / 2, gy - 4, 0), Vector3.new(ext, 8, inZ * 2) },
+	}
+	for side, pl in plains do
+		if side ~= opts.SkipSide then
+			self:Fill(M.Grass, pl[1], pl[2])
+		end
+	end
+	-- two rows of peaks per side; snow caps on the tall ones
+	local function peak(center: Vector3, r: number)
+		self:FillBall(M.Rock, center, r)
+		self:FillBall(M.Grass, center + Vector3.new(0, -r * 0.32, 0), r * 0.98)
+		if r > 95 then
+			self:FillBall(M.Snow, center + Vector3.new(0, r * 0.62, 0), r * 0.32)
+		end
+	end
+	local sides = {
+		{ "S", Vector3.new(1, 0, 0), Vector3.new(0, 0, -1), halfX, halfZ },
+		{ "N", Vector3.new(1, 0, 0), Vector3.new(0, 0, 1), halfX, halfZ },
+		{ "W", Vector3.new(0, 0, 1), Vector3.new(-1, 0, 0), halfZ, halfX },
+		{ "E", Vector3.new(0, 0, 1), Vector3.new(1, 0, 0), halfZ, halfX },
+	}
+	for _, sd in sides do
+		if sd[1] ~= opts.SkipSide then
+			local along, out, len, edge = sd[2], sd[3], sd[4], sd[5]
+			for row = 1, 2 do
+				local spacing = row == 1 and 80 or 120
+				for d = -len - 120, len + 120, spacing do
+					local r = row == 1 and rng:NextNumber(60, 95) or rng:NextNumber(95, 140)
+					local dist = edge + margin + r * 0.95 + (row - 1) * 70
+					local center = along * (d + rng:NextNumber(-20, 20)) + out * dist + Vector3.new(0, -r * 0.35, 0)
+					peak(center, r)
+				end
+			end
+		end
+	end
+end
+
 return MapKit

@@ -1,4 +1,4 @@
--- Match loop: WARMUP -> LIVE MATCH -> RESULTS -> repeat.
+-- Match loop: WARMUP -> LIVE MATCH -> RESULTS (map + mode vote) -> repeat.
 -- State is replicated through attributes on ReplicatedStorage:
 --   MatchState ("Intermission" | "Active" | "Results"), MatchEnd (server time),
 --   Leader / LeaderScore.
@@ -9,6 +9,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local RoundService = {}
 RoundService.State = "Intermission"
@@ -48,8 +49,19 @@ function RoundService.OnDeath(entity)
 	RoundService.OnEntityDied(entity)
 end
 
+local function killsToWin(): number
+	return TeamService.ModeDef().KillsToWin
+end
+
 function RoundService.OnKill(killer)
-	if RoundService.State == "Active" and (killer.Holder:GetAttribute("Kills") or 0) >= Config.KillsToWin then
+	if RoundService.State ~= "Active" then
+		return
+	end
+	if TeamService.IsTeamMode() then
+		if killer.Team and TeamService.Score(killer.Team) >= killsToWin() then
+			RoundService.EndMatch(killer)
+		end
+	elseif (killer.Holder:GetAttribute("Kills") or 0) >= killsToWin() then
 		RoundService.EndMatch(killer)
 	end
 end
@@ -63,6 +75,7 @@ local function ranking()
 			IsBot = h.IsBot,
 			Player = h.Player,
 			VIP = holder:GetAttribute("Pass_VIP") == true,
+			Team = holder:GetAttribute("Team"),
 			Kills = holder:GetAttribute("Kills") or 0,
 			Deaths = holder:GetAttribute("Deaths") or 0,
 			Score = holder:GetAttribute("Score") or 0,
@@ -101,7 +114,17 @@ function RoundService.EndMatch(winnerEntity)
 
 	local publicRows = {}
 	for i, row in list do
-		publicRows[i] = { Name = row.Name, IsBot = row.IsBot, VIP = row.VIP, Kills = row.Kills, Deaths = row.Deaths, Score = row.Score }
+		publicRows[i] = { Name = row.Name, IsBot = row.IsBot, VIP = row.VIP, Kills = row.Kills, Deaths = row.Deaths, Score = row.Score, Team = row.Team }
+	end
+
+	local teamMode = TeamService.IsTeamMode()
+	local winnerTeam = nil
+	if teamMode then
+		winnerTeam = (winnerEntity and winnerEntity.Team) or TeamService.Leader()
+	end
+	local scores = {}
+	for _, team in TeamService.TeamList() do
+		scores[team] = TeamService.Score(team)
 	end
 
 	for place, row in list do
@@ -109,7 +132,8 @@ function RoundService.EndMatch(winnerEntity)
 		if player and player.Parent then
 			AchievementService.Add(player, "Matches", 1)
 			DataService.AddXP(player, Config.MatchPlayXP)
-			if place == 1 then
+			local won = (teamMode and winnerTeam ~= nil and row.Team == winnerTeam) or (not teamMode and place == 1)
+			if won then
 				AchievementService.Add(player, "Wins", 1)
 				AchievementService.Add(player, "Wins_" .. mapId, 1)
 				DataService.AddCash(player, Config.WinCash, true, "VICTORY")
@@ -123,7 +147,12 @@ function RoundService.EndMatch(winnerEntity)
 				Rows = publicRows,
 				Winner = list[1] and list[1].Name or "Nobody",
 				Place = place,
-				Nuke = winnerEntity ~= nil and (winnerEntity.Holder:GetAttribute("Kills") or 0) < Config.KillsToWin,
+				Mode = TeamService.Mode,
+				WinnerTeam = winnerTeam,
+				MyTeam = row.Team,
+				Won = won,
+				Scores = scores,
+				Nuke = winnerEntity ~= nil and RoundService.NukeEnding == true,
 				Cash = player:GetAttribute("MatchCash") or 0,
 				XP = player:GetAttribute("MatchXP") or 0,
 				Kills = row.Kills,
@@ -136,6 +165,7 @@ function RoundService.EndMatch(winnerEntity)
 end
 
 local function resetMatchStats()
+	TeamService.ResetScores()
 	for _, h in RoundService.GetHolders() do
 		for _, attr in { "Kills", "Deaths", "Score", "Streak" } do
 			h.Holder:SetAttribute(attr, 0)
@@ -152,6 +182,7 @@ local function updateLeader()
 	local top = list[1]
 	ReplicatedStorage:SetAttribute("Leader", top and top.Name or "")
 	ReplicatedStorage:SetAttribute("LeaderScore", top and top.Kills or 0)
+	ReplicatedStorage:SetAttribute("KillsToWin", killsToWin())
 end
 
 function RoundService.Start()
@@ -168,8 +199,11 @@ function RoundService.Start()
 			resetMatchStats()
 			RoundService.FirstBlood = false
 			RoundService.ForcedWinner = nil
+			RoundService.NukeEnding = false
 			setState("Active", Config.MatchLength)
-			Remotes.Notify:FireAllClients("Announce", { Text = "MATCH STARTED", Sub = "First to " .. Config.KillsToWin .. " kills wins", Color = Config.Colors.Accent, Icon = "⚔️" })
+			local mode = TeamService.ModeDef()
+			local goal = TeamService.IsTeamMode() and ("First team to " .. mode.KillsToWin .. " kills wins") or ("First to " .. mode.KillsToWin .. " kills wins")
+			Remotes.Notify:FireAllClients("Announce", { Text = mode.Name, Sub = goal, Color = Config.Colors.Accent, Icon = "⚔️" })
 			RoundService.RespawnAll()
 			while RoundService.State == "Active" and timeLeft() > 0 do
 				updateLeader()
@@ -184,11 +218,15 @@ function RoundService.Start()
 				task.wait(0.25)
 			end
 			if RoundService.Map then
-				local nextMap = RoundService.Map.EndVote()
+				local nextMap, nextMode = RoundService.Map.EndVote()
+				if nextMode and nextMode ~= TeamService.Mode then
+					TeamService.SetMode(nextMode)
+				end
 				if nextMap ~= ReplicatedStorage:GetAttribute("MapId") then
 					RoundService.Map.Load(nextMap)
 				end
 			end
+			updateLeader()
 			RoundService.RespawnAll()
 		end
 	end)

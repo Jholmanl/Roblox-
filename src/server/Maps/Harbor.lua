@@ -34,8 +34,13 @@ function Map.Build()
 	kit:Ground(0, -HALF - 10, HALF + 10, -HALF - 10, 40, 4, holes, P.ConcreteDark, M.Concrete)
 	kit:Part(Vector3.new(HALF * 2 + 20, 0.3, 1.5), CFrame.new(0, 0.15, 39.2), P.Yellow, M.SmoothPlastic)
 	kit:Part(Vector3.new(HALF * 2 + 20, 6, 2), CFrame.new(0, -3, 40.5), P.ConcreteDark, M.Concrete)
-	kit:Fill(M.Sand, CFrame.new(0, -14, 110), Vector3.new(HALF * 2 + 80, 6, 160))
-	kit:Water(CFrame.new(0, -6, 110), Vector3.new(HALF * 2 + 80, 10, 160))
+	kit:Fill(M.Sand, CFrame.new(0, -14, 330), Vector3.new(HALF * 2 + 900, 6, 600))
+	kit:Water(CFrame.new(0, -6, 330), Vector3.new(HALF * 2 + 900, 10, 600))
+	-- distant islands on the sea side
+	for _, isl in { { -260, 420, 70 }, { 40, 520, 110 }, { 320, 380, 80 }, { -480, 300, 90 }, { 520, 470, 120 } } do
+		kit:FillBall(M.Rock, Vector3.new(isl[1], -isl[3] * 0.45, isl[2]), isl[3])
+		kit:FillBall(M.Grass, Vector3.new(isl[1], -isl[3] * 0.6, isl[2]), isl[3] * 0.98)
+	end
 	for x = -HALF + 10, HALF - 10, 20 do
 		kit:Pillar(Vector3.new(x, 0, 37.5), 1.5, 1.4, rgb(40, 40, 44), M.Metal)
 	end
@@ -150,7 +155,15 @@ function Map.Build()
 	-- TEAM SPAWNS at both ends
 	kit:SpawnBase(Vector3.new(-138, 0, -74), Vector3.new(0, 0, -74), "A", 130)
 	kit:SpawnBase(Vector3.new(138, 0, -74), Vector3.new(0, 0, -74), "B", 130)
-	kit:Boundary(HALF, HALF, 200)
+	-- TRIPLE TEAM base (on the quay) + FREE FOR ALL spawns everywhere
+	kit:SpawnBase(Vector3.new(0, 0, 22), Vector3.new(0, 0, -60), "C", 100)
+	local ffa = {}
+	for _, p in { { -130, -110 }, { -130, -35 }, { 130, -130 }, { 130, -20 }, { -20, -60 }, { 10, -30 }, { -60, 10 }, { 100, 8 }, { -100, 8 }, { 40, -145 }, { -25, -118 }, { 110, -60 }, { 60, 0 }, { -76, -40 } } do
+		table.insert(ffa, Vector3.new(p[1], 0, p[2]))
+	end
+	kit:FFASpawns(ffa)
+	kit:Mountains(HALF, HALF, { Margin = 50, SkipSide = "N", GroundY = -0.5 })
+	kit:Boundary(HALF, HALF, 260)
 	return kit
 end
 

@@ -9,6 +9,7 @@ local GunBuilder = require(Shared.GunBuilder)
 local Util = require(Shared.Util)
 local Combat = require(script.Parent.CombatService)
 local MapService = require(script.Parent.MapService)
+local TeamService = require(script.Parent.TeamService)
 
 local BotService = {}
 BotService.Bots = {} -- list of records
@@ -86,7 +87,7 @@ local function runAI(record, model: Model)
 	local nextStrafe = 0
 	local nextShot = os.clock() + 1
 	local shotsInMag = def.Mag
-	local wander = MapService.PickSpawn(entity).Position
+	local wander = MapService.RandomPoint()
 	local nextWander = 0
 	local currentTarget = nil
 	local reactionUntil = 0
@@ -102,7 +103,7 @@ local function runAI(record, model: Model)
 		-- pick the closest visible enemy, otherwise head for the closest one
 		local best, bestDist, bestVisible = nil, math.huge, false
 		for _, other in Combat.Entities do
-			if other ~= entity and Combat.IsAlive(other) then
+			if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 				local d = (other.Root.Position - myPos).Magnitude
 				if d < 260 then
 					local visible = hasLineOfSight(head.Position, other, { model, workspace:FindFirstChild("Effects") })
@@ -164,7 +165,7 @@ local function runAI(record, model: Model)
 			end
 		else
 			if now > nextWander or (wander - myPos).Magnitude < 8 then
-				wander = MapService.PickSpawn(entity).Position
+				wander = MapService.RandomPoint()
 				nextWander = now + 6
 			end
 			local flat = Vector3.new(wander.X - myPos.X, 0, wander.Z - myPos.Z)
@@ -252,7 +253,16 @@ local function addBot()
 end
 
 local function removeBot()
-	local record = table.remove(BotService.Bots)
+	-- take a bot off the biggest team so teams stay even
+	local largest = TeamService.Largest()
+	local index = #BotService.Bots
+	for i = #BotService.Bots, 1, -1 do
+		if BotService.Bots[i].Entity.Team == largest then
+			index = i
+			break
+		end
+	end
+	local record = table.remove(BotService.Bots, index)
 	if not record then
 		return
 	end

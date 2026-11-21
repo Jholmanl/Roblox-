@@ -8,6 +8,7 @@ local Remotes = require(Shared.Remotes)
 local Combat = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
 local AchievementService = require(script.Parent.AchievementService)
+local TeamService = require(script.Parent.TeamService)
 
 local KillstreakService = {}
 KillstreakService.Round = nil -- injected RoundService
@@ -29,7 +30,7 @@ end
 local function airstrike(entity)
 	local targets = {}
 	for _, other in Combat.Entities do
-		if other ~= entity and Combat.IsAlive(other) then
+		if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 			table.insert(targets, groundBelow(other.Root.Position))
 		end
 	end
@@ -80,7 +81,7 @@ local function nuke(entity)
 		Remotes.Effect:FireAllClients("NukeDetonate")
 		local victims = {}
 		for _, other in Combat.Entities do
-			if other ~= entity and Combat.IsAlive(other) then
+			if other ~= entity and TeamService.Enemies(entity, other) and Combat.IsAlive(other) then
 				table.insert(victims, other)
 			end
 		end
@@ -94,6 +95,7 @@ local function nuke(entity)
 		KillstreakService.NukeActive = false
 		local round = KillstreakService.Round
 		if round and round.State == "Active" then
+			round.NukeEnding = true
 			round.EndMatch(entity)
 		end
 	end)

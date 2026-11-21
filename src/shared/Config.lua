@@ -2,7 +2,7 @@
 local Config = {}
 
 Config.GameName = "NEON STRIKE"
-Config.ModeName = "TEAM DEATHMATCH"
+Config.ModeName = "TEAM DEATHMATCH" -- default; the live mode is ReplicatedStorage.Mode
 
 -- Match flow
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
@@ -19,9 +19,18 @@ Config.BotAccuracy = 0.38
 
 -- Teams (spawns are at opposite ends of every map)
 Config.Teams = {
-	A = { Name = "ALPHA", Color = Color3.fromRGB(40, 140, 255) },
-	B = { Name = "BRAVO", Color = Color3.fromRGB(255, 70, 70) },
+	A = { Name = "ALPHA", Color = Color3.fromRGB(40, 140, 255), Brick = "Bright blue" },
+	B = { Name = "BRAVO", Color = Color3.fromRGB(255, 70, 70), Brick = "Bright red" },
+	C = { Name = "CHARLIE", Color = Color3.fromRGB(70, 220, 90), Brick = "Lime green" },
 }
+
+-- Game modes (players vote for the next mode on the results screen)
+Config.Modes = {
+	FFA = { Name = "FREE FOR ALL", Short = "FFA", Teams = {}, KillsToWin = 30, Desc = "Everyone for themselves. Spawns all over the map." },
+	TDM = { Name = "TEAM DEATHMATCH", Short = "TDM", Teams = { "A", "B" }, KillsToWin = 75, Desc = "Alpha vs Bravo. Spawns at opposite ends." },
+	TTDM = { Name = "TRIPLE TEAM DEATHMATCH", Short = "3TDM", Teams = { "A", "B", "C" }, KillsToWin = 60, Desc = "Alpha vs Bravo vs Charlie. Three bases." },
+}
+Config.ModeOrder = { "TDM", "FFA", "TTDM" }
 
 -- Downed / revive: only players on a 5+ kill streak get knocked down instead of dying
 Config.DownStreak = 5
