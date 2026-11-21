@@ -1,6 +1,6 @@
--- Match loop: WARMUP -> LIVE MATCH -> RESULTS (map + mode vote) -> repeat.
+-- Match loop: VOTE (map + mode) -> WARMUP -> LIVE MATCH -> RESULTS -> repeat.
 -- State is replicated through attributes on ReplicatedStorage:
---   MatchState ("Intermission" | "Active" | "Results"), MatchEnd (server time),
+--   MatchState ("Voting" | "Intermission" | "Active" | "Results"), MatchEnd (server time),
 --   Leader / LeaderScore.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -96,9 +96,6 @@ function RoundService.EndMatch(winnerEntity)
 	end
 	RoundService.ForcedWinner = winnerEntity
 	setState("Results", Config.ResultsLength)
-	if RoundService.Map then
-		RoundService.Map.StartVote()
-	end
 	local mapId = ReplicatedStorage:GetAttribute("MapId") or "Arena"
 
 	local list = ranking()
@@ -186,7 +183,29 @@ local function updateLeader()
 end
 
 function RoundService.Start()
+	local function runVote()
+		if not RoundService.Map then
+			return
+		end
+		RoundService.Map.StartVote()
+		setState("Voting", Config.VoteLength)
+		while timeLeft() > 0 do
+			task.wait(0.25)
+		end
+		local nextMap, nextMode = RoundService.Map.EndVote()
+		if nextMode and nextMode ~= TeamService.Mode then
+			TeamService.SetMode(nextMode)
+		end
+		if nextMap ~= ReplicatedStorage:GetAttribute("MapId") then
+			RoundService.Map.Load(nextMap)
+		end
+		updateLeader()
+		RoundService.RespawnAll()
+	end
+
 	task.spawn(function()
+		task.wait(1)
+		runVote()
 		while true do
 			-- WARMUP (kills still earn XP, cash & achievements, but not match score)
 			resetMatchStats()
@@ -213,21 +232,11 @@ function RoundService.Start()
 				RoundService.EndMatch(nil)
 			end
 
-			-- RESULTS (players vote for the next map)
+			-- RESULTS, then everyone votes on the next map + mode
 			while timeLeft() > 0 do
 				task.wait(0.25)
 			end
-			if RoundService.Map then
-				local nextMap, nextMode = RoundService.Map.EndVote()
-				if nextMode and nextMode ~= TeamService.Mode then
-					TeamService.SetMode(nextMode)
-				end
-				if nextMap ~= ReplicatedStorage:GetAttribute("MapId") then
-					RoundService.Map.Load(nextMap)
-				end
-			end
-			updateLeader()
-			RoundService.RespawnAll()
+			runVote()
 		end
 	end)
 end

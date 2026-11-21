@@ -7,7 +7,8 @@ Config.ModeName = "TEAM DEATHMATCH" -- default; the live mode is ReplicatedStora
 -- Match flow
 Config.IntermissionLength = 20 -- warmup before each match (seconds)
 Config.MatchLength = 300 -- 5 minute matches
-Config.ResultsLength = 16 -- includes map voting
+Config.ResultsLength = 10 -- podium / match summary
+Config.VoteLength = 15 -- pre-match map + mode vote
 Config.KillsToWin = 30 -- (unused in team mode)
 Config.TeamKillsToWin = 75 -- first team to this many kills wins
 Config.MaxPlayers = 30 -- set the same number in Game Settings > Places

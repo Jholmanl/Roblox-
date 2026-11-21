@@ -240,6 +240,16 @@ function MapKit:Wall(origin: CFrame, start: Vector3, axis: string, length: numbe
 		end
 		if glass then
 			self:Glass(size, origin * CFrame.new(pos), parent)
+			-- some windows glow warm from inside (lit rooms at dusk / night)
+			if trim and y0 > 1 and self.Rng:NextNumber() < (self.LitWindows or 0.3) then
+				local inward = -trim.Outward * (thick / 2 + 0.05)
+				local glowPos = axis == "X" and pos + Vector3.new(0, 0, inward) or pos + Vector3.new(inward, 0, 0)
+				local glowSize = axis == "X" and Vector3.new(len - 0.4, h - 0.4, 0.1) or Vector3.new(0.1, h - 0.4, len - 0.4)
+				local warm = ({ rgb(255, 214, 150), rgb(255, 236, 200), rgb(255, 196, 120), rgb(220, 235, 255) })[self.Rng:NextInteger(1, 4)]
+				local glow = self:Neon(glowSize, origin * CFrame.new(glowPos), warm, parent)
+				glow.Transparency = 0.45
+				glow.Name = "LitWindow"
+			end
 		else
 			self:Part(size, origin * CFrame.new(pos), color, material, parent)
 		end
@@ -415,6 +425,13 @@ function MapKit:Building(spec)
 			self:Ramp(low, high, 5, rgb(90, 90, 96), M.DiamondPlate, model)
 			self:Part(Vector3.new(0.3, 3, run), o * CFrame.new(sx1 + 0.2, y + H + 1.5, (sz0 + sz1) / 2), P.MetalDark, M.Metal, model)
 		end
+		-- ceiling light fixture so interiors aren't pitch black
+		if spec.InteriorLights ~= false then
+			local fx = o * CFrame.new(W * 0.12, y + H - 0.35, 0)
+			local fixture = self:Neon(Vector3.new(4, 0.2, 1.2), fx, rgb(255, 240, 215), model)
+			self:Deco(Vector3.new(4.4, 0.25, 1.6), fx * CFrame.new(0, 0.2, 0), P.MetalDark, M.Metal, model)
+			self:Light(fixture, "PointLight", rgb(255, 228, 190), math.max(W, D) * 0.75, 0.9)
+		end
 		if spec.Props ~= false then
 			for _ = 1, math.floor(W * D / 300) do
 				local px = rng:NextNumber(-W / 2 + 9, W / 2 - 4)
@@ -505,6 +522,9 @@ function MapKit:Building(spec)
 	if spec.Storefront then
 		local sign = self:Part(Vector3.new(W * 0.85, 1.8, 0.5), o * CFrame.new(0, 10.3, -D / 2 - 0.4), spec.Storefront, M.SmoothPlastic, model)
 		sign.Name = "ShopSign"
+		self:Light(sign, "SurfaceLight", spec.Storefront:Lerp(Color3.new(1, 1, 1), 0.5), 14, 1.2, Enum.NormalId.Front)
+		local shopGlow = self:Neon(Vector3.new(W * 0.7, 0.2, 2), o * CFrame.new(0, 8.6, -D / 2 + 3), rgb(255, 245, 225), model)
+		self:Light(shopGlow, "PointLight", rgb(255, 235, 200), 22, 1.4)
 		self:Neon(Vector3.new(W * 0.85, 0.2, 0.55), o * CFrame.new(0, 9.35, -D / 2 - 0.4), rgb(255, 240, 210), model)
 		for i = -2, 2 do
 			self:Neon(Vector3.new(1.2, 0.9, 0.1), o * CFrame.new(i * 2.2, 10.3, -D / 2 - 0.7), rgb(255, 255, 255), model)
@@ -570,6 +590,20 @@ function MapKit:Tower(origin: CFrame, W: number, D: number, height: number, colo
 	for y = 14, height - 4, 9 do
 		local g = self:Deco(Vector3.new(W + 0.3, 5, D + 0.3), origin * CFrame.new(0, y, 0), band, M.Glass, model)
 		g.Reflectance = 0.25
+		-- random lit offices on each face
+		for _, face in { { 0, 1, W }, { 0, -1, W }, { 1, 0, D }, { -1, 0, D } } do
+			local cols = math.max(1, math.floor(face[3] / 5))
+			for k = 0, cols - 1 do
+				if self.Rng:NextNumber() < (self.LitWindows or 0.3) * 0.9 then
+					local along = -face[3] / 2 + (k + 0.5) * face[3] / cols
+					local out = (face[1] ~= 0 and W or D) / 2 + 0.2
+					local cf = face[1] ~= 0 and CFrame.new(face[1] * out, y, along) or CFrame.new(along, y, face[2] * out)
+					local size = face[1] ~= 0 and Vector3.new(0.1, 4.2, face[3] / cols - 0.8) or Vector3.new(face[3] / cols - 0.8, 4.2, 0.1)
+					local lit = self:Neon(size, origin * cf, rgb(255, 222, 160), model)
+					lit.Transparency = 0.35
+				end
+			end
+		end
 	end
 	-- vertical mullions
 	for i = -2, 2 do
@@ -649,6 +683,8 @@ end
 
 -- Raised sidewalk block (curb) covering a city block.
 function MapKit:Sidewalk(center: Vector3, sx: number, sz: number)
+	self.Surfaces = self.Surfaces or {}
+	table.insert(self.Surfaces, { center.X - sx / 2, center.X + sx / 2, center.Z - sz / 2, center.Z + sz / 2, center.Y + 0.8 })
 	self:Part(Vector3.new(sx, 0.8, sz), CFrame.new(center + Vector3.new(0, 0.4, 0)), P.Sidewalk, M.Concrete, self.Geo)
 	self:Part(Vector3.new(sx + 0.6, 0.6, sz + 0.6), CFrame.new(center + Vector3.new(0, 0.3, 0)), P.ConcreteDark, M.Concrete, self.Geo)
 end
@@ -658,12 +694,27 @@ function MapKit:StreetLight(pos: Vector3, facing: Vector3)
 	local model = Instance.new("Model")
 	model.Name = "StreetLight"
 	model.Parent = self.Props
-	self:Pillar(pos, 16, 0.6, P.MetalDark, M.Metal, model)
+	-- tapered pole on a round footing
+	self:Pillar(pos, 0.8, 1.6, P.MetalDark, M.Metal, model)
+	self:Pillar(pos, 9, 0.75, P.MetalDark, M.Metal, model)
+	self:Pillar(pos + Vector3.new(0, 9, 0), 7, 0.55, P.MetalDark, M.Metal, model)
+	self:Ball(0.8, pos + Vector3.new(0, 16, 0), P.MetalDark, M.Metal, model)
 	local dir = Vector3.new(facing.X, 0, facing.Z).Unit
-	local armMid = pos + Vector3.new(0, 16, 0) + dir * 2.5
-	self:Part(Vector3.new(0.4, 0.4, 5), CFrame.lookAt(armMid, armMid + dir), P.MetalDark, M.Metal, model)
-	local lamp = self:Neon(Vector3.new(1.4, 0.4, 2.4), CFrame.lookAt(armMid + dir * 2.4 - Vector3.new(0, 0.4, 0), armMid + dir * 4), rgb(255, 236, 190), model)
-	self:Light(lamp, "SpotLight", rgb(255, 230, 180), 40, 2, Enum.NormalId.Bottom)
+	-- curved arm: three short segments bending out over the road
+	local p0 = pos + Vector3.new(0, 15.6, 0)
+	local pts = { p0, p0 + dir * 1.4 + Vector3.new(0, 1.0, 0), p0 + dir * 3.0 + Vector3.new(0, 1.4, 0), p0 + dir * 4.8 + Vector3.new(0, 1.2, 0) }
+	for i = 1, #pts - 1 do
+		local a, b = pts[i], pts[i + 1]
+		local seg = self:Cylinder((b - a).Magnitude + 0.3, 0.35, CFrame.lookAt((a + b) / 2, b) * CFrame.Angles(0, math.rad(90), 0), P.MetalDark, M.Metal, model)
+		seg.CanQuery = false
+	end
+	-- cobra-head lamp housing
+	local head = pts[#pts] + dir * 0.6
+	local housing = self:Part(Vector3.new(1.5, 0.6, 2.6), CFrame.lookAt(head, head + dir), P.MetalDark, M.Metal, model)
+	housing.CanQuery = false
+	local lamp = self:Neon(Vector3.new(1.1, 0.15, 2.1), CFrame.lookAt(head - Vector3.new(0, 0.35, 0), head - Vector3.new(0, 0.35, 0) + dir), rgb(255, 228, 170), model)
+	self:Light(lamp, "SpotLight", rgb(255, 222, 170), 46, 3, Enum.NormalId.Bottom)
+	self:Light(lamp, "PointLight", rgb(255, 214, 160), 14, 0.8)
 end
 
 function MapKit:TrafficLight(pos: Vector3, facing: Vector3)
@@ -716,7 +767,18 @@ function MapKit:Tree(pos: Vector3, scale: number?, kind: string?)
 	else
 		local trunkH = 6 * s
 		self:Pillar(pos - Vector3.new(0, 1, 0), trunkH + 1, 1.4 * s, P.Trunk, M.Wood, model)
-		for _ = 1, 3 do
+		-- fuller, rounder canopy: a big core plus smaller clumps around it
+		local crown = pos + Vector3.new(0, trunkH + 2 * s, 0)
+		local core = self:Ball(8 * s, crown, P.Leaf, M.LeafyGrass, model)
+		core.CanCollide = false
+		core.CanQuery = false
+		for k = 1, 5 do
+			local ang = k / 5 * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
+			local clump = self:Ball(rng:NextNumber(4, 5.5) * s, crown + Vector3.new(math.cos(ang) * 3.4, rng:NextNumber(-1.2, 1.6), math.sin(ang) * 3.4) * s, rng:NextNumber() < 0.5 and P.Leaf:Lerp(P.LeafDark, 0.3) or P.LeafDark, M.LeafyGrass, model)
+			clump.CanCollide = false
+			clump.CanQuery = false
+		end
+		for _ = 1, 2 do
 			local off = Vector3.new(rng:NextNumber(-2, 2), rng:NextNumber(0, 2.5), rng:NextNumber(-2, 2)) * s
 			local leaf = self:Ball(rng:NextNumber(6, 8.5) * s, pos + Vector3.new(0, trunkH + 2 * s, 0) + off, rng:NextNumber() < 0.5 and P.Leaf or P.LeafDark, M.LeafyGrass, model)
 			leaf.CanCollide = false
@@ -853,6 +915,25 @@ function MapKit:Watchtower(pos: Vector3, height: number?)
 	return model
 end
 
+-- Wall / post lantern with a warm flicker-free glow.
+function MapKit:Lantern(cf: CFrame, parent)
+	local cage = self:Deco(Vector3.new(0.9, 1.3, 0.9), cf, P.MetalDark, M.Metal, parent)
+	cage.Transparency = 0.2
+	local bulb = self:Neon(Vector3.new(0.55, 0.8, 0.55), cf, rgb(255, 190, 110), parent)
+	self:Deco(Vector3.new(1.2, 0.25, 1.2), cf * CFrame.new(0, 0.75, 0), P.MetalDark, M.Metal, parent)
+	self:Light(bulb, "PointLight", rgb(255, 180, 100), 18, 1.3)
+	return bulb
+end
+
+-- Stadium-style floodlight head aimed at `target`.
+function MapKit:Floodlight(pos: Vector3, target: Vector3, parent)
+	local cf = CFrame.lookAt(pos, target)
+	self:Deco(Vector3.new(3.2, 2, 0.8), cf, P.MetalDark, M.Metal, parent)
+	local face = self:Neon(Vector3.new(2.8, 1.6, 0.1), cf * CFrame.new(0, 0, -0.45), rgb(240, 245, 255), parent)
+	self:Light(face, "SpotLight", rgb(235, 240, 255), 60, 3, Enum.NormalId.Front)
+	return face
+end
+
 -- Gantry crane straddling a container yard.
 function MapKit:Crane(cf: CFrame, span: number, height: number)
 	local model = Instance.new("Model")
@@ -871,6 +952,13 @@ function MapKit:Crane(cf: CFrame, span: number, height: number)
 	self:Part(Vector3.new(8, 5, 18), cf * CFrame.new(span * 0.15, height + 3.5, 0), yellow, M.Metal, model)
 	self:Deco(Vector3.new(0.3, height * 0.45, 0.3), cf * CFrame.new(span * 0.15, height * 0.75, 0), P.MetalDark, M.Metal, model)
 	self:Part(Vector3.new(8, 1, 20), cf * CFrame.new(span * 0.15, height * 0.52, 0), P.MetalDark, M.Metal, model)
+	-- floodlights under the girders light the yard below
+	for _, x in { -span / 2 + 3, span / 2 - 3 } do
+		local p = (cf * CFrame.new(x, height - 2.2, 0)).Position
+		self:Floodlight(p, p + Vector3.new(-x * 0.6, -height, 0), model)
+	end
+	local warn = self:Neon(Vector3.new(0.8, 0.8, 0.8), cf * CFrame.new(span * 0.15, height + 6.4, 0), P.Red, model)
+	self:Light(warn, "PointLight", P.Red, 14, 1.5)
 	return model
 end
 
@@ -1192,7 +1280,7 @@ function MapKit:SpawnBase(center: Vector3, toward: Vector3, team: string, width:
 	local w = width or 60
 	local dir = Vector3.new(toward.X - center.X, 0, toward.Z - center.Z).Unit
 	local right = Vector3.new(-dir.Z, 0, dir.X)
-	local color = team == "A" and rgb(40, 120, 255) or rgb(255, 60, 60)
+	local color = ({ A = rgb(40, 120, 255), B = rgb(255, 60, 60), C = rgb(60, 220, 110) })[team] or rgb(255, 198, 26)
 	for i = -4, 4 do
 		if i ~= 0 then -- the middle is kept free (tunnel entrances / roads)
 			self:Spawn(center + right * (i * w / 9) + Vector3.new(0, 3, 0), center + dir * 100, team)
@@ -1215,10 +1303,23 @@ function MapKit:SpawnBase(center: Vector3, toward: Vector3, team: string, width:
 	glow.Name = "SpawnLine"
 end
 
--- Free-for-all spawn points scattered around the map.
-function MapKit:FFASpawns(points)
+-- Free-for-all spawn points scattered around the map. Points closer than
+-- `minGap` studs to an earlier point are dropped so nobody spawns on top of someone.
+function MapKit:FFASpawns(points, minGap: number?)
+	local gap = minGap or 36
+	local kept = {}
 	for _, p in points do
-		self:Spawn(Vector3.new(p.X, (p.Y ~= 0 and p.Y or 3), p.Z), Vector3.new(0, 3, 0), "FFA")
+		local ok = true
+		for _, q in kept do
+			if (Vector3.new(p.X - q.X, 0, p.Z - q.Z)).Magnitude < gap then
+				ok = false
+				break
+			end
+		end
+		if ok then
+			table.insert(kept, p)
+			self:Spawn(Vector3.new(p.X, (p.Y ~= 0 and p.Y or 3), p.Z), Vector3.new(0, 3, 0), "FFA")
+		end
 	end
 end
 
@@ -1270,6 +1371,236 @@ function MapKit:Mountains(halfX: number, halfZ: number, opts)
 					peak(center, r)
 				end
 			end
+		end
+	end
+end
+
+-- COVER -------------------------------------------------------------------------------
+-- Height of the terrain under (x, z); 0 when there's nothing to hit (or outside Roblox).
+function MapKit:GroundY(x: number, z: number): number
+	-- raised surfaces (sidewalk blocks) built by this kit
+	local best = nil
+	for _, r in self.Surfaces or {} do
+		if x >= r[1] and x <= r[2] and z >= r[3] and z <= r[4] then
+			best = math.max(best or -math.huge, r[5])
+		end
+	end
+	if best then
+		return best
+	end
+	local ok, result = pcall(function()
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		return workspace:Raycast(Vector3.new(x, 60, z), Vector3.new(0, -90, 0), params)
+	end)
+	if ok and result and result.Material ~= Enum.Material.Water then
+		return result.Position.Y
+	end
+	return 0
+end
+
+function MapKit:Barrel(pos: Vector3, color: Color3?, tipped: boolean?)
+	local c = color or rgb(40, 90, 160)
+	local cf = tipped and (CFrame.new(pos + Vector3.new(0, 1.3, 0)) * CFrame.Angles(0, self.Rng:NextNumber(0, 3), 0)) or (CFrame.new(pos + Vector3.new(0, 1.9, 0)) * CFrame.Angles(0, 0, math.rad(90)))
+	local b = self:Cylinder(3.8, 2.6, cf, c, M.Metal)
+	b.Name = "Barrel"
+	for _, off in { -1.1, 1.1 } do
+		self:Deco(Vector3.new(0.25, 2.72, 2.72), cf * CFrame.new(off, 0, 0), c:Lerp(Color3.new(), 0.35), M.Metal).Shape = Enum.PartType.Cylinder
+	end
+	return b
+end
+
+function MapKit:Pallet(cf: CFrame, height: number?)
+	for layer = 0, (height or 1) - 1 do
+		local y = layer * 0.7
+		for i = -1, 1 do
+			self:Part(Vector3.new(4.6, 0.35, 0.6), cf * CFrame.new(0, y + 0.18, i * 1.8), P.WoodLight, M.WoodPlanks)
+		end
+		for i = -2, 2 do
+			self:Deco(Vector3.new(0.8, 0.12, 4.4), cf * CFrame.new(i * 1.05, y + 0.42, 0), P.WoodLight:Lerp(P.Wood, 0.3), M.WoodPlanks)
+		end
+	end
+end
+
+-- Burnt-out car shell: solid, waist-high-plus cover.
+function MapKit:Wreck(cf: CFrame, color: Color3?)
+	local body = (color or rgb(90, 70, 60)):Lerp(rgb(40, 34, 30), 0.45)
+	local model = Instance.new("Model")
+	model.Name = "Wreck"
+	model.Parent = self.Geo
+	self:Part(Vector3.new(6.2, 2.2, 13), cf * CFrame.new(0, 1.9, 0), body, M.CorrodedMetal, model)
+	-- rounded bumpers
+	for _, z in { -6.5, 6.5 } do
+		self:Cylinder(6.2, 1.6, cf * CFrame.new(0, 1.6, z), body:Lerp(Color3.new(), 0.2), M.CorrodedMetal, model)
+	end
+	-- crushed cabin with broken-out windows
+	self:Part(Vector3.new(5.6, 1.6, 6), cf * CFrame.new(0, 3.75, 0.6) * CFrame.Angles(math.rad(4), 0, math.rad(3)), body, M.CorrodedMetal, model)
+	self:Deco(Vector3.new(5.7, 0.9, 6.1), cf * CFrame.new(0, 3.8, 0.6) * CFrame.Angles(math.rad(4), 0, math.rad(3)), rgb(20, 20, 22), M.SmoothPlastic, model)
+	for _, x in { -2.9, 2.9 } do
+		for _, z in { -4.2, 4.2 } do
+			local w = self:Cylinder(1.1, 2.4, cf * CFrame.new(x, 1.0, z), rgb(28, 28, 30), M.Slate, model)
+			w.CanQuery = false
+		end
+	end
+	local smoke = self:Deco(Vector3.new(1, 1, 1), cf * CFrame.new(0, 4.6, -3), body, M.CorrodedMetal, model)
+	smoke.Transparency = 1
+	local pe = Instance.new("Smoke")
+	pe.Color = rgb(60, 60, 60)
+	pe.Opacity = 0.08
+	pe.RiseVelocity = 3
+	pe.Size = 4
+	pe.Parent = smoke
+	return model
+end
+
+function MapKit:LogPile(cf: CFrame)
+	for row = 0, 2 do
+		for i = 0, 2 - row do
+			local log = self:Cylinder(9, 1.5, cf * CFrame.new(0, 0.75 + row * 1.25, (i - (2 - row) / 2) * 1.55) * CFrame.Angles(0, self.Rng:NextNumber(-0.05, 0.05), 0), P.Trunk:Lerp(P.WoodLight, self.Rng:NextNumber(0, 0.3)), M.Wood)
+			log.Name = "Log"
+		end
+	end
+end
+
+function MapKit:FallenTree(cf: CFrame)
+	local trunk = self:Cylinder(16, 2, cf * CFrame.new(0, 1, 0) * CFrame.Angles(0, 0, math.rad(4)), P.Trunk, M.Wood)
+	trunk.Name = "FallenTree"
+	self:Cylinder(2.2, 2.6, cf * CFrame.new(-8, 1.3, 0), P.Trunk:Lerp(Color3.new(), 0.2), M.Wood) -- root end
+	for i = 1, 3 do
+		local leaf = self:Ball(self.Rng:NextNumber(4, 6), (cf * CFrame.new(6 + i, 1.8, self.Rng:NextNumber(-1.5, 1.5))).Position, P.LeafDark, M.LeafyGrass)
+		leaf.CanCollide = false
+	end
+end
+
+-- Low concrete wall chunk with exposed rebar (broken edge).
+function MapKit:BrokenWall(cf: CFrame, length: number, color: Color3?)
+	local c = color or P.ConcreteDark
+	self:Part(Vector3.new(length, 4.6, 1.4), cf * CFrame.new(0, 2.3, 0), c, M.Concrete)
+	self:Part(Vector3.new(length * 0.35, 1.6, 1.4), cf * CFrame.new(length * 0.2, 5.4, 0) * CFrame.Angles(0, 0, math.rad(-6)), c, M.Concrete)
+	for i = 0, 2 do
+		self:Deco(Vector3.new(0.15, 1.6, 0.15), cf * CFrame.new(-length / 2 + 0.4 + i * 0.5, 5.2, 0) * CFrame.Angles(0, 0, math.rad(-12 + i * 10)), rgb(90, 60, 45), M.CorrodedMetal)
+	end
+	for _ = 1, 3 do
+		local rubble = self:Part(Vector3.one * self.Rng:NextNumber(0.8, 1.6), cf * CFrame.new(self.Rng:NextNumber(-length / 2, length / 2), 0.4, self.Rng:NextNumber(1.2, 2.6)) * CFrame.Angles(self.Rng:NextNumber(0, 3), self.Rng:NextNumber(0, 3), 0), c, M.Concrete)
+		rubble.CanQuery = false
+	end
+end
+
+local COVER_STYLES = {
+	City = { "BarrierL", "Wreck", "Crates", "Sandbags", "Planter", "BrokenWall" },
+	Harbor = { "Crates", "Barrels", "Pallets", "Sandbags", "BarrierL", "Wreck" },
+	Forest = { "Logs", "Rocks", "FallenTree", "Sandbags", "Crates" },
+	Arena = { "NeonWall", "NeonPillar", "NeonCrates" },
+}
+
+-- One cover cluster at `pos` (a little set piece you can hide behind / peek around).
+function MapKit:CoverCluster(pos: Vector3, theme: string, style: string?)
+	local rng = self.Rng
+	local styles = COVER_STYLES[theme] or COVER_STYLES.City
+	style = style or styles[rng:NextInteger(1, #styles)]
+	local y = math.max(pos.Y, self:GroundY(pos.X, pos.Z))
+	local base = CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+	if style == "BarrierL" then
+		self:Barrier(base * CFrame.new(-2, 0, 0))
+		self:Barrier(base * CFrame.new(3.4, 0, 4.4) * CFrame.Angles(0, math.rad(90), 0))
+		self:Cone((base * CFrame.new(-7.5, 0, 2)).Position)
+	elseif style == "Wreck" then
+		self:Wreck(base * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-3, 3))))
+	elseif style == "Crates" then
+		self:Crate((base * CFrame.new(0, 0, 0)).Position, 5, rng:NextNumber(0, 0.3))
+		self:Crate((base * CFrame.new(5.2, 0, 0.4)).Position, 4.5, rng:NextNumber(0, 0.3))
+		self:Crate((base * CFrame.new(2.4, 5, 0.2)).Position, 4, rng:NextNumber(0, 0.6))
+		self:Pallet(base * CFrame.new(-5, 0, 3), 2)
+	elseif style == "Sandbags" then
+		self:Sandbags(base, 10, 3)
+		self:Sandbags(base * CFrame.new(5.6, 0, 3.6) * CFrame.Angles(0, math.rad(-60), 0), 6, 3)
+		self:Sandbags(base * CFrame.new(-5.6, 0, 3.6) * CFrame.Angles(0, math.rad(60), 0), 6, 3)
+	elseif style == "Planter" then
+		local planter = self:Part(Vector3.new(12, 3.2, 4), base * CFrame.new(0, 1.6, 0), P.Concrete, M.Concrete)
+		planter.Name = "BigPlanter"
+		self:Deco(Vector3.new(11.4, 0.4, 3.4), base * CFrame.new(0, 3.1, 0), rgb(70, 50, 36), M.Ground)
+		for i = -1, 1 do
+			local b = self:Ball(3.4, (base * CFrame.new(i * 3.6, 4.2, 0)).Position, P.LeafDark, M.LeafyGrass)
+			b.CanCollide = false
+		end
+		self:Bench(base * CFrame.new(0, 0, 4.2) * CFrame.Angles(0, math.rad(180), 0))
+	elseif style == "BrokenWall" then
+		self:BrokenWall(base, 11)
+	elseif style == "Barrels" then
+		local colors = { rgb(40, 90, 160), rgb(200, 70, 40), rgb(230, 170, 30), rgb(60, 120, 70) }
+		for i = 0, 3 do
+			self:Barrel((base * CFrame.new((i % 2) * 2.9 - 1.4, 0, math.floor(i / 2) * 2.9 - 1.4)).Position, colors[rng:NextInteger(1, 4)])
+		end
+		self:Barrel((base * CFrame.new(4.6, 0, 1)).Position, colors[rng:NextInteger(1, 4)], true)
+		self:Pallet(base * CFrame.new(-4.8, 0, 0), 3)
+	elseif style == "Pallets" then
+		self:Pallet(base, 5)
+		self:Pallet(base * CFrame.new(5.2, 0, 0.6) * CFrame.Angles(0, 0.2, 0), 3)
+		self:Crate((base * CFrame.new(-4.6, 0, 1)).Position, 4)
+	elseif style == "Logs" then
+		self:LogPile(base)
+		self:Rock((base * CFrame.new(6, 0, 3)).Position, 0.8)
+	elseif style == "Rocks" then
+		self:Rock(base.Position, 1.6)
+		self:Rock((base * CFrame.new(5, 0, 2)).Position, 1.1)
+		self:Bush((base * CFrame.new(-4, 0, 3)).Position, 1)
+	elseif style == "FallenTree" then
+		self:FallenTree(base)
+	elseif style == "NeonWall" or style == "NeonPillar" or style == "NeonCrates" then
+		local trim = rng:NextNumber() < 0.5 and P.NeonWarm or P.Neon
+		if style == "NeonWall" then
+			self:Part(Vector3.new(12, 4.5, 1.5), base * CFrame.new(0, 2.25, 0), P.MetalDark, M.Metal)
+			self:Neon(Vector3.new(12.1, 0.25, 1.6), base * CFrame.new(0, 4.5, 0), trim)
+			self:Part(Vector3.new(1.5, 4.5, 6), base * CFrame.new(6.75, 2.25, 2.25), P.MetalDark, M.Metal)
+			self:Neon(Vector3.new(1.6, 0.25, 6.1), base * CFrame.new(6.75, 4.5, 2.25), trim)
+		elseif style == "NeonPillar" then
+			self:Pillar(base.Position, 10, 4, P.Metal, M.Metal)
+			self:Neon(Vector3.new(0.3, 4.1, 4.1), CFrame.new(base.Position + Vector3.new(0, 10, 0)) * CFrame.Angles(0, 0, math.rad(90)), trim).Shape = Enum.PartType.Cylinder
+			self:Part(Vector3.new(8, 3, 1.4), base * CFrame.new(0, 1.5, 3.2), P.MetalDark, M.Metal)
+		else
+			for i, off in { Vector3.new(0, 0, 0), Vector3.new(4.6, 0, 0.5), Vector3.new(2.2, 4, 0.2) } do
+				local sz = i == 3 and 3.6 or 4.4
+				local cf = base * CFrame.new(off + Vector3.new(0, sz / 2, 0))
+				self:Part(Vector3.one * sz, cf, P.Metal, M.DiamondPlate)
+				self:Neon(Vector3.new(sz + 0.05, 0.2, sz + 0.05), cf * CFrame.new(0, sz / 2 - 0.4, 0), trim)
+			end
+		end
+	end
+end
+
+-- Scatter cover clusters over a list of { x, z } open spots.
+function MapKit:CoverField(spots, theme: string)
+	for _, p in spots do
+		self:CoverCluster(Vector3.new(p[1], 0, p[2]), theme)
+	end
+end
+
+-- Roadside cover along a straight road: alternating clusters near the curbs that
+-- leave the driving lanes open.
+function MapKit:RoadCover(axis: string, center: number, from: number, to: number, step: number, curb: number, _theme: string, skip)
+	local side = 1
+	for a = from, to, step do
+		local blocked = false
+		for _, s in skip or {} do
+			if math.abs(a - s) < 16 then
+				blocked = true
+			end
+		end
+		if not blocked then
+			local pos = axis == "X" and Vector3.new(a, 0, center + side * curb) or Vector3.new(center + side * curb, 0, a)
+			local rot = axis == "X" and 0 or 90
+			local cf = CFrame.new(pos) * CFrame.Angles(0, math.rad(rot + self.Rng:NextNumber(-12, 12)), 0)
+			local roll = self.Rng:NextNumber()
+			if roll < 0.4 then
+				self:Wreck(cf * CFrame.Angles(0, math.rad(90), 0))
+			elseif roll < 0.75 then
+				self:Barrier(cf)
+				self:Barrier(cf * CFrame.new(8.2, 0, 0.6) * CFrame.Angles(0, math.rad(14), 0))
+			else
+				self:Sandbags(cf, 8, 3)
+			end
+			side = -side
 		end
 	end
 end

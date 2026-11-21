@@ -510,11 +510,6 @@ function Menus.ShowScoreboard(on: boolean)
 end
 
 -- RESULTS ------------------------------------------------------------------------------
-local voteCards = {}
-local myVote = nil
-local modeCards = {}
-local myModeVote = nil
-
 local function buildResults()
 	results = new("TextButton", { Name = "Results", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.25, Text = "", AutoButtonColor = false, Modal = true, Visible = false, ZIndex = 8, Parent = gui })
 end
@@ -581,70 +576,7 @@ function Menus.ShowResults(info)
 		end)
 		b.ZIndex = 10
 	end
-	-- map vote
-	local options = string.split(ReplicatedStorage:GetAttribute("VoteOptions") or "", ",")
-	if #options > 0 and options[1] ~= "" then
-		local vote = new("Frame", { Name = "Vote", Size = UDim2.fromOffset(600, 96), Position = UDim2.new(0.5, 0, 1, -14), AnchorPoint = Vector2.new(0.5, 1), BackgroundTransparency = 1, ZIndex = 9, Parent = results })
-		Label({ Text = "VOTE FOR THE NEXT MAP", Size = UDim2.new(1, 0, 0, 16), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Font = T.Black, TextColor3 = T.Accent, ZIndex = 10, Parent = vote })
-		local row = new("Frame", { Size = UDim2.new(1, 0, 0, 74), Position = UDim2.fromOffset(0, 22), BackgroundTransparency = 1, ZIndex = 9, Parent = vote }, {
-			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
-		})
-		voteCards = {}
-		modeCards = {}
-		local modeRow = new("Frame", { Size = UDim2.new(1, 0, 0, 46), Position = UDim2.fromOffset(0, -54), BackgroundTransparency = 1, ZIndex = 9, Parent = vote }, {
-			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
-		})
-		Label({ Text = "VOTE FOR THE NEXT MODE", Size = UDim2.new(1, 0, 0, 14), Position = UDim2.fromOffset(0, -72), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 12, Font = T.Black, TextColor3 = T.Accent2, ZIndex = 10, Parent = vote })
-		for i, id in Config.ModeOrder do
-			local m = Config.Modes[id]
-			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 46), Color = T.Panel2, LayoutOrder = i, Parent = modeRow }, function()
-				myModeVote = id
-				Remotes.Vote:FireServer(id)
-			end)
-			card.ZIndex = 10
-			Label({ Text = m.Name, Size = UDim2.new(1, -12, 0, 18), Position = UDim2.fromOffset(8, 5), TextSize = 12, Font = T.Black, ZIndex = 11, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
-			local count = Label({ Text = "0 VOTES", Size = UDim2.new(1, -12, 0, 14), Position = UDim2.fromOffset(8, 25), TextSize = 11, Font = T.Black, TextColor3 = T.Accent, ZIndex = 11, Parent = card })
-			modeCards[id] = { Card = card, Count = count }
-		end
-		for i, id in options do
-			local info = Config.Maps[id] or { Name = id, Icon = "🗺️", Desc = "" }
-			local card = UIKit.Button({ Text = "", Size = UDim2.fromOffset(190, 74), Color = T.Panel2, LayoutOrder = i, Parent = row }, function()
-				myVote = id
-				Remotes.Vote:FireServer(id)
-			end)
-			card.ZIndex = 10
-			Label({ Text = info.Icon .. "  " .. info.Name, Size = UDim2.new(1, -12, 0, 22), Position = UDim2.fromOffset(10, 8), TextSize = 15, Font = T.Black, ZIndex = 11, Parent = card })
-			Label({ Text = info.Desc, Size = UDim2.new(1, -12, 0, 14), Position = UDim2.fromOffset(10, 30), TextSize = 10, Font = T.Medium, TextColor3 = T.Sub, ZIndex = 11, Parent = card })
-			local count = Label({ Text = "0 VOTES", Size = UDim2.new(1, -12, 0, 16), Position = UDim2.fromOffset(10, 50), TextSize = 12, Font = T.Black, TextColor3 = T.Accent, ZIndex = 11, Parent = card })
-			voteCards[id] = { Card = card, Count = count }
-		end
-	end
 	ClientState.MenuOpen = true
-end
-
-local function updateVotes()
-	for id, c in modeCards do
-		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
-		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
-		local mine = id == myModeVote
-		UIKit.SetButtonColor(c.Card, mine and T.Accent2 or T.Panel2)
-		for _, l in c.Card:GetChildren() do
-			if l:IsA("TextLabel") then
-				l.TextColor3 = mine and Color3.new(0, 0, 0) or (l == c.Count and T.Accent or T.Text)
-			end
-		end
-	end
-	for id, c in voteCards do
-		local n = ReplicatedStorage:GetAttribute("Votes_" .. id) or 0
-		c.Count.Text = n .. (n == 1 and " VOTE" or " VOTES")
-		UIKit.SetButtonColor(c.Card, id == myVote and T.Accent or T.Panel2)
-		for _, l in c.Card:GetChildren() do
-			if l:IsA("TextLabel") and l ~= c.Count then
-				l.TextColor3 = id == myVote and Color3.new(0, 0, 0) or (l.TextSize > 12 and T.Text or T.Sub)
-			end
-		end
-		c.Count.TextColor3 = id == myVote and Color3.new(0, 0, 0) or T.Accent
-	end
 end
 
 function Menus.HideResults()
@@ -818,10 +750,6 @@ function Menus.Init(playerGui: PlayerGui)
 		end
 		if results.Visible and ReplicatedStorage:GetAttribute("MatchState") ~= "Results" then
 			Menus.HideResults()
-			myVote = nil
-			myModeVote = nil
-		elseif results.Visible then
-			updateVotes()
 		end
 	end)
 end

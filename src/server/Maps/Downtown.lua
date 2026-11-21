@@ -11,7 +11,7 @@ local Map = {
 	Desc = "City streets, rooftops and a subway under the avenue.",
 	Icon = "🏙️",
 	Lighting = {
-		ClockTime = 17.8, Brightness = 2.2,
+		ClockTime = 18.1, Brightness = 2, Exposure = 0.15,
 		Ambient = rgb(90, 80, 90), OutdoorAmbient = rgb(140, 120, 120),
 		Atmosphere = { Density = 0.32, Haze = 1.6, Color = rgb(255, 200, 170), Decay = rgb(120, 90, 110) },
 		Tint = rgb(255, 238, 225), Saturation = 0.12,
@@ -89,7 +89,7 @@ function Map.Build()
 	for _, sx in spans do
 		for _, sz in spans do
 			local cx, cz = (sx[1] + sx[2]) / 2, (sz[1] + sz[2]) / 2
-			local spawnStrip = math.abs(cz) > 100 and math.abs(cx) < 100
+			local spawnStrip = (math.abs(cz) > 100 and math.abs(cx) < 100) or (cx < -100 and math.abs(cz) < 100)
 			if (math.abs(cx) > 100 or math.abs(cz) > 100) and not spawnStrip then
 				local w, d = sx[2] - sx[1] - 8, sz[2] - sz[1] - 8
 				local cols = w > 50 and 2 or 1
@@ -210,7 +210,24 @@ function Map.Build()
 		kit:HealthPack(p)
 	end
 	-- TRIPLE TEAM base (west road end) + FREE FOR ALL spawns all over the city
-	kit:SpawnBase(Vector3.new(-138, 0, 0), Vector3.new(0, 0, 0), "C", 22)
+	kit:SpawnBase(Vector3.new(-138, 0.8, 0), Vector3.new(0, 0, 0), "C", 150)
+	-- CHARLIE plaza on the west strip: lamps, planters and cover instead of towers
+	for _, z in { -80, -50, -20, 20, 50, 80 } do
+		kit:StreetLight(Vector3.new(-113.5, 0.8, z), Vector3.new(1, 0, 0))
+	end
+	for _, p in { { -126, -70 }, { -150, -40 }, { -126, 40 }, { -150, 72 } } do
+		kit:CoverCluster(Vector3.new(p[1], 0.8, p[2]), "City", "Planter")
+	end
+	kit:CoverCluster(Vector3.new(-128, 0.8, -28), "City", "BrokenWall")
+	kit:CoverCluster(Vector3.new(-128, 0.8, 28), "City", "Crates")
+	-- MORE COVER: open lots + both sides of every street (driving lanes stay clear)
+	kit:CoverField({ { -51, -31 }, { 67, -27 }, { 29, -57 }, { -25, -65 }, { -51, -61 }, { -29, 29 }, { -77, -35 }, { -77, -73 } }, "City")
+	for _, c in ROADS do
+		-- keep the avenue's subway stairs and the spawn ends clear
+		local ends = c == 0 and { -100, 0, 100, -138, 138, -80, -20, 20, 80 } or { -100, 0, 100 }
+		kit:RoadCover("X", c, -146, 146, 30, 8, "City", c == 0 and { -100, 0, 100, -138 } or { -100, 0, 100 })
+		kit:RoadCover("Z", c, -146, 146, 30, 8, "City", ends)
+	end
 	local ffa = {}
 	for _, x in ROADS do
 		for _, z in { -50, 50 } do

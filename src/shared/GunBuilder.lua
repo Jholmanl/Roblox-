@@ -82,8 +82,47 @@ function GunBuilder.Build(weaponId: string, golden: boolean?)
 	local function at(x, y, z)
 		return CFrame.new(x, y, z)
 	end
+	-- Grips, stocks, handguards and mags get rounded edges: a rounded-rectangle
+	-- prism (two crossed boxes + a cylinder on each long edge) instead of a plain box.
+	local ROUNDED = {
+		Grip = true, GripBack = true, Stock = true, StockTop = true, StockToe = true, StockButt = true, StockComb = true,
+		StockBottom = true, Handguard = true, HandguardTip = true, Mag = true, Mag2 = true, Foregrip = true, Pistol = true,
+	}
 	local function box(name, size, cf, color, material, anim)
-		return make(name, size, cf, color, material, nil, anim)
+		if not ROUNDED[name] then
+			return make(name, size, cf, color, material, nil, anim)
+		end
+		local dims = { size.X, size.Y, size.Z }
+		local long = 1
+		for i = 2, 3 do
+			if dims[i] > dims[long] then
+				long = i
+			end
+		end
+		local a, b = (long % 3) + 1, ((long + 1) % 3) + 1 -- the two cross-section axes
+		local r = math.min(dims[a], dims[b]) * 0.3
+		if r < 0.035 then
+			return make(name, size, cf, color, material, nil, anim)
+		end
+		local function vec(t)
+			return Vector3.new(t[1], t[2], t[3])
+		end
+		local sa, sb = table.clone(dims), table.clone(dims)
+		sa[a] -= 2 * r
+		sb[b] -= 2 * r
+		local main = make(name, vec(sa), cf, color, material, nil, anim)
+		make(name .. "R", vec(sb), cf, color, material, nil, anim)
+		-- cylinders run along X by default; rotate them onto the long axis
+		local rot = long == 1 and CFrame.identity or (long == 2 and CFrame.Angles(0, 0, math.rad(90)) or CFrame.Angles(0, math.rad(90), 0))
+		for _, ua in { -1, 1 } do
+			for _, ub in { -1, 1 } do
+				local off = { 0, 0, 0 }
+				off[a] = ua * (dims[a] / 2 - r)
+				off[b] = ub * (dims[b] / 2 - r)
+				make(name .. "Edge", Vector3.new(dims[long], 2 * r, 2 * r), cf * CFrame.new(vec(off)) * rot, color, material, Enum.PartType.Cylinder, anim)
+			end
+		end
+		return main
 	end
 	-- cylinder along the gun's Z axis
 	local function cyl(name, length, d, cf, color, material, anim)

@@ -34,8 +34,10 @@ local function applyLighting(L)
 	Lighting.Ambient = L.Ambient or Color3.fromRGB(70, 70, 80)
 	Lighting.OutdoorAmbient = L.OutdoorAmbient or Color3.fromRGB(120, 120, 130)
 	Lighting.GlobalShadows = true
-	Lighting.EnvironmentDiffuseScale = 0.6
-	Lighting.EnvironmentSpecularScale = 0.6
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
+	Lighting.ShadowSoftness = 0.25
+	Lighting.ExposureCompensation = L.Exposure or 0
 	pcall(function()
 		Lighting.Technology = Enum.Technology.Future
 	end)
@@ -47,9 +49,9 @@ local function applyLighting(L)
 	atmo.Decay = a.Decay or Color3.fromRGB(100, 100, 130)
 	atmo.Glare = 0.2
 	local bloom = ensure("BloomEffect", Lighting)
-	bloom.Intensity = 0.7
-	bloom.Size = 28
-	bloom.Threshold = 1.5
+	bloom.Intensity = 0.9
+	bloom.Size = 30
+	bloom.Threshold = 1.25 -- lets neon windows / lamps glow
 	local cc = ensure("ColorCorrectionEffect", Lighting)
 	cc.Saturation = L.Saturation or 0.15
 	cc.Contrast = 0.12
@@ -78,14 +80,23 @@ local function applyLighting(L)
 end
 
 -- Snap spawn markers to whatever surface is under them.
+-- Snap a spawn marker onto the floor right under it. The ray starts only a few
+-- studs above the marker so it never lands on a roof, canopy, crane or tree.
 local function groundSpawn(marker: BasePart): CFrame
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { workspace:FindFirstChild("Effects"), workspace:FindFirstChild("Bots") }
-	local origin = marker.Position + Vector3.new(0, 40, 0)
-	local result = workspace:Raycast(origin, Vector3.new(0, -120, 0), params)
-	local y = result and result.Position.Y + 3.5 or marker.Position.Y + 3
-	return CFrame.new(marker.Position.X, y, marker.Position.Z) * marker.CFrame.Rotation
+	params.FilterDescendantsInstances = { workspace:FindFirstChild("Effects"), workspace:FindFirstChild("Bots"), workspace:FindFirstChild("Vehicles") }
+	local pos = marker.Position
+	local result = workspace:Raycast(pos + Vector3.new(0, 6, 0), Vector3.new(0, -40, 0), params)
+	if not result then
+		-- marker might be buried in a hill: look a little higher, but never more than 14 studs up
+		local high = workspace:Raycast(pos + Vector3.new(0, 14, 0), Vector3.new(0, -20, 0), params)
+		if high and high.Position.Y < pos.Y + 14 then
+			result = high
+		end
+	end
+	local y = result and result.Position.Y + 3.2 or pos.Y
+	return CFrame.new(pos.X, y, pos.Z) * marker.CFrame.Rotation
 end
 
 function MapService.Load(id: string)
@@ -140,6 +151,7 @@ end
 -- VOTING -----------------------------------------------------------------------
 local votes = {} :: { [Player]: string }
 local modeVotes = {} :: { [Player]: string }
+local voteCursor = 0
 local options = {} :: { string }
 
 local function publishVotes()
@@ -160,14 +172,12 @@ function MapService.StartVote()
 	votes = {}
 	modeVotes = {}
 	options = {}
-	local pool = table.clone(MapService.Order)
-	for i = #pool, 2, -1 do
-		local j = math.random(1, i)
-		pool[i], pool[j] = pool[j], pool[i]
+	-- 3 maps per vote, sliding through the map list so every round offers a new set
+	local n = #MapService.Order
+	for i = 0, math.min(3, n) - 1 do
+		table.insert(options, MapService.Order[(voteCursor + i) % n + 1])
 	end
-	for i = 1, math.min(3, #pool) do
-		table.insert(options, pool[i])
-	end
+	voteCursor = (voteCursor + math.min(3, n)) % n
 	ReplicatedStorage:SetAttribute("VoteOptions", table.concat(options, ","))
 	publishVotes()
 end

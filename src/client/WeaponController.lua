@@ -88,7 +88,7 @@ local function alive(): boolean
 end
 
 local function canAct(): boolean
-	return alive() and not ClientState.MenuOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
+	return alive() and not ClientState.MenuOpen and not ClientState.VoteOpen and not ClientState.Driving and player:GetAttribute("Downed") ~= true
 end
 
 -- VIEWMODEL --------------------------------------------------------------------
@@ -431,6 +431,9 @@ local function tryShoot()
 	local unlimited = infinite()
 	if a.Mag <= 0 and not unlimited then
 		UIKit.Sound("Empty")
+		if ClientState.OnDryFire then
+			ClientState.OnDryFire()
+		end
 		WC.Reload()
 		return
 	end
@@ -517,7 +520,7 @@ function WC.OnHit(info)
 	if info.Killed then
 		UIKit.Sound("Kill", 1.4)
 	else
-		UIKit.Sound("Hit", info.Headshot and 1.6 or 1.1)
+		UIKit.Sound("Hit", info.Headshot and 2.1 or 1.6)
 	end
 end
 

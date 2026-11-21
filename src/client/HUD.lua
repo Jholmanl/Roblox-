@@ -193,11 +193,22 @@ end
 -- HEALTH (bottom-left) -------------------------------------------------------------
 local function buildHealth()
 	local f = new("Frame", { Name = "Health", Size = UDim2.fromOffset(300, 84), Position = UDim2.new(0, 16, 1, -16), AnchorPoint = Vector2.new(0, 1), BackgroundTransparency = 1, Parent = gui })
+	-- backing plate that fades out to the right + accent edge
+	local plate = new("Frame", { Name = "Plate", Size = UDim2.new(1, 24, 1, 12), Position = UDim2.fromOffset(-10, -6), BackgroundColor3 = Color3.fromRGB(6, 9, 14), BorderSizePixel = 0, ZIndex = 0, Parent = f })
+	new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(0.7, 0.75), NumberSequenceKeypoint.new(1, 1) }), Parent = plate })
+	UIKit.Corner(6).Parent = plate
+	new("Frame", { Size = UDim2.new(0, 3, 1, -16), Position = UDim2.fromOffset(0, 8), BackgroundColor3 = T.Green, BorderSizePixel = 0, Parent = plate })
 	refs.HP = shadowText({ Text = "100", Size = UDim2.fromOffset(90, 44), Position = UDim2.fromOffset(0, 0), TextSize = 44, Font = T.Black, Parent = f })
 	Label({ Text = "HEALTH", Size = UDim2.fromOffset(100, 14), Position = UDim2.fromOffset(94, 6), TextSize = 11, Font = T.Black, TextColor3 = T.Sub, Parent = f })
 	local bar, fill = UIKit.Bar({ Size = UDim2.fromOffset(190, 12), Position = UDim2.fromOffset(94, 24), Color = T.Green, Parent = f })
 	refs.HPFill = fill
 	refs.HPBar = bar
+	-- white "damage trail" that drains after the real bar, plus 25% segment ticks
+	refs.HPTrail = new("Frame", { Name = "Trail", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.35, BorderSizePixel = 0, ZIndex = fill.ZIndex, Parent = bar })
+	fill.ZIndex += 1
+	for i = 1, 3 do
+		new("Frame", { Size = UDim2.new(0, 2, 1, 0), Position = UDim2.fromScale(i / 4, 0), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = fill.ZIndex + 1, Parent = bar })
+	end
 	refs.Streak = shadowText({ Text = "", RichText = true, Size = UDim2.fromOffset(300, 18), Position = UDim2.fromOffset(0, 50), TextSize = 13, Font = T.Black, TextColor3 = T.Text, Parent = f })
 	refs.StreakPips = new("Frame", { Size = UDim2.fromOffset(300, 8), Position = UDim2.fromOffset(0, 72), BackgroundTransparency = 1, Parent = f }, { UIKit.List(3, true) })
 end
@@ -205,6 +216,10 @@ end
 -- AMMO (bottom-right) ------------------------------------------------------------
 local function buildAmmo()
 	local f = new("Frame", { Name = "Ammo", Size = UDim2.fromOffset(300, 110), Position = UDim2.new(1, -16, 1, -16), AnchorPoint = Vector2.new(1, 1), BackgroundTransparency = 1, Parent = gui })
+	local plate = new("Frame", { Name = "Plate", Size = UDim2.new(1, 24, 1, 12), Position = UDim2.new(1, 10, 0, -6), AnchorPoint = Vector2.new(1, 0), BackgroundColor3 = Color3.fromRGB(6, 9, 14), BorderSizePixel = 0, ZIndex = 0, Parent = f })
+	new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0.75), NumberSequenceKeypoint.new(1, 0.3) }), Parent = plate })
+	UIKit.Corner(6).Parent = plate
+	new("Frame", { Size = UDim2.new(0, 3, 1, -16), Position = UDim2.new(1, -3, 0, 8), BackgroundColor3 = T.Accent, BorderSizePixel = 0, Parent = plate })
 	refs.WeaponName = shadowText({ Text = "", Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 0), TextXAlignment = Enum.TextXAlignment.Right, TextSize = 15, Font = T.Black, TextColor3 = T.Accent, Parent = f })
 	refs.Reserve = shadowText({ Text = "/ 0", Size = UDim2.fromOffset(90, 30), Position = UDim2.new(1, -90, 0, 32), TextSize = 22, Font = T.Black, TextColor3 = T.Sub, Parent = f })
 	refs.Mag = shadowText({ Text = "0", Size = UDim2.fromOffset(140, 56), Position = UDim2.new(1, -236, 0, 16), TextXAlignment = Enum.TextXAlignment.Right, TextSize = 56, Font = T.Black, Parent = f })
@@ -689,7 +704,9 @@ local function update(dt: number)
 	if state == "Intermission" then
 		refs.Banner.Text = "WARMUP  ·  MATCH STARTS IN " .. math.ceil(left)
 	elseif state == "Results" then
-		refs.Banner.Text = "MATCH OVER  ·  NEXT ROUND IN " .. math.ceil(left)
+		refs.Banner.Text = "MATCH OVER  ·  VOTING IN " .. math.ceil(left)
+	elseif state == "Voting" then
+		refs.Banner.Text = "VOTING  ·  " .. math.ceil(left)
 	else
 		refs.Banner.Text = ""
 	end
@@ -794,6 +811,8 @@ local function update(dt: number)
 		local frac = math.clamp(hum.Health / math.max(1, hum.MaxHealth), 0, 1)
 		refs.HP.Text = tostring(math.ceil(hum.Health))
 		refs.HPFill.Size = UDim2.fromScale(frac, 1)
+		local trail = refs.HPTrail.Size.X.Scale
+		refs.HPTrail.Size = UDim2.fromScale(trail > frac and math.max(frac, trail - dt * 0.6) or frac, 1)
 		refs.HPFill.BackgroundColor3 = T.Red:Lerp(T.Green, frac)
 		refs.HP.TextColor3 = frac < 0.3 and T.Red or T.Text
 		local low = frac < 0.35 and hum.Health > 0 and (0.35 - frac) * 1.6 or 0

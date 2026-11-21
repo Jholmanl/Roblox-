@@ -162,6 +162,10 @@ function Map.Build()
 		table.insert(ffa, Vector3.new(p[1], 0, p[2]))
 	end
 	kit:FFASpawns(ffa)
+	-- MORE COVER in the open yards + along the quay road
+	kit:CoverField({ { 79, -73 }, { -19, -23 }, { 83, -13 }, { 109, -37 }, { 15, -7 }, { -81, -115 }, { 111, -97 }, { 35, -25 }, { 29, -109 }, { -95, -75 }, { 9, -49 }, { 111, -133 }, { -61, -73 }, { 87, -121 } }, "Harbor")
+	kit:RoadCover("X", 20, -140, -64, 26, 6.5, "Harbor", { -90 })
+	kit:RoadCover("X", 20, 64, 140, 26, 6.5, "Harbor", { 70 })
 	kit:Mountains(HALF, HALF, { Margin = 50, SkipSide = "N", GroundY = -0.5 })
 	kit:Boundary(HALF, HALF, 260)
 	return kit

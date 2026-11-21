@@ -131,7 +131,7 @@ function Effects.Zap(position: Vector3, radius: number, color: Color3)
 	light.Parent = ball
 	TweenService:Create(ball, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { Size = Vector3.one * radius * 2, Transparency = 1 }):Play()
 	Debris:AddItem(ball, 0.3)
-	Effects.Sound3D("Hit", position, 0.5)
+	Effects.Sound3D("ShotHeavy", position, 1.3)
 	shakeFrom(position, 1, radius * 4)
 end
 

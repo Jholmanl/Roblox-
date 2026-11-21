@@ -10,7 +10,7 @@ local Map = {
 	Desc = "Forest valley split by a river. Snipe from the towers.",
 	Icon = "🌲",
 	Lighting = {
-		ClockTime = 13.5, Brightness = 2.8,
+		ClockTime = 16.4, Brightness = 2.6,
 		Ambient = rgb(80, 90, 80), OutdoorAmbient = rgb(130, 140, 130),
 		Atmosphere = { Density = 0.35, Haze = 1.4, Color = rgb(200, 225, 210), Decay = rgb(90, 120, 110) },
 		Tint = rgb(240, 255, 240), Saturation = 0.2,
@@ -114,12 +114,16 @@ function Map.Build()
 		local kind, x, z = s[1], s[2], s[3]
 		if kind == "Cabin" then
 			kit:Fill(M.Ground, CFrame.new(x, -0.6, z), Vector3.new(30, 1.2, 26))
+			local cabinCf = CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rng:NextInteger(0, 3) * 90), 0)
 			kit:Building({
-				Name = "Cabin", Origin = CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rng:NextInteger(0, 3) * 90), 0),
+				Name = "Cabin", Origin = cabinCf,
 				W = 24, D = 18, Floors = 1, FloorH = 11, Color = P.Wood, Material = M.WoodPlanks, Trim = P.WoodDark,
 				Floor = P.WoodLight, Roof = "Gable", RoofColor = rgb(70, 50, 40), RoofAccess = false,
 				Doors = { Front = true, Back = true }, Awning = P.WoodDark, OpenWindows = 0.6, Pilasters = false, AC = false,
 			})
+			for _, side in { -1, 1 } do
+				kit:Lantern(cabinCf * CFrame.new(4.2, 7.6, side * 9.7))
+			end
 			kit:HealthPack(Vector3.new(x + 15, 0, z))
 			for i = 1, 3 do
 				kit:Cylinder(4, 1.4, CFrame.new(x - 15, 0.7 + (i - 1) * 1.2, z - 4 + i * 1.5) * CFrame.Angles(0, math.rad(90), 0), P.Trunk, M.Wood)
@@ -236,7 +240,9 @@ function Map.Build()
 			end
 		end
 	end
-	kit:FFASpawns(ffa)
+	kit:FFASpawns(ffa, 30)
+	-- MORE COVER: log piles, rocks, fallen trees and sandbag nests in the clearings
+	kit:CoverField({ { 135, 27 }, { -87, -103 }, { -131, -25 }, { -71, -39 }, { -51, 87 }, { -129, 25 }, { -67, 123 }, { -115, 83 }, { 83, 111 }, { 59, -53 }, { -113, -85 }, { -97, -35 }, { 39, 21 }, { 71, -129 }, { 109, -85 }, { 5, -45 }, { -7, -141 }, { 73, -89 }, { 71, 19 }, { 103, 89 }, { 115, -43 }, { 45, -77 }, { -61, 19 } }, "Forest")
 	kit:Mountains(HALF + 18, HALF + 18, { Margin = 95, GroundY = -0.5 })
 	kit:Boundary(HALF, HALF, 260)
 	return kit

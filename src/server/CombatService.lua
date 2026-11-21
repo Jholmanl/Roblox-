@@ -236,7 +236,7 @@ function Combat.Damage(attacker, victim, amount: number, info): boolean
 	if attacker and not TeamService.Enemies(attacker, victim) then
 		return false -- no friendly fire
 	end
-	if Combat.Hooks.Round and Combat.Hooks.Round.State == "Results" then
+	if Combat.Hooks.Round and (Combat.Hooks.Round.State == "Results" or Combat.Hooks.Round.State == "Voting") then
 		return false
 	end
 	if victim.Character:FindFirstChildOfClass("ForceField") then

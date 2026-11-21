@@ -166,7 +166,10 @@ function CarBuilder.Build(style: string, color: Color3?, anchored: boolean?)
 			beam("APillar", Vector3.new(x, s.Belt, s.WsBase), Vector3.new(x, s.Roof, s.RoofFront), 0.24, paint)
 			beam("CPillar", Vector3.new(x, s.Roof, s.RoofRear), Vector3.new(x, s.Bed and s.Belt or s.TrunkTop, s.RearBase), 0.3, paint)
 			part("BPillar", Vector3.new(0.22, cabinH, 0.4), CFrame.new(x, s.Belt + cabinH / 2, s.RoofFront + midLen * 0.45), TRIM)
-			part("RoofRail", Vector3.new(0.22, 0.22, midLen + 0.3), CFrame.new(x, s.Roof, s.RoofFront + midLen / 2), paint)
+			-- rounded roof edge
+			local rail = part("RoofRail", Vector3.new(midLen + 0.3, 0.32, 0.32), CFrame.new(x, s.Roof + 0.02, s.RoofFront + midLen / 2) * CFrame.Angles(0, math.rad(90), 0), paint)
+			rail.Shape = Enum.PartType.Cylinder
+			rail.Reflectance = 0.12
 		end
 		-- wipers
 		for _, x in { -1.3, 1.0 } do
@@ -220,6 +223,15 @@ function CarBuilder.Build(style: string, color: Color3?, anchored: boolean?)
 		part("GrilleBar", Vector3.new(W * 0.48, 0.07, 0.06), CFrame.new(0, bottom + 0.45 + i * (frontTop - bottom - 0.7) / 4, nose - 0.1), s.Spoiler and BLACK or CHROME, M.Metal)
 	end
 	part("BumperF", Vector3.new(W + 0.15, 0.7, 0.45), CFrame.new(0, bottom + 0.35, nose - 0.12), s.Open and BLACK or paint:Lerp(BLACK, 0.15), M.SmoothPlastic, true)
+	-- rounded bumper face + rounded body corners (so the car isn't a box)
+	local bumperCol = s.Open and BLACK or paint:Lerp(BLACK, 0.15)
+	cylX("BumperFRound", W - 0.2, 0.7, Vector3.new(0, bottom + 0.35, nose - 0.32), bumperCol, M.SmoothPlastic)
+	for _, sx in { -1, 1 } do
+		local h = frontTop - bottom
+		local corner = part("CornerF", Vector3.new(h, 0.8, 0.8), CFrame.new(sx * (W / 2 - 0.3), bottom + h / 2, nose + 0.1) * CFrame.Angles(0, 0, math.rad(90)), paint)
+		corner.Shape = Enum.PartType.Cylinder
+		corner.Reflectance = 0.12
+	end
 	part("PlateF", Vector3.new(1.6, 0.5, 0.05), CFrame.new(0, bottom + 0.4, nose - 0.36), rgb(240, 240, 240))
 	for _, sx in { -1, 1 } do
 		local hx = sx * (W / 2 - 0.95)
@@ -255,6 +267,13 @@ function CarBuilder.Build(style: string, color: Color3?, anchored: boolean?)
 	local tail = L / 2
 	local tailTop = s.Bed and s.Belt or s.TrunkTop
 	part("BumperR", Vector3.new(W + 0.15, 0.7, 0.45), CFrame.new(0, bottom + 0.35, tail + 0.12), s.Open and BLACK or paint:Lerp(BLACK, 0.15), M.SmoothPlastic, true)
+	cylX("BumperRRound", W - 0.2, 0.7, Vector3.new(0, bottom + 0.35, tail + 0.32), s.Open and BLACK or paint:Lerp(BLACK, 0.15), M.SmoothPlastic)
+	for _, sx in { -1, 1 } do
+		local h = tailTop - bottom
+		local corner = part("CornerR", Vector3.new(h, 0.8, 0.8), CFrame.new(sx * (W / 2 - 0.3), bottom + h / 2, tail - 0.1) * CFrame.Angles(0, 0, math.rad(90)), paint)
+		corner.Shape = Enum.PartType.Cylinder
+		corner.Reflectance = 0.12
+	end
 	part("PlateR", Vector3.new(1.6, 0.5, 0.05), CFrame.new(0, bottom + 1.0, tail + 0.03), rgb(240, 240, 240))
 	part("PlateStripe", Vector3.new(1.6, 0.1, 0.06), CFrame.new(0, bottom + 1.2, tail + 0.04), rgb(30, 60, 150))
 	for _, sx in { -1, 1 } do

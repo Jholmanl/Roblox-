@@ -82,10 +82,21 @@ local function onCharacter(player: Player, character: Model)
 		return
 	end
 	local root = character:WaitForChild("HumanoidRootPart")
-	character:PivotTo(MapService.PickSpawn(entity))
 	if not root:IsDescendantOf(workspace) then
 		character.AncestryChanged:Wait()
 	end
+	-- wait a frame so Roblox's own spawn placement (in the sky when there's no
+	-- SpawnLocation) can't override ours, then put the character on the ground
+	task.wait()
+	local target = MapService.PickSpawn(entity)
+	character:PivotTo(target)
+	root.AssemblyLinearVelocity = Vector3.zero
+	task.delay(0.2, function()
+		if root.Parent and (root.Position - target.Position).Magnitude > 25 then
+			character:PivotTo(target)
+			root.AssemblyLinearVelocity = Vector3.zero
+		end
+	end)
 	Combat.AttachCharacter(entity, character, { data.Loadout.Primary, data.Loadout.Secondary })
 	Combat.GiveLoadout(player, data.Loadout)
 end

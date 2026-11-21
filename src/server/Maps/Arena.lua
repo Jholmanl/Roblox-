@@ -106,12 +106,17 @@ function Map.Build()
 	end
 	-- FREE FOR ALL spawns around the edges + TRIPLE TEAM base on the west side
 	local ffa = {}
-	for _, along in { -60, -20, 20, 60 } do
+	for _, along in { -60, 0, 60 } do
 		for _, edge in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
-			table.insert(ffa, edge[1] ~= 0 and Vector3.new(edge[1] * 115, 0, along) or Vector3.new(along, 0, edge[2] * 115))
+			table.insert(ffa, edge[1] ~= 0 and Vector3.new(edge[1] * 115, 0, along + 20) or Vector3.new(along + 20, 0, edge[2] * 115))
 		end
 	end
-	kit:FFASpawns(ffa)
+	for _, p in { { 30, 75 }, { -75, 30 }, { -30, -75 }, { 75, -30 }, { 0, 52 }, { 0, -52 } } do
+		table.insert(ffa, Vector3.new(p[1], 0, p[2]))
+	end
+	kit:FFASpawns(ffa, 40)
+	-- MORE COVER: neon walls, pillars and crate stacks break up the open lanes
+	kit:CoverField({ { -20, 66 }, { 20, -66 }, { 76, 26 }, { -76, -26 }, { -6, -60 }, { 6, 60 }, { 40, -84 }, { -40, 84 }, { -18, 20 }, { -20, -18 }, { 18, 20 }, { 20, -18 }, { 42, 40 }, { 40, -42 }, { -40, -42 }, { -40, 42 }, { 106, 56 }, { -62, 62 }, { -62, -62 }, { 62, 62 }, { 62, -62 }, { 108, -60 }, { 96, -26 }, { 54, -20 } }, "Arena")
 	kit:SpawnBase(Vector3.new(-114, 0, 0), Vector3.new(0, 0, 0), "C", 100)
 	kit:Mountains(HALF + 10, HALF + 10, { Margin = 70, GroundY = -0.5 })
 	-- TEAM SPAWNS at both ends

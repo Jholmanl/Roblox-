@@ -4,7 +4,8 @@
 return {
 	Shot = { Id = "rbxasset://sounds/snap.mp3", Volume = 0.6 },
 	ShotHeavy = { Id = "rbxasset://sounds/collide.wav", Volume = 0.8 },
-	Hit = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35 },
+	-- soft, crisp hitmarker click (pitched up at play time; higher for headshots)
+	Hit = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.45 },
 	Kill = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.8 },
 	Reload = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6 },
 	Empty = { Id = "rbxasset://sounds/button.wav", Volume = 0.5 },
@@ -14,5 +15,6 @@ return {
 	Slam = { Id = "rbxasset://sounds/collide.wav", Volume = 1 },
 	Click = { Id = "rbxasset://sounds/button.wav", Volume = 0.5 },
 	Unlock = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.9 },
-	Hurt = { Id = "rbxasset://sounds/uuhhh.mp3", Volume = 0.5 },
+	-- muted tick when you take damage (replaces the old "uuhhh" grunt)
+	Hurt = { Id = "rbxasset://sounds/button.wav", Volume = 0.28 },
 }

@@ -105,9 +105,43 @@ function UIKit.Panel(props, children)
 	for k, v in props do
 		defaults[k] = v
 	end
+	local plain = defaults.Plain
+	defaults.Plain = nil
 	local f = new("Frame", defaults, children)
 	UIKit.Corner(8).Parent = f
+	if not plain then
+		UIKit.Polish(f)
+	end
 	return f
+end
+
+-- Adds depth to a panel or button: a soft top-lit gradient and a hairline edge.
+-- Skipped automatically when the caller adds its own gradient / stroke.
+function UIKit.Polish(inst: GuiObject, strength: number?)
+	local k = strength or 1
+	local grad = new("UIGradient", {
+		Name = "AutoShade", Rotation = 90,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1):Lerp(Color3.fromRGB(150, 155, 170), 0.55 * k)),
+		}),
+		Parent = inst,
+	})
+	local stroke = new("UIStroke", { Name = "AutoEdge", Color = Color3.new(1, 1, 1), Transparency = 0.88, Thickness = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = inst })
+	task.defer(function()
+		for _, child in inst:GetChildren() do
+			if child:IsA("UIGradient") and child ~= grad then
+				grad:Destroy()
+				break
+			end
+		end
+		for _, child in inst:GetChildren() do
+			if child:IsA("UIStroke") and child ~= stroke then
+				stroke:Destroy()
+				break
+			end
+		end
+	end)
 end
 
 function UIKit.Tween(inst: Instance, time: number, goal, style, direction)
@@ -157,6 +191,7 @@ function UIKit.Button(props, onClick)
 		Parent = props.Parent,
 	})
 	UIKit.Corner(props.Radius or 6).Parent = btn
+	UIKit.Polish(btn, 0.8)
 	local scale = new("UIScale", { Parent = btn })
 	btn.MouseEnter:Connect(function()
 		UIKit.Tween(scale, 0.12, { Scale = 1.04 })
